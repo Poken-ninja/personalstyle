@@ -352,4 +352,49 @@ If the write set overlaps another active task in protocol/schema/config/migratio
 
 After any merge/conflict resolution, evidence affected by the merged behavior becomes stale until rerun on the merged revision.
 
-GitHub branch-protection/ruleset enforcement has not been verified through the current connector; merge discipline is therefore a written requirement until repository rules/CI mechanize it.
+GitHub main protection and the required Python harness check were mechanized after I01;
+see `docs/GITHUB_GATE_HANDOFF.md` and `docs/SEC01_HANDOFF.md` for remote evidence.
+These checks enforce the recorded CI gate; semantic scope review remains a builder duty.
+
+# SEC01 — Core local security boundary
+
+Owner selected SEC01 after I01 and the GitHub gate on 2026-10-06. Historical initial
+states above remain contract-baseline facts; current evidence is in task handoffs.
+
+Entry: I01 merged, GitHub gate merged/enforced, clean synchronized main, authorized
+workspace writes, Windows/Python development environment and no other active task.
+
+Permitted scope: bound configuration input; reject unsupported/unsafe security settings;
+prepare and verify an empty private local profile directory using Windows ACLs on explicit
+CLI action; metadata-only startup diagnostics; executable negative security tests.
+Excluded: writing persistence/SQLite schema, inference/prompts, learning, networking,
+client authentication/pairing and protocol handshake (P01), release/signing/dependency audit.
+
+Acceptance:
+- SEC-AC1: startup rejects configuration over 64 KiB, unexpected secret fields, incompatible
+  versions, unsafe network/logging/secrets flags, and escaping/absolute storage paths without
+  echoing input values. Current valid configuration still passes, including model TODO.
+- SEC-AC2: explicit storage preparation creates only an empty directory; protected ACL is
+  owned by the current Windows account and grants inheritable FullControl only to that
+  account and SYSTEM. Existing insecure/nonempty directories, reparse paths and unsupported
+  operating systems fail safely without weakening existing permissions.
+- SEC-AC3: startup telemetry accepts fixed event identifiers and bounded counters only;
+  injected writing/credential markers and config contents never reach normal logs/output.
+  User-provided paths enter fixed OS ACL code as data, never shell instructions.
+- SEC-AC4: positive/negative tests exercise the real CLI/config and Windows ACL readback;
+  I01 tests, Ruff, mypy and the required GitHub CI job pass on the committed revision.
+- SEC-AC5: handoff records evidence, checkpoint, versions, counters, scope limitations,
+  failures and next action. No claims about absent network/prompt/storage product paths.
+
+Budget: 3 implementation attempts (first counts), 2 non-modifying diagnosis cycles,
+1 recovery; counters persist. Fixed ACL subprocesses have a 10-second ceiling; configuration
+has a 64 KiB ceiling; CI retains its 10-minute ceiling. Classify failure before repair;
+retry only with changed information; block on unavailable OS permissions/environment;
+controlled stop on exhausted budget/scope change. Recovery preserves unrelated work:
+repair local changes, revert SEC01-only changes, then restore task-start Git checkpoint.
+
+OS account/admin protection is the local trust boundary; same-account malicious code and
+host administrators are not isolated by this application. No encryption or forensic erase
+is claimed. Preparation/readback is a precondition for F01, not permission to bypass ACL
+verification in future writers. Prompt isolation and authenticated networking must be
+verified when those code paths exist, before exposing them. F01 must not start automatically.

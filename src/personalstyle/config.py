@@ -2,7 +2,7 @@
 
 import re
 import tomllib
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 
@@ -40,13 +40,18 @@ FIELDS: dict[str, dict[str, type]] = {
     "logging": {"level": str, "store_prompts": bool, "store_outputs": bool},
 }
 
+MAX_CONFIG_BYTES = 64 * 1024
+
 
 def load_config(path: Path) -> dict[str, Any]:
     """Validate schema 1 and retain every supplied policy value unchanged."""
     try:
         with path.open("rb") as stream:
-            config = tomllib.load(stream)
-    except (OSError, tomllib.TOMLDecodeError) as error:
+            content = stream.read(MAX_CONFIG_BYTES + 1)
+        if len(content) > MAX_CONFIG_BYTES:
+            raise ConfigError("Configuration exceeds size limit")
+        config = tomllib.loads(content.decode("utf-8"))
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
         # Do not echo potentially sensitive TOML content or parser excerpts.
         raise ConfigError("Configuration cannot be read as TOML") from error
     if config.keys() != FIELDS.keys():
@@ -73,4 +78,25 @@ def load_config(path: Path) -> dict[str, Any]:
         raise ConfigError("Unsupported compatibility policy")
     if not 0 <= config["model"]["temperature"] <= 2:
         raise ConfigError("Temperature must be between 0 and 2")
+    safe_security = {
+        "companion_mode_enabled": False, "default_network_scope": "loopback",
+        "network_clients_require_auth": True, "remote_transport_requires_encryption": True,
+        "browser_origin_validation_required": True, "secrets_in_config_allowed": False,
+        "application_level_storage_encryption": False,
+    }
+    if config["security"] != safe_security:
+        raise ConfigError("Unsupported security policy for the current local engine")
+    if config["logging"]["store_prompts"] or config["logging"]["store_outputs"]:
+        raise ConfigError("Sensitive content logging is unsupported")
+    if config["agent"]["enabled"] or config["scheduling"]["enabled"]:
+        raise ConfigError("Agents and scheduling are unsupported")
+    storage_path = PureWindowsPath(config["storage"]["path"])
+    if (
+        storage_path.drive or storage_path.root or len(storage_path.parts) < 2
+        or ".." in storage_path.parts
+        or any(char in config["storage"]["path"] for char in '<>:"|?*')
+        or any(ord(char) < 32 for char in config["storage"]["path"])
+        or config["storage"]["backend"] != "sqlite"
+    ):
+        raise ConfigError("Storage must use a relative path inside a profile directory")
     return config
