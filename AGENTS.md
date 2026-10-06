@@ -58,6 +58,48 @@ For conflicts:
 
 A runtime mismatch does not automatically make documentation stale. Classify the mismatch first as implementation defect, specification defect, intentional version difference, environment/configuration difference, verifier defect, or unknown.
 
+## Versioning and compatibility
+
+Use separate versions for separate compatibility surfaces.
+
+- **Product/core package version:** SemVer in `pyproject.toml`.
+- **Protocol version:** SemVer-like `MAJOR.MINOR` in `personalstyle.toml`.
+- **Config schema version:** monotonically increasing integer.
+- **Storage schema version:** monotonically increasing integer.
+- **Profile schema version:** monotonically increasing integer.
+- **Prompt contract version:** immutable integer/identifier recorded with each run.
+- **Surface/client version:** owned by each client package when that client exists.
+- **Model identity:** record provider + exact model/version identifier used by a run.
+
+Rules:
+1. Protocol MAJOR mismatch is incompatible unless an explicit adapter exists.
+2. Protocol MINOR changes must be additive/backward-compatible within a major.
+3. Older clients remain supported only while protocol/capability compatibility and platform support are verified; age alone neither guarantees nor forbids support.
+4. Unknown future config/storage/profile schema versions must fail safely, not be guessed.
+5. Known older schemas must migrate through explicit ordered migrations before normal writes resume.
+6. Never allow old-schema and new-schema writers to write the same profile concurrently.
+7. Prompt/model/profile versions used for a result must be reconstructable.
+8. A version bump is not a substitute for a migration or compatibility test.
+
+Version declarations are written requirements until code/tests enforce them.
+
+## Multi-surface rule
+
+PersonalStyle targets one authoritative engine with thin surfaces:
+- terminal/CLI;
+- browser extension (current reversible interpretation of "extension");
+- desktop app;
+- iOS app;
+- Android app.
+
+Surface clients must not fork personalization, verification, retry, or persistence rules. They call the authoritative engine/protocol.
+
+Standalone iOS/Android local inference is **not** solved by the desktop Ollama provider. Mobile must use either an explicitly paired companion engine or a separately verified mobile inference provider.
+
+A platform/version is called **supported** only when the selected framework/runtime/provider supports it and release verification covers it. Do not promise unlimited backward OS support.
+
+See `docs/decisions/ADR-002-versioned-multi-surface-engine.md`.
+
 ## Deterministic ownership
 
 The deterministic harness owns anything that controls execution or durable state:
@@ -268,6 +310,23 @@ and the system can collect the required hard-invariant, edit-effort, acceptance,
 
 This does **not** mean PersonalStyle meets the product success criterion.
 
+### Surface complete
+
+A CLI, extension, desktop, iOS, or Android surface is complete only when:
+1. it reaches the authoritative engine through the defined protocol/library boundary;
+2. it does not duplicate protected personalization/harness logic;
+3. required workflows pass on the declared supported platform/version matrix;
+4. protocol incompatibility, engine-unavailable, permission-denied, and migration-required states have explicit user-visible failure behavior;
+5. its client and protocol versions are recorded in applicable evidence.
+
+A successful build on one developer machine is not surface completion.
+
+### Cross-platform release complete
+
+A cross-platform release is complete only when every surface claimed as supported has current release evidence for every OS/runtime version claimed as supported.
+
+Unsupported or unverified older OS versions must be labeled best-effort or unsupported, not silently counted as complete.
+
 ### Product success validated
 
 Before the scored product test, freeze:
@@ -309,7 +368,17 @@ Personalization failure can occur even when the software is implemented correctl
 - held-out product-test leakage;
 - verifier is weakened to get a pass;
 - unreconstructable run state;
-- hidden scheduled/background mutation.
+- hidden scheduled/background mutation;
+- incompatible client/engine versions proceed without explicit compatibility handling;
+- old/new schema writers mutate the same profile concurrently;
+- a surface bypasses the authoritative engine and writes canonical state directly.
+
+### Compatibility failure
+- supported surface fails on a declared supported OS/runtime version;
+- older compatible client cannot negotiate required protocol capabilities;
+- migration fails or leaves store/profile state unverifiable;
+- protocol/schema change breaks a previously supported same-major client without a declared compatibility break;
+- support is claimed for an untested/unverified platform version.
 
 ### Failure response
 
@@ -379,6 +448,58 @@ For A/B/C product testing:
 - test contexts separately;
 - record failure cases, not only averages;
 - do not change the pass rule after seeing results.
+
+## Merge-conflict discipline
+
+Merge conflicts are treated as engineering state, not clerical cleanup.
+
+### Before implementation
+Every task declares a **write set**: files/directories/contracts it expects to modify.
+
+If two active tasks have overlapping write sets in a high-contention area, serialize them unless isolation is explicit.
+
+High-contention areas include:
+- `AGENTS.md`;
+- `ARCHITECTURE.md`;
+- `EXECUTION_CONTRACT.md`;
+- `personalstyle.toml`;
+- `pyproject.toml`;
+- protocol/schema definitions;
+- database migrations;
+- dependency lockfiles;
+- shared prompt contracts.
+
+### Conflict prevention
+- default WIP remains 1 for implementation;
+- keep branches/tasks short-lived;
+- sync with current `main` before final verification/handoff;
+- do not mix broad formatting/refactors with behavior changes;
+- do not touch lockfiles/config/schema files unless the task requires it;
+- use one active storage migration sequence at a time;
+- shared behavior goes in the engine/protocol, not copied into clients.
+
+### Conflict resolution
+1. classify conflict as textual or semantic;
+2. for semantic conflicts, identify the authoritative requirement/version/schema before editing;
+3. never resolve protocol/schema/migration/state conflicts with blind "ours" or "theirs";
+4. preserve both sides' intended behavior where compatible, otherwise block for an explicit decision;
+5. after resolution, rerun all checks whose evidence the merged change invalidated;
+6. regenerate generated artifacts from their source after semantic merge instead of hand-merging generated output;
+7. update the handoff with the merge base, resolved conflict, and rerun evidence.
+
+A conflict is not resolved merely because Git no longer shows conflict markers.
+
+### Merge completion gate
+A task may be called merge-ready only when:
+- no conflict markers remain;
+- the branch is reconciled with the intended base;
+- task acceptance checks pass on the merged result;
+- protocol/schema/migration compatibility checks pass when affected;
+- version bumps/migrations are coherent;
+- no unrelated work was lost;
+- handoff evidence references the merged revision.
+
+Repository branch-protection enforcement is currently unverified; these rules are therefore partly advisory until GitHub rules/CI enforce them.
 
 ## Change discipline
 
