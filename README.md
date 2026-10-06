@@ -14,6 +14,14 @@ The repository is initialized around a deterministic harness, explicit context/s
 
 The agent component is disabled initially.
 
+## Initial implementation rule
+
+Build the smallest end-to-end vertical slice first:
+
+input → context selection → generation → verification → result → user edit → adaptation.
+
+Do not add speculative infrastructure before the vertical slice and its tests demonstrate a concrete need.
+
 ## Design priorities
 
 1. Preserve meaning and constraints.
