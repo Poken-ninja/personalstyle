@@ -1,208 +1,345 @@
 # PersonalStyle Architecture
 
-## Problem
+## Purpose
 
-Given input text, intent, and context, transform the text so its expression better matches the user's demonstrated writing behavior while preserving original meaning, required information, and explicit constraints.
+This file describes the **structural design** of PersonalStyle. Builder behavior, completion rules, failure handling, budgets, verification integrity, and scheduling policy live in `AGENTS.md`.
 
-The personalization framing is:
+## Product boundary
 
-**Style × Context × Intent**
+PersonalStyle transforms:
 
-Success means the personalized system is measurably closer to the user's demonstrated behavior for the relevant context than a non-personalized baseline.
-
-## Baseline architecture
-
-```
-USER
- ↓
-DETERMINISTIC HARNESS
- ↓
-CONTEXT + PROFILE + EXAMPLES
- ↓
-BOUNDED REASONING
- ↓
-LOCAL LLM
- ↓
-DRAFT
- ↓
-INDEPENDENT VERIFICATION
- ↓
-PASS → USER
-FAIL → BOUNDED RETRY
- ↓
-USER ACCEPT / EDIT
- ↓
-FEEDBACK
- ↓
-ADAPTATION
- ↓
-PERSONALIZATION STATE
+```text
+original text
++ intent
++ explicit context
++ explicit constraints
++ relevant user evidence
+        ↓
+personalized rewrite
 ```
 
-This is a baseline to validate, not a reason to endlessly redesign.
+The product must preserve meaning and required information while adapting expression to demonstrated behavior for the relevant context.
 
-## Deterministic vs agentic boundary
+The personalization model is:
 
-Deterministic:
-- validation
-- context lookup/filtering
-- profile/example selection policy
-- state and persistence
-- loop controller
-- budgets/timeouts
-- state-machine transitions
-- verification policy
-- security/permissions
-- feedback-state mutation rules
-- observability
-- scheduling/triggers
+> Style × Context × Intent
 
-Agentic:
-- interpreting ambiguity
-- bounded strategy choice
-- interpreting evidence
-- resolving conflicting signals
-- choosing a bounded adjustment after verification failure
+## V1 architecture
 
-The agent cannot alter the harness that constrains it.
-
-## Context
-
-Context is explicit metadata, not an undifferentiated memory pool.
-
-Examples may be tagged by content type, audience, intent, tone, channel, and relevant scope.
-
-Selection must be deterministic and bounded. Representative examples for the relevant context should be preferred.
-
-## State
-
-Persist explicit entities instead of a generic memory subsystem.
-
-Initial entities:
-- UserProfile
-- WritingExample
-- ContextProfile
-- WritingDNA
-- Preference
-- PreferenceEvidence
-- LearningEvent
-- Task
-- TaskAttempt
-- VerificationResult
-
-Use versioning where mutation can affect future behavior.
-
-## Writing DNA
-
-Begin with inspectable features:
-- sentence statistics
-- vocabulary patterns
-- punctuation
-- contractions
-- paragraph structure
-- syntax tendencies
-- function-word behavior
-- voice patterns
-- recurring phrases
-- vocabulary preferences
-
-Embeddings/vector retrieval are deferred until evaluation exposes a concrete retrieval problem.
-
-## Generation and verification
-
-Generation receives bounded task context:
-- original text
-- explicit intent
-- explicit constraints
-- selected profile/context profile
-- representative examples
-- relevant preferences
-
-Generation does not mutate persistent state.
-
-Verification independently checks semantic fidelity, required information, explicit constraints, structural validity, context correctness, and useful style measures.
-
-Hard semantic or constraint failures reject the candidate.
-
-## Feedback and adaptation
-
-```
-USER EDIT
-→ OBSERVATION
-→ PREFERENCE HYPOTHESIS
-→ EVIDENCE
-→ CONFIDENCE
-→ PROFILE UPDATE
+```text
+USER REQUEST
+    |
+    v
+INPUT VALIDATION
+    |
+    v
+CONTEXT RESOLUTION
+    |
+    v
+PROFILE / EXAMPLE SELECTION
+    |
+    v
+GENERATION
+    |
+    v
+HARD VERIFICATION
+    |
+    +---- fail + budget ----> REGENERATE
+    |
+    +---- terminal fail ----> FAILED / ESCALATED
+    |
+    v
+RESULT
+    |
+    v
+ACCEPT / EDIT EVENT
+    |
+    v
+OBSERVATION + PREFERENCE EVIDENCE
+    |
+    v
+DETERMINISTIC PROMOTION POLICY
+    |
+    v
+VERSIONED PERSONALIZATION STATE
 ```
 
-A single edit must not rewrite the whole profile. Preferences remain context-scoped unless evidence supports widening scope.
+V1 is a single-process deterministic harness around model calls. The optional bounded reasoning component is disabled until evidence justifies it.
 
-## Loop engineering
+## Components
 
-General execution flow:
+### 1. Input boundary
 
-Trigger → Execution Policy → Loop Controller → Observe → Reason → Act → Verify → Persist → Termination Decision → Success / Failure / Escalation / Wait
+Input contains:
+- original text;
+- requested intent;
+- explicit writing context;
+- explicit constraints.
 
-Trigger types include event-driven, scheduled, condition-triggered, and continuation. Scheduling is deterministic infrastructure; the model cannot schedule itself.
+The boundary validates schema and hard limits before a model call.
 
-Retry means repeating a failed attempt. Iteration means continuing toward a goal after observing a result. Use one authoritative execution budget to avoid retry amplification.
+### 2. Context resolver
 
-## State machine
+Maps the explicit request context to a bounded context profile.
 
-A state machine is used only because execution has explicit legal phases and terminal outcomes that must be enforced deterministically. It is not an agentic planning graph.
+It does not perform free-form memory search.
 
-Typical states: RECEIVED → VALIDATING → CONTEXT_READY → GENERATING → VERIFYING → RETRYING → SUCCEEDED / FAILED / ESCALATED. Illegal transitions must be rejected.
+Selection hierarchy:
+1. exact context;
+2. explicitly compatible broader context;
+3. explicitly global evidence.
 
-## Loop controller
+Unrelated context evidence is excluded.
 
-The deterministic controller owns:
-- start/end conditions
-- iteration count
-- attempts
-- model/tool-call budgets
-- timeouts
-- retry policy
-- terminal states
+### 3. Personalization store
 
-The model can recommend actions only within these constraints.
+SQLite is the current local storage baseline.
 
-## Success criteria
+Logical entities:
 
-A successful run preserves meaning, required information, and explicit constraints; uses the correct context; is measurably closer to demonstrated user behavior; remains within resource limits; produces an explicit terminal outcome; and does not mutate unrelated personalization state.
+```text
+UserProfile
+WritingExample
+ContextProfile
+WritingDNA
+PreferenceHypothesis
+PreferenceEvidence
+LearningEvent
+Run
+RunAttempt
+VerificationResult
+```
 
-Longitudinal success additionally requires that feedback improves later generations, preferences do not leak across unrelated contexts, and user editing effort decreases or acceptance increases.
+Entities that affect future generations must be versioned or otherwise reconstructable.
 
-## Failure criteria
+### 4. Example selector
 
-A run fails on material semantic change, lost required information, explicit-constraint violation, wrong context, exceeded execution/resource limits, unrecoverable persistence/state error, or exhaustion of bounded generation attempts without an acceptable candidate. System-level failure also includes profile corruption, preference leakage, verifier acceptance of a hard-invalid output, or bypass of harness limits.
+Initial selection is metadata-based, deterministic, and bounded by configuration.
 
-## Security
+Inputs:
+- context;
+- available example metadata;
+- profile version;
+- maximum example count/token budget.
 
-Model outputs are untrusted. Filesystem, network, secrets, tools, and persistent writes remain outside the model's direct authority.
+Outputs:
+- ordered example IDs and versions.
 
-## Evaluation
+Embeddings/vector retrieval are deferred until evaluation demonstrates a retrieval failure that metadata selection cannot solve.
+
+### 5. Writing DNA
+
+Writing DNA begins as inspectable features, not an opaque representation.
+
+Candidate feature families:
+- sentence-length distribution;
+- punctuation;
+- contractions;
+- paragraphing;
+- function-word patterns;
+- vocabulary preferences;
+- recurring phrases;
+- directness/voice indicators.
+
+A feature should not exist merely because it is measurable. It should have a clear intended use in personalization or evaluation.
+
+### 6. Generator
+
+Generation receives a bounded immutable snapshot:
+
+```text
+original
+intent
+constraints
+context profile version
+Writing DNA version
+selected example IDs/versions
+active preference IDs/versions
+prompt version
+model version
+```
+
+Generation cannot write durable state.
+
+### 7. Verifier
+
+Verification is layered.
+
+#### Deterministic layer
+Use deterministic checks for objective rules such as:
+- word/character limit;
+- required literal names/numbers/dates when extractable;
+- structural/schema constraints;
+- context ID eligibility;
+- resource budgets.
+
+#### Semantic layer
+Check meaning preservation and required-information fidelity where deterministic checks are insufficient.
+
+If the generator and semantic verifier use the same model, this is a separate verification pass but **not independent evaluation**.
+
+Independent verification requires a genuinely distinct mechanism.
+
+#### Style layer
+Style similarity is diagnostic/optimization evidence in V1, not a single hard oracle.
+
+Product-level truth comes from a combination of held-out style diagnostics and user behavior.
+
+### 8. Feedback adapter
+
+User acceptance/edit creates a learning event.
+
+```text
+edit
+-> observation
+-> scoped hypothesis
+-> evidence accumulation
+-> deterministic promotion decision
+-> new profile version
+```
+
+The model may propose a hypothesis, but only deterministic policy writes/promotes durable preference state.
+
+No hidden background learning runs in V1.
+
+## Run state machine
+
+```text
+RECEIVED
+  -> VALIDATING
+  -> CONTEXT_READY
+  -> GENERATING
+  -> VERIFYING
+      -> SUCCEEDED
+      -> RETRYING -> GENERATING
+      -> FAILED
+      -> ESCALATED
+
+Any non-terminal state -> CANCELLED when authorized
+```
+
+The state machine is an execution control mechanism, not an agent-planning graph.
+
+## Budget model
+
+There is one authoritative outer run budget.
+
+Current configuration should bound:
+- generation attempts;
+- total model calls;
+- wall-clock timeout.
+
+Nested model/API retry libraries must not multiply this budget invisibly.
+
+The first generation is attempt 1.
+
+## Evaluation architecture
+
+Evaluation is separate from normal product state.
+
+Use a held-out dataset that is excluded from:
+- example retrieval;
+- Writing DNA derivation;
+- preference evidence;
+- prompt/profile construction.
 
 Compare:
-A. Generic rewrite
-B. PersonalStyle without learning
-C. PersonalStyle with adaptation
-D. Optional bounded agent
 
-Track semantic and constraint pass rates, style similarity, context accuracy, acceptance, edit effort, longitudinal improvement, latency, and cost.
+```text
+A = generic rewrite
+B = personalized from examples/profile
+C = B + learned preferences
+D = optional bounded reasoning, only after evidence of need
+```
 
-If a new layer does not produce a measurable improvement over a simpler baseline, remove it.
+Freeze before a scored comparison:
+- held-out cases;
+- model/version;
+- prompt version;
+- retrieval policy;
+- metric definitions;
+- success rule.
 
-## Deferred
+Use several lenses:
+- hard semantic/constraint validity;
+- context accuracy;
+- stylometric diagnostics;
+- normalized edit effort;
+- accept-without-edit rate;
+- user preference;
+- latency/resource use.
 
-Defer multi-agent systems, vector databases, broad RAG, autonomous background learning, unrestricted tool use, model routing, complex graphs, and reinforcement learning until a concrete measured problem requires them.
+Do not use the same extracted style traits as both the sole generation control and sole evaluation judge.
 
-## Architecture decision format
+## Research-informed risks
 
-For meaningful changes, record:
-- decision
-- problem
-- simpler alternatives
-- why simpler failed
-- expected improvement
-- verification
-- status
+External work suggests several traps relevant to PersonalStyle:
+
+### Model fingerprint can dominate user style
+Recent personalization benchmarks find that personalization can create author-differentiated output while still remaining systematically unlike genuine human writing.
+
+**Design response:** never equate a high model/judge style score with "writes like the user." Keep held-out human comparisons and real edit behavior.
+
+### Few-shot style imitation is context-sensitive
+Large evaluations find stronger performance in structured domains such as email than in nuanced informal writing, and prompting/example choices materially affect results.
+
+**Design response:** evaluate contexts separately; pin prompt/example-order policy; do not report one aggregate style score as universal performance.
+
+### Post-editing still leaves model traces
+Human edits can make generated text more stylistically similar to the writer, but post-edited text may remain closer to model output than to unassisted human writing.
+
+**Design response:** treat edit reduction as a longitudinal product metric, not proof of perfect authorship imitation.
+
+### Metric circularity
+Recent benchmark work reports disagreement between authorship-style measures and LLM judges, including circularity when trait extraction and evaluation reinforce the same representation.
+
+**Design response:** use an ensemble of independent signals and real user behavior.
+
+### Reproducibility failures are easy
+Personalization repositories/benchmarks expose ambiguity around retriever versions, prompt formatting, test-data preparation, and dataset availability.
+
+**Design response:** record exact model, prompt, retrieval policy, example IDs/order, data split, and profile version for every evaluation.
+
+References:
+- https://aclanthology.org/2025.findings-emnlp.532/
+- https://aclanthology.org/2026.acl-long.2030/
+- https://github.com/yashsawant22/personalbench
+- https://github.com/LaMP-Benchmark/LaMP
+- https://proceedings.mlr.press/v328/nicolicioiu26a.html
+
+## Scheduling architecture
+
+There is no scheduler in core V1.
+
+If scheduled work is later required, scheduling remains outside model control and must have an explicit deterministic schedule contract: trigger, timezone, idempotency, overlap policy, misfire/catch-up policy, timeout, retry ownership, persistence, and failure sink.
+
+### n8n
+
+n8n is intentionally absent from V1.
+
+It becomes a candidate only for external multi-service workflows where its connectors, credential handling, webhooks, human approvals, and operations UI materially reduce complexity.
+
+It is not justified for the interactive rewrite loop or as a generic retry engine.
+
+If n8n is ever adopted, it must be the explicit owner of the workflow-level schedule/retry policy rather than stacking its retries around an already retrying PersonalStyle loop.
+
+Useful references:
+- https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/
+- https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode
+- https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/configure-workflow-timeouts
+
+## Deferred architecture
+
+Do not add until measured evidence identifies a concrete problem:
+- vector database;
+- general RAG;
+- multi-agent execution;
+- asynchronous/background personalization;
+- n8n;
+- fine-tuning;
+- reinforcement learning;
+- model routing;
+- distributed workers;
+- cloud state.
+
+A future architecture change needs a recorded problem, simpler alternative, expected measurable improvement, verification plan, and rollback/removal condition.
