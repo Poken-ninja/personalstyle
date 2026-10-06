@@ -17,7 +17,7 @@ Build the smallest local-first PersonalStyle vertical slice that can demonstrate
 
 ## Scope
 
-V1:
+Core V1:
 - user-authorized writing examples;
 - explicit context tags;
 - inspectable Writing DNA;
@@ -27,6 +27,15 @@ V1:
 - accept/edit feedback;
 - classified edit observations and evidence-backed context preferences;
 - A/B/C product-performance testing.
+
+Target delivery surfaces after the authoritative core is working:
+- terminal/CLI;
+- browser extension (reversible current assumption for "extension");
+- desktop application;
+- iOS application;
+- Android application.
+
+Every surface must use the same engine/protocol contract. A surface is not allowed to fork personalization logic.
 
 Excluded until measured engineering need:
 - multi-agent systems;
@@ -63,6 +72,21 @@ Must be selected and recorded before the first model-generation feature activate
 ### U3 — held-out product-test set and success rule
 Must be frozen before final product-performance testing. Do not choose the pass rule after seeing C results.
 
+### U4 — extension host
+Current reversible assumption: "extension" means browser extension.
+
+If VS Code or another host is intended, this changes the surface adapter task but must not change the engine contract.
+
+### U5 — standalone mobile inference
+The configured Ollama desktop provider does not establish native iOS/Android inference.
+
+Mobile companion mode is architecturally defined. Standalone mobile remains blocked until a mobile-supported inference provider and its OS/hardware requirements are selected and verified.
+
+### U6 — app-shell framework and release matrix
+No UI framework or minimum iOS/Android/macOS/Windows/Linux matrix is selected yet.
+
+This does not block I01 or the core engine. It blocks claiming a cross-platform application release.
+
 ## Source authority
 
 - V1 behavior/scope: this contract + owner decisions;
@@ -95,9 +119,17 @@ The contract is usable without runtime evidence because I01 is the bounded task 
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
+| P01 | Mechanize versioned engine protocol + capability handshake | F04 | not_started |
 | E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
+| S01 | Terminal/CLI release acceptance | F06 | not_started |
+| S02 | Extension adapter + compatibility acceptance | P01 + F06 + U4 resolved | not_started |
+| S03 | Desktop app adapter + release matrix | P01 + F06 + U6 resolved | not_started |
+| S04 | iOS/Android companion-mode app | P01 + F06 + U6 resolved | not_started |
+| S05 | Standalone mobile inference | S04 + U5 resolved | not_started |
 
 Do not fully design later tasks until their dependencies and evidence sharpen.
+
+Cross-platform product behavior belongs in the engine. Surface tasks verify transport, permissions, lifecycle, installation, compatibility, and UX failure handling rather than reimplementing personalization.
 
 # I01 — Establish Runnable/Testable Python Harness
 
@@ -171,7 +203,7 @@ pytest discovers and runs the initialization smoke suite successfully.
 A test that only contains an unconditional pass is not acceptable evidence.
 
 ### AC4 — configuration loads
-The initialization path reads/validates current configuration and preserves the declared hard policy values.
+The initialization path reads/validates current configuration and preserves the declared hard policy values, including protocol/config/storage/profile/prompt version declarations.
 
 `model = "TODO"` must be surfaced as later generation-readiness state, not as a reason for non-generation startup to fail.
 
@@ -267,10 +299,16 @@ At every session boundary persist:
 
 ```text
 CONTRACT_ID / VERSION
+PRODUCT_VERSION
+PROTOCOL_VERSION
+CONFIG / STORAGE / PROFILE SCHEMA VERSIONS
+PROMPT_CONTRACT_VERSION
 ACTIVE_TASK
 TASK_STATE
 VERIFICATION_STATUS
 REPOSITORY_REVISION / CHECKPOINT
+MERGE_BASE
+DECLARED_WRITE_SET
 ATTEMPTS_USED
 DIAGNOSIS_USED
 RECOVERY_USED
@@ -284,6 +322,20 @@ NEXT_PERMITTED_ACTION
 
 I01 is complete only when AC1–AC5 have actual current evidence and the handoff record is current.
 
-V1 is **not** complete when I01 completes.
+Core V1 is **not** complete when I01 completes.
 
-See `AGENTS.md` for separate definitions of run complete, feature complete, V1 implementation complete, and product success validated.
+A target surface is not complete merely because it builds. It must pass the applicable version/protocol/platform acceptance contract in `AGENTS.md`.
+
+A cross-platform release is not complete until every platform/version claimed as supported has current evidence. Unverified older OS versions must not be advertised as supported.
+
+See `AGENTS.md` for separate definitions of run complete, feature complete, surface complete, cross-platform release complete, V1 implementation complete, and product success validated.
+
+## Merge safety for this contract
+
+Before each task activates, record its expected write set.
+
+If the write set overlaps another active task in protocol/schema/config/migrations/shared governing files, serialize the work.
+
+After any merge/conflict resolution, evidence affected by the merged behavior becomes stale until rerun on the merged revision.
+
+GitHub branch-protection/ruleset enforcement has not been verified through the current connector; merge discipline is therefore a written requirement until repository rules/CI mechanize it.
