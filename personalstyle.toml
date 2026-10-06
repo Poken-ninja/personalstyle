@@ -50,6 +50,15 @@ style_is_hard_gate = false
 backend = "sqlite"
 path = "data/personalstyle.db"
 
+[security]
+companion_mode_enabled = false
+default_network_scope = "loopback"
+network_clients_require_auth = true
+remote_transport_requires_encryption = true
+browser_origin_validation_required = true
+secrets_in_config_allowed = false
+application_level_storage_encryption = false
+
 [scheduling]
 enabled = false
 
