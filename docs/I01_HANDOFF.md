@@ -9,7 +9,7 @@ PROMPT_CONTRACT_VERSION: 1
 TASK / ACTIVE_TASK: I01
 STATE / TASK_STATE: passing
 VERIFICATION_STATUS: valid
-REPOSITORY_REVISION: containing I01 commit on task/i01-python-harness (exact SHA in PR evidence)
+REPOSITORY_REVISION: verified implementation commit 92167a9e58c12c416db96e598f9cfcb489dcf0ca; final handoff-only commit contains this record
 MERGE_BASE: 354e386fd5297a7a70f1520363e30b792f8fbba4
 DECLARED_WRITE_SET: .gitignore; pyproject.toml; src/personalstyle/; tests/; docs/I01_HANDOFF.md; ignored .venv/
 ENTRY_GUARD_RESULT: pass
@@ -54,11 +54,22 @@ Environment: Windows, Python 3.14.6, pip 26.1.2, setuptools 84.0.0,
 Typer 0.27.3, pytest 9.1.1, Ruff 0.16.10, mypy 2.4.0. This is evidence for this local
 development environment only. Dependencies are not locked; no release security claim is made.
 
-Merge/base: fetched origin/main before final verification; HEAD, main and origin/main all
-remain `354e386fd5297a7a70f1520363e30b792f8fbba4`. No conflicts or unrelated changes.
+Merge/base: fetched origin/main before committed-revision verification; main and origin/main
+remain `354e386fd5297a7a70f1520363e30b792f8fbba4`, the task branch's ancestor/base.
+No conflicts or unrelated changes.
 Durability handoff: I01 is committed on `task/i01-python-harness`. The PR evidence names
 the exact verified implementation commit; any subsequent handoff-only commit must preserve
 the implementation tree. Reference repository was read only. SEC01 remains unstarted.
+
+Committed-revision re-verification (2026-10-06): clean working tree at
+`92167a9e58c12c416db96e598f9cfcb489dcf0ca`; editable install/import, CLI help/startup,
+13 pytest tests (0.15s), Ruff, mypy, pip check, and base-to-head diff check all exited 0.
+The later handoff-only commit changes this record alone, preserving all checked code,
+tests, configuration and packaging. No new implementation attempt or diagnosis was used.
+Branch creation initially hit the sandbox's read-only Git metadata boundary; the approved
+command succeeded without changes to the solution or recovery. Merge/push/PR handoff work
+is owner-authorized. Local I01 merge readiness passes; remote rules/reviews must still be
+checked before merge. No merge is authorized by this handoff.
 
 Final verified artifact SHA256 hashes (excluding this subsequently updated evidence record):
 
