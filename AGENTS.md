@@ -131,6 +131,164 @@ The model may **not** change its own budgets, verification thresholds, permissio
 
 Model output is untrusted data until the harness accepts it.
 
+## Security contract
+
+Security is a release property, not an assumption created by "local-first."
+
+### Data classes
+
+Treat these as **sensitive user data**:
+- writing examples;
+- original text;
+- generated drafts;
+- edits and feedback;
+- Writing DNA;
+- preferences and profile history;
+- held-out product-test writing.
+
+Treat these as **secrets/credentials**:
+- provider/API credentials;
+- pairing credentials;
+- client authentication material;
+- signing/private keys.
+
+Secrets must never be committed to Git, stored in `personalstyle.toml`, written to normal SQLite profile tables, included in prompts, placed in URLs, or emitted in ordinary logs.
+
+### Trust boundaries
+
+Untrusted inputs include:
+- model output;
+- user/imported text;
+- writing examples;
+- web-page/extension content;
+- files imported by the user;
+- client requests before authentication/validation;
+- network discovery results;
+- data received from an older/incompatible client.
+
+Untrusted data must not become harness instructions, permissions, schema changes, paths, shell commands, or persistent preference state without deterministic validation.
+
+### Local engine exposure
+
+Default engine exposure is local/in-process or loopback-only.
+
+Companion/LAN access is disabled until explicitly enabled.
+
+Any network-accessible engine, including localhost endpoints callable by browser contexts, must:
+- authenticate the client;
+- authorize the requested capability;
+- validate origin/caller context where applicable;
+- reject protocol downgrade/incompatible versions;
+- enforce request/body/resource limits;
+- prevent replay/duplicate mutation where it matters;
+- use encrypted transport when traffic leaves the local process/loopback trust boundary;
+- provide credential rotation/revocation;
+- avoid logging authentication material.
+
+Discovery is not authentication.
+
+No unauthenticated public or LAN listener may expose rewriting, profile, feedback, or state APIs.
+
+### Client credentials
+
+Persistent client credentials belong in platform secure credential storage where available.
+
+Do not store reusable authentication secrets in:
+- browser page storage available to arbitrary sites;
+- source-controlled files;
+- query strings;
+- ordinary logs;
+- prompt/context payloads.
+
+Pairing grants only the capabilities required by that surface and must be revocable.
+
+### Browser-extension boundary
+
+The browser extension must use least privilege:
+- request only necessary browser/host permissions;
+- prefer explicit user action for page access where practical;
+- treat page text/DOM content as untrusted data;
+- never execute page-provided code or instructions as harness policy;
+- do not expose engine credentials to page scripts;
+- do not allow arbitrary websites to invoke privileged local-engine mutations.
+
+### Persistent data
+
+The engine is the only canonical profile-store writer.
+
+Database/profile files must use the narrowest practical OS file permissions.
+
+Do not claim application-level encryption at rest unless it is actually implemented and verified. Until then, security relies on the host OS/account/disk protections and this limitation must be disclosed.
+
+Backups/exports inherit the same sensitivity as the source profile.
+
+Deletion must remove the canonical record and identify affected derived state for recomputation/removal; do not promise forensic secure erase unless a verified mechanism exists.
+
+### Prompt/context isolation
+
+System/harness instructions and user/example/page content must be structurally separated.
+
+A writing example containing text such as "ignore previous instructions" remains writing data.
+
+The model has no authority to:
+- widen permissions;
+- select secrets;
+- change budgets;
+- modify verification rules;
+- mutate durable state directly;
+- enable networking or scheduling.
+
+### Logs and telemetry
+
+Default logs contain identifiers, versions, states, timing, counters, and failure codes—not raw writing.
+
+Sensitive content logging requires an explicit debug decision and must be easy to disable/remove.
+
+Authentication material is never loggable.
+
+### Dependency and release integrity
+
+Before a release is called secure enough for its supported surfaces:
+- dependency versions are reproducible/pinned by the chosen ecosystem mechanism;
+- known dependency/security checks defined for that ecosystem pass;
+- release artifacts use the platform's required signing/distribution mechanism;
+- secrets are absent from repository/build artifacts;
+- protocol/schema migrations and downgrade behavior are tested;
+- security-sensitive generated artifacts come from an authoritative source, not hand-merged copies.
+
+Do not invent a new security framework when platform mechanisms are adequate.
+
+### Security completion gate
+
+A feature/surface that handles sensitive writing is security-complete only when the controls applicable to its real attack surface are mechanized and verified.
+
+At minimum, where applicable, evidence must cover:
+- unauthorized client rejected;
+- wrong/expired/revoked credential rejected;
+- incompatible/downgrade protocol rejected;
+- page/imported content cannot become harness instructions;
+- unauthorized direct profile mutation rejected;
+- logs do not contain secrets/raw content under normal settings;
+- resource limits still apply to malicious/oversized input;
+- migration/recovery does not bypass access controls;
+- supported clients can revoke/replace credentials without corrupting profile state.
+
+A security checklist alone is not evidence.
+
+### Security failure
+
+Classify as a security failure when any of these occur:
+- secret or authentication material is exposed;
+- unauthenticated/unauthorized client obtains protected data or mutation capability;
+- untrusted content changes harness policy/permissions/state outside allowed data paths;
+- a client bypasses verification/budget/state controls;
+- protocol downgrade bypasses a control;
+- cross-context/user data is exposed to the wrong caller;
+- malicious input causes unbounded resource consumption beyond the configured safety ceiling;
+- release artifact contains credentials or unexpected sensitive content.
+
+Security failure blocks the affected release/task until containment, root-cause classification, repair, credential rotation when applicable, and rerun of invalidated evidence.
+
 ## Context rules
 
 Context is explicit and bounded.
@@ -309,6 +467,12 @@ V1 implementation is complete when the A/B/C product-test path is runnable end-t
 and the system can collect the required hard-invariant, edit-effort, acceptance, context, latency, and resource evidence on a held-out product-test set.
 
 This does **not** mean PersonalStyle meets the product success criterion.
+
+### Security gate complete
+
+A release security gate is complete only when the applicable security controls in this contract have executable evidence for the current artifact and supported surfaces.
+
+A passed functional test suite does not imply the security gate passed.
 
 ### Surface complete
 
