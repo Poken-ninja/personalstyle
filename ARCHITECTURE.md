@@ -24,6 +24,112 @@ The personalization model is:
 
 > Style × Context × Intent
 
+## Multi-surface architecture
+
+PersonalStyle is one product engine with multiple thin surfaces.
+
+```text
+CLI / TERMINAL
+BROWSER EXTENSION
+DESKTOP APP
+IOS APP
+ANDROID APP
+      |
+      v
+VERSIONED PERSONALSTYLE PROTOCOL
+      |
+      v
+PERSONALSTYLE ENGINE
+  - validation
+  - context
+  - retrieval
+  - Writing DNA
+  - generation loop
+  - verification
+  - feedback classification
+  - preference promotion
+  - budgets/state
+      |
+      +------> PERSONALIZATION STORE
+      |
+      +------> INFERENCE PROVIDER
+```
+
+The engine is the only canonical writer of personalization state.
+
+Clients do not read/write SQLite directly and do not reimplement personalization logic.
+
+### Terminal
+
+The CLI may call the engine in-process, but its behavior must match the public engine/protocol contract so terminal-only shortcuts do not become a second implementation.
+
+### Browser extension
+
+Current architectural assumption: "extension" means browser extension.
+
+The extension is a thin client. It does not host its own personalization state or retry policy. It connects to an authorized PersonalStyle engine endpoint/companion and handles engine unavailable/incompatible-version states explicitly.
+
+If the intended extension is later VS Code or another host, replace only the surface adapter; keep the engine contract.
+
+### Desktop application
+
+The desktop app is a presentation/client layer over the same engine.
+
+The initial desktop inference provider may be Ollama where supported.
+
+### iOS and Android
+
+The desktop Ollama provider is not assumed to exist natively on mobile.
+
+Mobile supports one of two engine arrangements:
+
+1. **Companion mode** — paired authenticated connection to the user's PersonalStyle engine on another trusted device.
+2. **Standalone mode** — a future mobile-supported inference provider implements the same engine/provider boundary and passes the mobile compatibility suite.
+
+Standalone mobile is not complete until its provider, hardware limits, minimum OS versions, persistence behavior, and release tests are explicitly verified.
+
+### Local-first meaning
+
+"Local-first" means user personalization state remains local by default and external transmission is not silently required.
+
+Companion mode may transmit over a trusted local connection after explicit pairing. Cloud inference, sync, or remote storage requires a separate explicit architecture decision.
+
+## Version boundaries
+
+Keep independent version identities:
+
+```text
+core/product version
+protocol version
+config schema
+storage schema
+profile schema
+prompt contract
+client/surface version
+model/provider identity
+```
+
+Protocol compatibility uses same-major + capability negotiation.
+
+Schemas use explicit ordered migrations. Unknown future schema versions fail closed. Older supported state must migrate before writes resume.
+
+A surface never infers compatibility from product version alone.
+
+## Platform support policy
+
+"Supported" is an evidence claim.
+
+A platform/version is supported only when:
+- selected UI/runtime framework supports it;
+- required engine/inference dependencies support it;
+- package/build/install succeeds;
+- platform acceptance tests pass;
+- upgrade/migration behavior from supported prior state passes.
+
+Older versions outside that matrix are best-effort or unsupported.
+
+Do not design around "all historical OS versions." Maintain an explicit release matrix instead.
+
 ## V1 architecture
 
 ```text
@@ -337,6 +443,27 @@ It becomes a candidate only for external multi-service workflows where its conne
 It is not justified for the interactive rewrite loop or as a generic retry engine.
 
 If n8n is ever adopted, it must be the explicit owner of workflow-level schedule/retry policy rather than stacking its retries around an already retrying PersonalStyle loop.
+
+## Merge-conflict architecture
+
+The architecture reduces semantic merge conflicts by assigning single ownership:
+
+- product/business behavior -> engine;
+- transport compatibility -> protocol;
+- platform UX -> client surface;
+- canonical state -> engine/store;
+- schema changes -> ordered migration sequence.
+
+Planned implementation should keep these boundaries reflected in directory/package ownership.
+
+Rules:
+- no client-specific copy of core personalization rules;
+- one active migration lane;
+- shared protocol/schema changes are high-contention and serialized;
+- generated client/schema artifacts, if introduced, have one canonical source and are regenerated after merge;
+- merge resolution that changes behavior invalidates affected verification evidence.
+
+See `AGENTS.md` for the merge gate and write-set rules.
 
 ## Deferred architecture
 
