@@ -47,8 +47,11 @@ SQL identifiers, filesystem paths or execution instructions from example content
 ## Mandatory protected-write boundary
 
 Real writing may be persisted only through the SEC01-protected profile directory.
-Re-verify that directory's OS ownership and ACL immediately before **every write**, including
-schema initialization and metadata mutations. Refuse insecure or reparse targets and verify
+Verify that directory's OS ownership and ACL **before opening the canonical profile store
+for mutation**, and again after any condition that could invalidate the trust boundary.
+If verification fails, perform **no persistence write**, including database creation,
+schema initialization or metadata mutations. Re-verify immediately before every write;
+an earlier successful check is not permanent authorization. Refuse insecure or reparse targets and verify
 that the database file does not bypass the boundary through a link or permissive ACL.
 Do not silently reset existing permissions or take over unrelated files.
 
@@ -67,7 +70,10 @@ storage mechanism. This is not a claim that PersonalStyle is a Windows-only prod
 - F01-AC2: absent/invalid context, absent provenance/authorization, invalid learning/held-out
   combinations and oversized inputs are deterministically rejected before mutation. Freeze
   concrete limits before coding and test boundaries; no unbounded read/import path.
-- F01-AC3: writes re-verify the protected directory and database target. Real OS tests show
+- F01-AC3: verify the protected directory and database target before opening for mutation,
+  immediately before writes, and after any trust-boundary invalidation. Failed verification
+  performs no persistence write, including database creation/schema initialization.
+  Real OS tests show
   insecure ACLs, link/reparse targets and unsupported platforms fail without storing writing.
   Demonstrate rejection after permissions are changed following successful initialization.
 - F01-AC4: explicit schema/version checks, parameterized SQL, transaction failure rollback,
