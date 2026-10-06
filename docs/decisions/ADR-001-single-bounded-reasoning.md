@@ -1,37 +1,63 @@
-# ADR-001: Single bounded reasoning component
+# ADR-001: Optional single bounded reasoning component
 
 ## Status
 
-Accepted as the initial architecture.
+Accepted as a **maximum allowed experimental extension**, disabled by default.
 
 ## Decision
 
-Use one bounded reasoning component behind a deterministic harness. Do not use a multi-agent architecture.
+Start with a deterministic harness plus ordinary bounded generation.
 
-## Problem
+Do not activate a separate reasoning/agent component in the initial vertical slice.
 
-PersonalStyle may encounter ambiguity in request intent, context selection, conflicting style signals, or how to adapt generation after verification failure.
+If evaluation exposes a specific ambiguity or adaptation problem that the simpler pipeline cannot solve, PersonalStyle may test **one** bounded reasoning component behind the deterministic harness.
 
-## Why deterministic logic alone may be insufficient
+Do not introduce a multi-agent architecture.
 
-Some of these cases require interpretation rather than fixed rules. A bounded reasoning component can make those narrow decisions while remaining constrained by deterministic policy.
+## Activation guard
 
-## Why multi-agent was rejected
+The bounded reasoning experiment may begin only when all are recorded:
 
-There is no demonstrated problem yet that requires multiple independently reasoning components, coordination protocols, message passing, or agent-to-agent recovery.
+1. the concrete failure/problem in the simpler system;
+2. evidence that deterministic rules or ordinary generation are insufficient;
+3. the exact bounded decisions the reasoner may make;
+4. the baseline it must beat;
+5. the evaluation metrics and success rule;
+6. unchanged deterministic ownership of budgets, permissions, state transitions, verification policy, scheduling, and persistent writes.
 
-The additional complexity would add coordination, observability, security, and failure-surface cost without a verified benefit.
+## Allowed decisions
 
-## Expected improvement
+A bounded reasoner may help interpret:
+- ambiguous user intent;
+- conflicting style evidence;
+- ambiguous context evidence;
+- a bounded generation-strategy change after a failed candidate.
 
-Handle genuinely ambiguous cases better than fixed rules while preserving deterministic control over safety, budgets, state, and verification.
+It cannot control:
+- retries or total budgets;
+- permissions;
+- persistent-state writes;
+- database schema;
+- verification thresholds;
+- state-machine transitions;
+- scheduling;
+- unrestricted tools/network/filesystem.
 
 ## Verification
 
-Compare a deterministic-only baseline against a single bounded reasoning component. Measure user outcome, semantic/constraint pass rates, context accuracy, edit effort, latency, and cost.
+Compare the simpler pipeline against the reasoner-enabled variant on the same frozen evaluation setup.
 
-If the reasoning component does not produce a meaningful improvement, disable or remove it.
+Measure:
+- hard semantic/constraint validity;
+- context accuracy;
+- editing effort;
+- accept-without-edit rate;
+- user preference;
+- latency;
+- resource cost.
 
-## Consequence
+## Removal condition
 
-The harness remains the authority over execution. The reasoning component cannot expand permissions, budgets, retries, or persistence scope.
+If the bounded reasoner does not produce a meaningful predeclared improvement, keep it disabled or remove it.
+
+The existence of this ADR is not evidence that the component has been implemented or validated.
