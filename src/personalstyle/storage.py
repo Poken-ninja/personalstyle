@@ -16,8 +16,6 @@ from personalstyle.security import (
 )
 
 MAX_TEXT_BYTES = 64 * 1024
-MAX_EXAMPLES = 1000
-MAX_DATABASE_BYTES = 128 * 1024 * 1024
 APPLICATION_ID = 0x50535459
 SCHEMA = {
     "store_meta": "CREATE TABLE store_meta (schema_version INTEGER NOT NULL, "
@@ -82,8 +80,6 @@ class ExampleStore:
     def _boundary(self, check_sidecars: bool = True) -> tuple[tuple[int, int], tuple[int, int]]:
         verify_private_directory(self.path.parent)
         verify_private_file(self.path)
-        if self.path.stat().st_size > MAX_DATABASE_BYTES:
-            raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT")
         if check_sidecars and any(
             Path(str(self.path) + suffix).exists() for suffix in ("-journal", "-wal", "-shm")
         ):
@@ -158,8 +154,6 @@ class ExampleStore:
             if row is not None and tuple(row[:8]) != example.payload():
                 raise StoreError("IDEMPOTENCY_CONFLICT")
             if row is None:
-                if connection.execute("SELECT count(*) FROM examples").fetchone()[0] >= MAX_EXAMPLES:
-                    raise StoreError("INVALID_EXAMPLE")
                 timestamp = datetime.now(UTC).isoformat()
                 connection.execute(
                     "INSERT INTO examples VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)",

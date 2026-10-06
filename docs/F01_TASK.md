@@ -5,23 +5,43 @@
 ```text
 CONTRACT_ID: PS-V1-001 / F01 bounded task, owner selected after SEC01 merge
 TASK: F01
-STATE: passing
-VERIFICATION_STATUS: valid for current Windows persistence artifact
+STATE: active; owner-authorized bounded correction
+VERIFICATION_STATUS: corrected artifact pending verification
 PRODUCT / PROTOCOL: 0.1.0 / 1.0
 CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
 REPOSITORY_REVISION / MERGE_BASE / CHECKPOINT: ae563ac9656cee0c84bd13465b3459f979ca9ad4
-VERIFIED_IMPLEMENTATION_REVISION: 34dd524133e6c684c69bc8aecb7f3e8604277a6b
+PREVIOUS_VERIFIED_IMPLEMENTATION_REVISION: 34dd524133e6c684c69bc8aecb7f3e8604277a6b
 BRANCH: task/f01-writing-examples
 ENTRY_GUARD_RESULT: pass; I01 and SEC01 merged, GitHub gate enforced, clean synchronized main, Windows/Python isolated environment verified, owner selected F01, WIP 1
 DECLARED_WRITE_SET: docs/F01_TASK.md; src/personalstyle/storage.py; src/personalstyle/cli.py; tests/test_storage.py; tests/test_initialization.py only for additive CLI coverage; src/personalstyle/security.py only if file ACL verification requires a minimal extension
-ATTEMPTS_USED: 3 of 3
+ATTEMPTS_USED: 4 of 4
 DIAGNOSIS_USED: 1 of 2
 RECOVERY_USED: 0 of 1
-PASSING_EVIDENCE: attempt 3 local 73 tests, Ruff/mypy and required remote CI passed at verified revision
+PREVIOUS_PASSING_EVIDENCE: attempt 3 local 73 tests, Ruff/mypy and required remote CI passed at previous verified revision
 FAILED_EVIDENCE: attempt 1 permission-test fixture, Ruff and mypy defects; history below
 BLOCKERS: none at activation
-NEXT_ACTION: review F01 PR #4 after final evidence-only head passes required CI; no F02 activation
+NEXT_ACTION: verify the bounded owner correction and update PR #4 handoff; no merge or F02 activation
 ```
+
+## Owner-authorized budget extension and correction checkpoint
+
+```text
+Previous implementation budget: 3 attempts
+Previous attempts used: 3/3
+Additional authorized attempts: 1
+New total ceiling: 4
+Authority: project owner
+Reason:
+Post-verification architecture review found unsupported arbitrary aggregate storage limits
+and a contract wording mismatch around SEC01 boundary re-verification.
+CORRECTION_CHECKPOINT: b3ef98074ddb3b2ee4fa8b345e5c1bfae7842bd4
+CORRECTION_WRITE_SET: docs/F01_TASK.md; src/personalstyle/storage.py
+```
+
+Attempt 4 removes only the unsupported aggregate quotas and clarifies the existing
+transaction boundary invariant. Historical attempt-3 evidence below remains historical;
+it is not evidence for the corrected revision. No quota-only tests exist; all existing
+tests and their assertions are retained. No additional feature or refactor is authorized.
 
 SEC01 PR #3 merged without further code changes as the checkpoint above. Local main was
 fast-forwarded and verified clean and identical to origin/main before this task branch.
@@ -48,11 +68,13 @@ SQL identifiers, filesystem paths or execution instructions from example content
 ## Mandatory protected-write boundary
 
 Real writing may be persisted only through the SEC01-protected profile directory.
-Verify that directory's OS ownership and ACL **before opening the canonical profile store
+Verify that directory's OS ownership and ACL and the database target **before opening the canonical profile store
 for mutation**, and again after any condition that could invalidate the trust boundary.
 If verification fails, perform **no persistence write**, including database creation,
-schema initialization or metadata mutations. Re-verify immediately before every write;
-an earlier successful check is not permanent authorization. Refuse insecure or reparse targets and verify
+schema initialization or metadata mutations. During one validated mutation operation,
+use transaction and filesystem-identity checks and recheck the boundary before commit.
+This does not require an OS ACL subprocess before each individual SQL statement.
+An earlier successful check is not permanent authorization. Refuse insecure or reparse targets and verify
 that the database file does not bypass the boundary through a link or permissive ACL.
 Do not silently reset existing permissions or take over unrelated files.
 
@@ -77,7 +99,8 @@ storage mechanism. This is not a claim that PersonalStyle is a Windows-only prod
   combinations and oversized inputs are deterministically rejected before mutation. Freeze
   concrete limits before coding and test boundaries; no unbounded read/import path.
 - F01-AC3: verify the protected directory and database target before opening for mutation,
-  immediately before writes, and after any trust-boundary invalidation. Failed verification
+  and after any trust-boundary invalidation; use transaction/file-identity checks and a
+  boundary recheck before commit within each validated mutation operation. Failed verification
   performs no persistence write, including database creation/schema initialization.
   Real OS tests show
   insecure ACLs, link/reparse targets and unsupported platforms fail without storing writing.
@@ -99,7 +122,7 @@ release security gate, unrelated refactors or cosmetic document edits.
 
 Frozen initial limits: text 64 KiB UTF-8, context 64 ASCII characters (lowercase identifier),
 provenance 256 UTF-8 bytes each for supplier/owner-or-authorizer and source kind (user_owned
-or authorized_reference), 1000 examples per profile, SQLite file 128 MiB, database wait and
+or authorized_reference), database wait and
 query budget 2 seconds each, existing SEC01 ACL subprocess ceiling 10 seconds.
 Owner authorization is explicit local user attestation, not proof of third-party ownership.
 
@@ -110,7 +133,8 @@ required scope expansion and exhausted budget block the task. Fail/rollback/bloc
 best-effort persistence. Schema/version mismatch and hot journal/recovery state require an
 explicit recovery/migration decision; no automatic recovery is introduced in F01.
 
-Conservative task ceiling: 3 implementation attempts, 2 non-modifying diagnosis cycles,
+Task ceiling: 4 implementation attempts (original 3 plus the owner extension above),
+2 non-modifying diagnosis cycles,
 1 recovery action; first material implementation counts as attempt 1. Counters persist
 across sessions and interruptions. Classify failures and state changed information before
 repair. Do not weaken criteria/tests. Stop on budget exhaustion or required scope/permission
@@ -182,7 +206,7 @@ Failed first initialization may leave an empty protected database file with no s
 reopening requires an explicit recovery decision, never guessed migration. No automatic
 recovery, migration, deletion or learning is implemented. Do not start F02.
 
-## Committed-revision completion evidence
+## Historical attempt-3 committed-revision completion evidence
 
 Required GitHub Actions run on `34dd524133e6c684c69bc8aecb7f3e8604277a6b` succeeded:
 https://github.com/Poken-ninja/personalstyle/actions/runs/37544337398/job/112544594453
