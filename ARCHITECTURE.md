@@ -381,6 +381,71 @@ Use:
 
 Do not use the same extracted style traits as both the sole generation control and sole quality judge.
 
+## Security architecture
+
+### Trust boundary
+
+```text
+UNTRUSTED CLIENT / PAGE / USER TEXT / IMPORT / MODEL OUTPUT
+                    |
+                    v
+          AUTH + INPUT VALIDATION
+                    |
+                    v
+          PERSONALSTYLE ENGINE
+        /          |           \
+  PROFILE STORE  INFERENCE   TELEMETRY
+```
+
+Only the engine crosses into canonical state.
+
+### Local and companion transport
+
+Default:
+- in-process/loopback;
+- companion networking disabled.
+
+When companion mode is enabled:
+- explicit pairing/authentication is required;
+- each client has revocable authentication material;
+- capabilities are scoped;
+- non-loopback traffic is protected against interception;
+- incompatible/downgrade protocol requests fail;
+- mutation requests are protected against accidental replay/duplication;
+- browser-origin access cannot rely on "localhost" as proof of trust.
+
+The engine must not expose an unauthenticated profile/rewrite API to the LAN.
+
+### Surface-specific security
+
+**CLI/Desktop**
+- use OS/user file permissions;
+- secrets come from an appropriate secure source, not project config;
+- local debug output must not expose writing/secrets by default.
+
+**Browser extension**
+- least-privilege permissions;
+- page/DOM content is untrusted;
+- extension credentials are not exposed to page JavaScript;
+- privileged requests go only to the authenticated engine boundary.
+
+**iOS/Android**
+- pairing/client credentials use platform secure credential storage;
+- app lifecycle/background behavior must not leak sensitive drafts/profile state;
+- backups/exports follow the platform's protected-data policy selected for the release.
+
+### Storage
+
+SQLite is the current canonical local-store baseline, but SQLite alone does not establish application-level encryption.
+
+Do not claim encrypted-at-rest storage until a real mechanism and migration/recovery behavior are implemented and verified.
+
+Schema/profile migrations execute only inside the engine's trusted migration path.
+
+### Security ownership
+
+Security-sensitive policy stays centralized in the engine/protocol. Clients may enforce additional platform protections but may not weaken engine authorization, validation, verification, or budget rules.
+
 ## Engineering failure modes
 
 ### Context contamination
@@ -426,7 +491,22 @@ A small failure can trigger unnecessary agents, RAG, workflows, or abstractions.
 ### Sensitive writing-data exposure
 Personal writing samples can expose private or identifying information.
 
-**Control:** local storage baseline, provenance, no raw prompt/output logging by default, and no unauthorized learning sources.
+**Control:** local storage baseline, provenance, no raw prompt/output logging by default, no unauthorized learning sources, authenticated client boundaries, and explicit disclosure of whether at-rest encryption is actually provided.
+
+### Localhost/LAN trust mistake
+A local endpoint can still be reached by untrusted browser/network contexts if exposed carelessly.
+
+**Control:** loopback/in-process by default; authenticated authorized clients; caller/origin validation where relevant; companion networking disabled until paired.
+
+### Credential leakage
+Pairing/provider credentials can leak through config, URLs, logs, page scripts, or build artifacts.
+
+**Control:** platform secure credential storage, no secrets in TOML/Git/prompts/logs, revocation/rotation, release scanning/checks.
+
+### Downgrade or migration bypass
+An older client/schema can accidentally bypass newer security assumptions.
+
+**Control:** protocol negotiation, fail-closed unknown schemas, ordered migrations, no concurrent old/new writers, and compatibility/security regression tests.
 
 ## Scheduling architecture
 
