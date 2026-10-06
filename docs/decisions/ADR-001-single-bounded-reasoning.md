@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted as a **maximum allowed experimental extension**, disabled by default.
+Accepted as a **maximum allowed engineering extension**, disabled by default.
 
 ## Decision
 
@@ -10,19 +10,19 @@ Start with a deterministic harness plus ordinary bounded generation.
 
 Do not activate a separate reasoning/agent component in the initial vertical slice.
 
-If evaluation exposes a specific ambiguity or adaptation problem that the simpler pipeline cannot solve, PersonalStyle may test **one** bounded reasoning component behind the deterministic harness.
+If the implemented system exposes a specific ambiguity or adaptation failure that the simpler pipeline cannot solve, PersonalStyle may add **one** bounded reasoning component behind the deterministic harness.
 
 Do not introduce a multi-agent architecture.
 
 ## Activation guard
 
-The bounded reasoning experiment may begin only when all are recorded:
+The bounded reasoning extension may begin only when all are recorded:
 
-1. the concrete failure/problem in the simpler system;
-2. evidence that deterministic rules or ordinary generation are insufficient;
+1. the concrete engineering failure/problem in the simpler system;
+2. evidence from actual product behavior or tests that deterministic rules or ordinary generation are insufficient;
 3. the exact bounded decisions the reasoner may make;
-4. the baseline it must beat;
-5. the evaluation metrics and success rule;
+4. the existing baseline behavior it must improve;
+5. the acceptance/performance checks that determine whether it helped;
 6. unchanged deterministic ownership of budgets, permissions, state transitions, verification policy, scheduling, and persistent writes.
 
 ## Allowed decisions
@@ -43,11 +43,11 @@ It cannot control:
 - scheduling;
 - unrestricted tools/network/filesystem.
 
-## Verification
+## Acceptance
 
-Compare the simpler pipeline against the reasoner-enabled variant on the same frozen evaluation setup.
+Compare the simpler pipeline against the reasoner-enabled implementation under the same product-test conditions.
 
-Measure:
+Check:
 - hard semantic/constraint validity;
 - context accuracy;
 - editing effort;
@@ -58,6 +58,6 @@ Measure:
 
 ## Removal condition
 
-If the bounded reasoner does not produce a meaningful predeclared improvement, keep it disabled or remove it.
+If the bounded reasoner does not produce the predeclared engineering improvement, keep it disabled or remove it.
 
-The existence of this ADR is not evidence that the component has been implemented or validated.
+The existence of this ADR is not evidence that the component has been implemented or verified.
