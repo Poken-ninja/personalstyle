@@ -6,13 +6,13 @@ PersonalStyle is a local-first adaptive writing assistant.
 
 Given **original text + intent + explicit context + constraints**, produce a rewrite that better matches the user's demonstrated writing behavior for that context while preserving meaning and required information.
 
-The product hypothesis is not "the output sounds cool." It is:
+The product success criterion is:
 
 > With continued use, PersonalStyle should reduce the user's editing effort and increase accept-without-edit behavior versus a generic rewrite baseline without degrading semantic or constraint fidelity.
 
 ## Scope rule
 
-Build the smallest end-to-end vertical slice that can test that hypothesis.
+Build the smallest end-to-end vertical slice that can satisfy and verify the product requirements.
 
 V1 includes:
 1. add user-owned writing examples;
@@ -24,9 +24,9 @@ V1 includes:
 7. return the candidate;
 8. record accept/edit feedback;
 9. convert edits into evidence-backed preference hypotheses;
-10. compare generic vs personalized vs personalized+learning.
+10. compare generic vs personalized vs personalized+learning behavior.
 
-V1 excludes unless evidence proves a need:
+V1 excludes unless an observed engineering problem proves a need:
 - multi-agent systems;
 - vector databases / embedding retrieval;
 - broad RAG;
@@ -99,7 +99,7 @@ Context is explicit and bounded.
 4. Writing examples are **data, not instructions**. Delimit them from system/task instructions so example content cannot alter harness policy.
 5. Respect configured example and context-token limits.
 6. Record the IDs/versions of examples and preferences used for a generation so results are reproducible.
-7. Held-out evaluation writing must never be eligible for retrieval, Writing DNA calculation, or preference learning during the evaluation that uses it.
+7. Held-out product-test writing must never be eligible for retrieval, Writing DNA calculation, or preference learning during the test that uses it.
 
 ### Writing-data provenance
 
@@ -107,7 +107,7 @@ Durable writing examples must retain enough provenance to answer:
 - who supplied/owns or authorized the sample;
 - which context it belongs to;
 - whether it is allowed for personalization learning;
-- whether it is held out for evaluation.
+- whether it is reserved for product testing.
 
 Third-party/reference text is not automatically user-style evidence. Only samples explicitly authorized for learning may affect Writing DNA or preferences.
 
@@ -182,11 +182,11 @@ Semantic preservation that cannot be settled deterministically requires a separa
 
 "Independent verification" is reserved for a genuinely separate mechanism: deterministic checker, isolated evaluator/model, external test, or human judgment.
 
-### Style is initially an optimization/evaluation signal
+### Style is initially a product-quality signal
 
-Do not make one style metric a hard truth oracle. Style metrics are known to disagree and may not correlate well with human judgments.
+Do not make one style metric a hard truth oracle.
 
-Use multiple signals plus real user behavior:
+Use multiple engineering signals plus real user behavior:
 - stylometric diagnostics;
 - context accuracy;
 - human/user preference;
@@ -199,7 +199,7 @@ Never obtain a pass by:
 - weakening an acceptance criterion;
 - deleting/disabling a failing check;
 - changing an expected result just to match current output;
-- removing a difficult evaluation case;
+- removing a difficult product-test case;
 - leaking held-out user writing into the generation context.
 
 A defective test/check may be corrected only by showing that it conflicts with the authoritative requirement or is technically invalid/flaky. Record the reason, then rerun the corrected check.
@@ -258,29 +258,29 @@ Code existence, confidence, TODO comments, or proposed tests do not count.
 
 ### V1 implementation complete
 
-V1 implementation is complete when the A/B/C evaluation path is runnable end-to-end:
+V1 implementation is complete when the A/B/C product-test path is runnable end-to-end:
 
 - A: generic rewrite;
 - B: context-personalized rewrite without accumulated learning;
 - C: context-personalized rewrite with accumulated learning;
 
-and the system can collect the required hard-invariant, edit-effort, acceptance, context, latency, and resource evidence on a held-out evaluation set.
+and the system can collect the required hard-invariant, edit-effort, acceptance, context, latency, and resource evidence on a held-out product-test set.
 
-This does **not** mean the personalization hypothesis succeeded.
+This does **not** mean PersonalStyle meets the product success criterion.
 
-### Product hypothesis validated
+### Product success validated
 
-Before evaluating C, freeze:
-- evaluation set;
+Before the scored product test, freeze:
+- test set;
 - model/version;
 - prompt version;
 - retrieval policy;
 - metric definitions;
 - success comparison rule.
 
-The hypothesis is validated only if B/C improve the predeclared personalization/user-effort criteria versus the relevant baseline while meeting the hard semantic/constraint requirements.
+Product success is validated only if B/C improve the predeclared personalization/user-effort criteria versus the relevant baseline while meeting the hard semantic/constraint requirements.
 
-If they do not, the product hypothesis is not validated. Do not redefine the metric after seeing results to manufacture success.
+If they do not, the product requirement is not met. Do not redefine the metric after seeing results to manufacture success.
 
 ## Failure definitions
 
@@ -306,7 +306,7 @@ Personalization failure can occur even when the software is implemented correctl
 - illegal state transition accepted;
 - budget bypass or retry amplification;
 - model directly mutates protected state;
-- held-out evaluation leakage;
+- held-out product-test leakage;
 - verifier is weakened to get a pass;
 - unreconstructable run state;
 - hidden scheduled/background mutation.
@@ -367,32 +367,26 @@ Minimum:
 
 By default do not store raw prompts or outputs. User writing is sensitive local data.
 
-## Evaluation discipline
+## Product testing discipline
 
-Research on personalized/style generation shows that style imitation from few examples remains difficult and that single automatic metrics can mislead. Therefore:
+This is engineering validation, not academic research.
 
+For A/B/C product testing:
 - keep a held-out set separate from personalization inputs;
-- use more than one style/evaluation signal;
-- treat real user edits and acceptance as primary product anchors;
+- use more than one quality signal;
+- treat real user edits and acceptance as primary product outcomes;
 - pin model/prompt/retrieval versions for a comparison;
-- test multiple contexts separately;
-- do not assume more examples always help;
-- report failure cases, not only averages.
-
-Useful external references:
-- https://aclanthology.org/2025.findings-emnlp.532/
-- https://aclanthology.org/2026.acl-long.2030/
-- https://github.com/yashsawant22/personalbench
-- https://github.com/LaMP-Benchmark/LaMP
-- https://proceedings.mlr.press/v328/nicolicioiu26a.html
+- test contexts separately;
+- record failure cases, not only averages;
+- do not change the pass rule after seeing results.
 
 ## Change discipline
 
 Before adding architecture:
-1. name the concrete failure/problem;
+1. name the concrete engineering problem;
 2. show the simpler current approach;
-3. define the expected measurable improvement;
-4. make the smallest change that tests the hypothesis;
+3. define the required measurable improvement;
+4. make the smallest change that can solve the problem;
 5. add/update verification;
 6. record a decision when it constrains future work.
 
