@@ -5,12 +5,13 @@
 ```text
 CONTRACT_ID: PS-V1-001 / F01 bounded task, owner selected after SEC01 merge
 TASK: F01
-STATE: active; owner-authorized bounded correction
-VERIFICATION_STATUS: corrected artifact pending verification
+STATE: passing; owner-authorized bounded correction verified
+VERIFICATION_STATUS: valid for corrected Windows persistence artifact
 PRODUCT / PROTOCOL: 0.1.0 / 1.0
 CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
 REPOSITORY_REVISION / MERGE_BASE / CHECKPOINT: ae563ac9656cee0c84bd13465b3459f979ca9ad4
 PREVIOUS_VERIFIED_IMPLEMENTATION_REVISION: 34dd524133e6c684c69bc8aecb7f3e8604277a6b
+VERIFIED_IMPLEMENTATION_REVISION: d7f7715833b04736cca7caedc8251212b777fe5e
 BRANCH: task/f01-writing-examples
 ENTRY_GUARD_RESULT: pass; I01 and SEC01 merged, GitHub gate enforced, clean synchronized main, Windows/Python isolated environment verified, owner selected F01, WIP 1
 DECLARED_WRITE_SET: docs/F01_TASK.md; src/personalstyle/storage.py; src/personalstyle/cli.py; tests/test_storage.py; tests/test_initialization.py only for additive CLI coverage; src/personalstyle/security.py only if file ACL verification requires a minimal extension
@@ -20,7 +21,7 @@ RECOVERY_USED: 0 of 1
 PREVIOUS_PASSING_EVIDENCE: attempt 3 local 73 tests, Ruff/mypy and required remote CI passed at previous verified revision
 FAILED_EVIDENCE: attempt 1 permission-test fixture, Ruff and mypy defects; history below
 BLOCKERS: none at activation
-NEXT_ACTION: verify the bounded owner correction and update PR #4 handoff; no merge or F02 activation
+NEXT_ACTION: owner review of PR #4; stop without merge or F02 activation
 ```
 
 ## Owner-authorized budget extension and correction checkpoint
@@ -42,6 +43,41 @@ Attempt 4 removes only the unsupported aggregate quotas and clarifies the existi
 transaction boundary invariant. Historical attempt-3 evidence below remains historical;
 it is not evidence for the corrected revision. No quota-only tests exist; all existing
 tests and their assertions are retained. No additional feature or refactor is authorized.
+
+## Attempt-4 corrected-revision handoff
+
+```text
+TASK: F01
+FINAL_STATE: passing
+CORRECTED_REVISION: d7f7715833b04736cca7caedc8251212b777fe5e
+MERGE_BASE / CURRENT_MAIN: ae563ac9656cee0c84bd13465b3459f979ca9ad4
+CORRECTION_FILES: docs/F01_TASK.md; src/personalstyle/storage.py
+ATTEMPTS_USED: 4 of 4
+DIAGNOSIS_USED: 1 of 2
+RECOVERY_USED: 0 of 1
+NEW_FAILURES / BLOCKERS: none
+NEXT_ACTION: owner review; no automatic merge or F02 activation
+```
+
+Budget extension authority and reason are recorded immediately above. Local Windows
+verification: pytest 73 passed in 53.64s; Ruff passed; mypy passed for 5 source files;
+pip check reported no broken requirements; git diff --check passed.
+Required GitHub `Python harness checks` passed on the exact corrected revision:
+https://github.com/Poken-ninja/personalstyle/actions/runs/37545535775/job/112548515624
+Every install/import/CLI/test/lint/type/dependency/whitespace step succeeded.
+
+Source review confirms both aggregate constants and their count/file-size rejection
+branches are absent, with no replacement quotas. Per-example/context/provenance bounds,
+64 KiB + 4096-byte CLI request bound, 2-second SQLite wait/query bounds, SQLite value/SQL
+length limits, 10-second SEC01 subprocess timeout and 10-minute CI ceiling remain.
+The only remaining example-count query is the unchanged idempotency test assertion.
+The complete suite retains F01 ACL/reparse/hardlink, rollback, schema, logging and UUID
+tests plus I01/SEC01 regressions. Storage schema remains 1; no F02 behavior was added.
+The source diff only deletes the six quota lines; all tests and security code are unchanged.
+Refreshed origin/main matches the merge base; no conflicts or unrelated changes exist.
+
+This handoff-only update does not alter the verified source or tests. Its final pushed
+head must also pass the required GitHub check; that final status is reported in PR #4.
 
 SEC01 PR #3 merged without further code changes as the checkpoint above. Local main was
 fast-forwarded and verified clean and identical to origin/main before this task branch.
