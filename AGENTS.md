@@ -101,6 +101,16 @@ Context is explicit and bounded.
 6. Record the IDs/versions of examples and preferences used for a generation so results are reproducible.
 7. Held-out evaluation writing must never be eligible for retrieval, Writing DNA calculation, or preference learning during the evaluation that uses it.
 
+### Writing-data provenance
+
+Durable writing examples must retain enough provenance to answer:
+- who supplied/owns or authorized the sample;
+- which context it belongs to;
+- whether it is allowed for personalization learning;
+- whether it is held out for evaluation.
+
+Third-party/reference text is not automatically user-style evidence. Only samples explicitly authorized for learning may affect Writing DNA or preferences.
+
 ## Personalization state rules
 
 Name state explicitly; do not use vague "memory."
@@ -137,6 +147,17 @@ USER EDIT
 ```
 
 A single edit may create an observation or low-confidence hypothesis. It must not silently become an active global preference.
+
+Before style learning, classify the edit. At minimum distinguish:
+- style/expression edit;
+- meaning/fact correction;
+- constraint correction;
+- context/recipient correction;
+- mixed or unknown.
+
+Only evidence attributable to style/expression may promote a style preference. Meaning, factual, constraint, or context corrections are primarily failure evidence for generation/verification and must not be converted blindly into style rules.
+
+Accepting a draft is weak positive evidence that it was usable, not proof that every stylistic choice is preferred.
 
 Preference scope may widen only through an explicit deterministic promotion rule backed by cross-context evidence.
 
