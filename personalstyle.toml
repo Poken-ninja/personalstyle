@@ -1,0 +1,45 @@
+[project]
+name = "personalstyle"
+environment = "local"
+
+[model]
+provider = "ollama"
+model = "TODO"
+temperature = 0.2
+max_tokens = 2000
+
+[harness]
+max_iterations = 5
+max_generation_attempts = 3
+max_model_calls = 8
+max_tool_calls = 10
+timeout_seconds = 60
+
+[context]
+explicit_context_required = true
+max_examples = 5
+max_context_tokens = 6000
+
+[retrieval]
+strategy = "metadata"
+embeddings_enabled = false
+vector_database_enabled = false
+
+[agent]
+enabled = false
+max_strategy_steps = 3
+
+[verification]
+semantic_required = true
+structural_required = true
+style_enabled = true
+context_enabled = true
+
+[storage]
+backend = "sqlite"
+path = "data/personalstyle.db"
+
+[logging]
+level = "INFO"
+store_prompts = false
+store_outputs = false
