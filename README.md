@@ -1,31 +1,52 @@
 # PersonalStyle
 
-PersonalStyle is a local-first adaptive writing system that learns from demonstrated writing behavior and user edits.
+PersonalStyle is a local-first adaptive writing assistant that learns from a user's own writing examples and edits, then rewrites text in a context-appropriate way while preserving meaning and explicit constraints.
 
-## Engineering rule
+## Product hypothesis
 
-> Problem first. Simplest architecture that reliably solves the problem.
+The project succeeds as a personalization product only if continued use reduces editing effort or increases accept-without-edit behavior versus a simpler generic rewrite baseline without harming semantic or constraint fidelity.
 
-See [AGENTS.md](AGENTS.md) for the engineering contract and [ARCHITECTURE.md](ARCHITECTURE.md) for the architecture baseline.
+## Current repository status
 
-## Current status
+This repository currently contains the **engineering specification and configuration baseline**.
 
-The repository is initialized around a deterministic harness, explicit context/state, bounded generation, and independent verification.
+It is not yet evidence of a runnable PersonalStyle application. At the current main revision, the source package and tests have not yet been established.
 
-The agent component is disabled initially.
+The first builder task is therefore initialization of the minimal runnable/testable Python harness declared by `pyproject.toml`—not feature expansion.
 
-## Initial implementation rule
+## Document ownership
 
-Build the smallest end-to-end vertical slice first:
+- [AGENTS.md](AGENTS.md): builder rules, deterministic boundaries, completion, failure, loop control, scheduling policy.
+- [ARCHITECTURE.md](ARCHITECTURE.md): system structure, state/data flow, verification layers, research-informed design risks.
+- [docs/decisions/](docs/decisions/): consequential architecture decisions.
+- [personalstyle.toml](personalstyle.toml): current project/runtime policy values.
 
-input → context selection → generation → verification → result → user edit → adaptation.
+## V1 direction
 
-Do not add speculative infrastructure before the vertical slice and its tests demonstrate a concrete need.
+Build one vertical slice:
 
-## Design priorities
+```text
+writing examples
+-> explicit context
+-> inspectable style profile
+-> bounded metadata selection
+-> rewrite generation
+-> hard verification
+-> result
+-> accept/edit event
+-> evidence-backed adaptation
+-> A/B/C evaluation
+```
 
-1. Preserve meaning and constraints.
-2. Match demonstrated user behavior for the relevant context.
-3. Learn from evidence rather than guesses.
-4. Keep execution bounded and observable.
-5. Prefer simpler architecture until measurement shows a need for more.
+No vector database, multi-agent system, background autonomous learning, n8n workflow, or complex graph is justified for V1.
+
+## Completion
+
+"Code exists" is not complete.
+
+See `AGENTS.md` for the explicit definitions of:
+- run complete;
+- feature complete;
+- V1 implementation complete;
+- product hypothesis validated;
+- run/personalization/harness failure.
