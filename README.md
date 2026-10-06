@@ -22,9 +22,18 @@ The first builder task is initialization of the minimal runnable/testable Python
 - [personalstyle.toml](personalstyle.toml): current project/runtime policy values.
 - [EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md): current bounded work plan, readiness, first task, budgets, and handoff contract.
 
-## V1 direction
+## Delivery direction
 
-Build one vertical slice:
+Build one authoritative core first, then thin surfaces for:
+- terminal / CLI;
+- browser extension (current assumption);
+- desktop application;
+- iOS;
+- Android.
+
+All surfaces share one versioned engine/protocol. They do not maintain separate personalization logic.
+
+Build the core vertical slice:
 
 ```text
 writing examples
@@ -41,6 +50,10 @@ writing examples
 
 No vector database, multi-agent system, background autonomous learning, n8n workflow, or complex graph is justified for V1.
 
+The current Ollama provider is a desktop/terminal provider; standalone mobile inference requires a separately supported mobile provider. Mobile companion mode may use an authenticated PersonalStyle engine on another trusted device.
+
+Older clients/OS versions are supported only when the declared protocol/capability and release compatibility matrix is actually verified.
+
 ## Completion
 
 "Code exists" is not complete.
@@ -49,5 +62,9 @@ See `AGENTS.md` for the explicit definitions of:
 - run complete;
 - feature complete;
 - V1 implementation complete;
+- surface complete;
+- cross-platform release complete;
 - product success validated;
-- run/personalization/harness failure.
+- run/personalization/harness/compatibility failure.
+
+Versioning and merge-conflict rules live in `AGENTS.md`; the multi-surface decision is in `docs/decisions/ADR-002-versioned-multi-surface-engine.md`.
