@@ -9,10 +9,8 @@ temperature = 0.2
 max_tokens = 2000
 
 [harness]
-max_iterations = 5
 max_generation_attempts = 3
-max_model_calls = 8
-max_tool_calls = 10
+max_total_model_calls = 6
 timeout_seconds = 60
 
 [context]
@@ -31,13 +29,18 @@ max_strategy_steps = 3
 
 [verification]
 semantic_required = true
+required_information_required = true
+constraint_required = true
 structural_required = true
-style_enabled = true
-context_enabled = true
+context_required = true
+style_is_hard_gate = false
 
 [storage]
 backend = "sqlite"
 path = "data/personalstyle.db"
+
+[scheduling]
+enabled = false
 
 [logging]
 level = "INFO"
