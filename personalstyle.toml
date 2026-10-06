@@ -10,7 +10,8 @@ max_tokens = 2000
 
 [harness]
 max_generation_attempts = 3
-max_total_model_calls = 6
+# Initial safety defaults inherited from the repository baseline; not validated as optimal.
+max_total_model_calls = 8
 timeout_seconds = 60
 
 [context]
