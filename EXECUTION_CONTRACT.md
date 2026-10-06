@@ -87,6 +87,13 @@ No UI framework or minimum iOS/Android/macOS/Windows/Linux matrix is selected ye
 
 This does not block I01 or the core engine. It blocks claiming a cross-platform application release.
 
+### U7 — application-level encryption at rest
+Current policy explicitly does not claim application-level database encryption.
+
+Before any release claims encrypted-at-rest profile storage, a concrete mechanism plus migration, recovery, backup/export, and compatibility behavior must be implemented and verified.
+
+This does not block local V1 engineering if the product clearly relies on host OS/account/disk protection and does not misrepresent the guarantee.
+
 ## Source authority
 
 - V1 behavior/scope: this contract + owner decisions;
@@ -113,13 +120,14 @@ The contract is usable without runtime evidence because I01 is the bounded task 
 | ID | Task | Depends on | Initial state |
 |---|---|---|---|
 | I01 | Establish runnable/testable Python harness | none | not_started |
-| F01 | Persist user-authorized writing examples + explicit context metadata | I01 | not_started |
+| SEC01 | Mechanize core local security boundary | I01 | not_started |
+| F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | not_started |
 | F02 | Derive inspectable Writing DNA/context profile | F01 | not_started |
 | F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | not_started |
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
-| P01 | Mechanize versioned engine protocol + capability handshake | F04 | not_started |
+| P01 | Mechanize versioned engine protocol + authenticated capability handshake | F04 + SEC01 | not_started |
 | E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
 | S01 | Terminal/CLI release acceptance | F06 | not_started |
 | S02 | Extension adapter + compatibility acceptance | P01 + F06 + U4 resolved | not_started |
@@ -128,6 +136,8 @@ The contract is usable without runtime evidence because I01 is the bounded task 
 | S05 | Standalone mobile inference | S04 + U5 resolved | not_started |
 
 Do not fully design later tasks until their dependencies and evidence sharpen.
+
+SEC01 is intentionally summarized until I01 establishes the runnable harness. Its required outcome is: sensitive writing has a defined protected local storage/access boundary, secrets cannot enter normal config/logs/prompts, untrusted content remains data, loopback/network defaults fail safely, and security checks can be executed before F01 begins storing real user writing.
 
 Cross-platform product behavior belongs in the engine. Surface tasks verify transport, permissions, lifecycle, installation, compatibility, and UX failure handling rather than reimplementing personalization.
 
@@ -184,6 +194,8 @@ Do not implement during I01:
 - web UI;
 - n8n;
 - production deployment.
+
+Security is not excluded from V1. Core data/secrets/trust-boundary controls are prerequisites for storing real user writing.
 
 ## Acceptance criteria
 
@@ -327,6 +339,8 @@ Core V1 is **not** complete when I01 completes.
 A target surface is not complete merely because it builds. It must pass the applicable version/protocol/platform acceptance contract in `AGENTS.md`.
 
 A cross-platform release is not complete until every platform/version claimed as supported has current evidence. Unverified older OS versions must not be advertised as supported.
+
+No surface handling sensitive writing is release-complete until its applicable security gate passes. Functional correctness alone is insufficient.
 
 See `AGENTS.md` for separate definitions of run complete, feature complete, surface complete, cross-platform release complete, V1 implementation complete, and product success validated.
 
