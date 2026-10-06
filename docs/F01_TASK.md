@@ -6,20 +6,20 @@
 CONTRACT_ID: PS-V1-001 / F01 bounded task, owner selected after SEC01 merge
 TASK: F01
 STATE: active
-VERIFICATION_STATUS: not_verified (F01 behavior not implemented)
+VERIFICATION_STATUS: local acceptance passed; committed-revision remote CI pending
 PRODUCT / PROTOCOL: 0.1.0 / 1.0
 CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
 REPOSITORY_REVISION / MERGE_BASE / CHECKPOINT: ae563ac9656cee0c84bd13465b3459f979ca9ad4
 BRANCH: task/f01-writing-examples
 ENTRY_GUARD_RESULT: pass; I01 and SEC01 merged, GitHub gate enforced, clean synchronized main, Windows/Python isolated environment verified, owner selected F01, WIP 1
 DECLARED_WRITE_SET: docs/F01_TASK.md; src/personalstyle/storage.py; src/personalstyle/cli.py; tests/test_storage.py; tests/test_initialization.py only for additive CLI coverage; src/personalstyle/security.py only if file ACL verification requires a minimal extension
-ATTEMPTS_USED: 0 of 3
+ATTEMPTS_USED: 2 of 3
 DIAGNOSIS_USED: 0 of 2
 RECOVERY_USED: 0 of 1
-PASSING_EVIDENCE: prerequisites only; 41 tests passed on merged SEC01 checkpoint
-FAILED_EVIDENCE: none for F01
+PASSING_EVIDENCE: attempt 2 local 72 tests passed in 49.98s; Ruff and mypy passed
+FAILED_EVIDENCE: attempt 1 permission-test fixture, Ruff and mypy defects; history below
 BLOCKERS: none at activation
-NEXT_ACTION: F01 implementation attempt 1 within the scope below
+NEXT_ACTION: commit/push verified artifact, required remote CI, committed-revision handoff
 ```
 
 SEC01 PR #3 merged without further code changes as the checkpoint above. Local main was
@@ -120,3 +120,50 @@ Recovery preserves unrelated work: repair F01-local changes, revert only F01-loc
 then restore the task-start checkpoint. Refresh main before final verification and resolve
 semantic conflicts against source authority. No SEC01 reopen or additional SEC01 budget is
 authorized. New security features beyond necessary persistence integration need a new task.
+
+## Failure history
+
+Attempt 1 observed: 69 tests passed; real permission-change fixture could not apply its
+Set-Acl change (PrivilegeNotHeldException); five Ruff findings and one mypy optional-value
+assignment error. Expected: real broadened ACL rejected, tests/lint/types all pass.
+Classification: verifier fixture uses an unavailable OS privilege; implementation typing/
+lint defects. New information: native icacls DACL grant changes permissions without requesting
+ownership/audit privileges. Attempt 2 uses an Everyone read grant on synthetic test data,
+preserves rejection/no-write assertions, corrects imports/explicit subprocess check flags and
+optional result typing. Adds initialization rollback and bounded database-lock tests.
+Remaining: 1 implementation attempt / 2 diagnosis / 1 recovery. No criteria weakened.
+
+## Local acceptance evidence and operating limits
+
+Attempt 2 on Windows/Python 3.14.6: 72 tests passed in 49.98s; Ruff passed; mypy passed
+for 5 source files. This includes all 41 I01/SEC01 tests. Existing startup syntax is retained.
+
+F01-AC1: engine add/read returns unchanged content/context/provenance with timestamp and
+record version; fresh-process readback and CLI inspection pass. UUID idempotency retries
+return the original record; a conflicting payload is rejected without another row or
+profile-version increment. Authorization is an explicit local user's attestation.
+F01-AC2: invalid authorization/context/provenance/held-out flags/oversized input are rejected
+before database creation. CLI JSON request is bounded to 64 KiB + 4096 bytes; input contents
+are not interpolated into SQL, OS code or policy. Exact Unicode text is preserved.
+F01-AC3: verify directory and explicitly protected database file before opening; verify again
+before transaction and commit; compare directory/file device/inode identity. No long-lived
+connections/check cache. Real ACL widening blocks existing store mutation and reopening;
+insecure initial roots never reach sqlite.connect; hardlinks and replaced roots are rejected.
+SQLite sidecars present before open require explicit recovery, not automatic recovery.
+The active transaction's rollback journal inherits the already-verified protected directory
+ACL. Its canonical mutation unit is one guarded atomic transaction; dirty-page spilling is
+disabled before transaction, then the boundary is rechecked before commit.
+F01-AC4: initial schema + example + profile-version update roll back together on injected
+precommit failure; existing-store rollback leaves no partial row/version update. Corrupt,
+future-version, foreign-schema, recovery-journal and locked stores fail without partial data.
+Normal CLI add/failure output and logs omit synthetic writing markers; explicit user-requested
+inspection prints the record. SQL schema/version are checked, statements parameterized.
+F01-AC5: durable record is current locally; remote/committed evidence remains pending.
+
+Only Windows persistence is verified. Same-account hostile processes and host administrators
+retain OS privileges; no application encryption, forensic erase or cross-platform storage
+claim. A committed write whose subsequent readback cannot be verified reports failure;
+retry with the same UUID reconciles deterministically rather than inserting duplicates.
+Failed first initialization may leave an empty protected database file with no schema/records;
+reopening requires an explicit recovery decision, never guessed migration. No automatic
+recovery, migration, deletion or learning is implemented. Do not start F02.

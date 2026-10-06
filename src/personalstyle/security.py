@@ -76,14 +76,19 @@ def _check_path(path: Path) -> Path:
     return absolute
 
 
-def _acl(path: Path, create: bool = False) -> None:
+def _acl(path: Path, create: bool = False, file: bool = False) -> None:
     # PS7 -> Python -> Windows PowerShell otherwise inherits incompatible PS7 modules.
     environment = {key: value for key, value in os.environ.items() if key.upper() != "PSMODULEPATH"}
     environment["PERSONALSTYLE_SECURE_PATH"] = str(path)
     powershell = Path(os.environ.get("SystemRoot", r"C:\Windows")) / (
         "System32/WindowsPowerShell/v1.0/powershell.exe"
     )
-    script = ACL_CONTEXT + (ACL_CREATE if create else "") + ACL_VERIFY
+    context = ACL_CONTEXT
+    creation = ACL_CREATE
+    if file:
+        context += "\n$inherit = [Security.AccessControl.InheritanceFlags]::None\n"
+        creation = creation.replace("DirectorySecurity", "FileSecurity")
+    script = context + (creation if create else "") + ACL_VERIFY
     try:
         result = subprocess.run(
             [str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
@@ -119,3 +124,29 @@ def prepare_private_directory(path: Path) -> Path:
     except OSError as error:
         raise SecurityError("Profile directory preparation failed") from error
     return absolute
+
+
+def verify_private_file(path: Path) -> None:
+    """Verify an explicitly protected canonical file, rejecting links/replacements."""
+    absolute = _check_path(path)
+    try:
+        info = absolute.stat()
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            raise SecurityError("Invalid private file")
+    except OSError as error:
+        raise SecurityError("Private file is unavailable") from error
+    _acl(absolute, file=True)
+
+
+def prepare_private_file(path: Path) -> None:
+    """Create only a new empty file inside a verified directory; never take over files."""
+    absolute = _check_path(path)
+    verify_private_directory(absolute.parent)
+    try:
+        with absolute.open("xb"):
+            pass
+    except OSError as error:
+        raise SecurityError("Private file creation failed") from error
+    _acl(absolute, create=True, file=True)
+    verify_private_directory(absolute.parent)
+    verify_private_file(absolute)
