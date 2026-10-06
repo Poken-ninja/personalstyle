@@ -1,0 +1,19 @@
+[project]
+name = "personalstyle"
+version = "0.1.0"
+description = "Local-first adaptive personalization for writing"
+requires-python = ">=3.12"
+dependencies = ["typer"]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "mypy"]
+
+[project.scripts]
+personalstyle = "personalstyle.cli:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
