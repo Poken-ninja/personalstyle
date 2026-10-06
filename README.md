@@ -58,13 +58,31 @@ Older clients/OS versions are supported only when the declared protocol/capabili
 
 "Code exists" is not complete.
 
+Security is part of V1 engineering, not a later deployment add-on. Real user writing must not be persisted before the core security boundary is mechanized.
+
 See `AGENTS.md` for the explicit definitions of:
 - run complete;
 - feature complete;
 - V1 implementation complete;
 - surface complete;
+- security gate complete;
 - cross-platform release complete;
 - product success validated;
 - run/personalization/harness/compatibility failure.
 
 Versioning and merge-conflict rules live in `AGENTS.md`; the multi-surface decision is in `docs/decisions/ADR-002-versioned-multi-surface-engine.md`.
+
+
+## Security baseline
+
+- local/in-process or loopback by default;
+- companion networking disabled by default;
+- network clients require authentication;
+- non-loopback companion traffic requires protected transport;
+- browser/page/imported/model content is untrusted data;
+- secrets do not belong in project config, prompts, URLs, or normal logs;
+- clients never write canonical profile storage directly;
+- raw prompts/outputs are not logged by default;
+- application-level database encryption is **not currently claimed**.
+
+See `AGENTS.md` and `ARCHITECTURE.md` for the security completion and failure contract.
