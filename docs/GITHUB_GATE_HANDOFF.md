@@ -2,16 +2,16 @@
 
 ```text
 TASK: GitHub gate (owner-authorized after I01)
-STATE: active
-VERIFICATION_STATUS: not_verified
+STATE: passing
+VERIFICATION_STATUS: valid (remote CI and main protection)
 BASE / CHECKPOINT: 19585fd9c50311138d85e93f2cb0769d983c498d
 BRANCH: task/github-gate
 DECLARED_WRITE_SET: .github/workflows/python-harness.yml; docs/GITHUB_GATE_HANDOFF.md; remote main protection settings
 ATTEMPTS_USED: 2 of 3
 DIAGNOSIS_USED: 0 of 2
 RECOVERY_USED: 0 of 1
-BLOCKER: attempt-2 CI pending
-NEXT_ACTION: verify PR workflow, configure/read back main protection, then evaluate SEC01 entry
+BLOCKER: none
+NEXT_ACTION: merge this gate through its required check; then evaluate SEC01 entry
 ```
 
 I01 PR #1 merged as `19585fd9c50311138d85e93f2cb0769d983c498d`; local main
@@ -54,3 +54,11 @@ commit, preserving whitespace criterion. Repair: attempt 2 fetches complete hist
 Remaining: 1 implementation attempt / 2 diagnosis / 1 recovery.
 Enforcement evidence: `gh pr view 2` reported mergeStateStatus BLOCKED with FAILURE for
 the required check. No merge was attempted and no gate was bypassed.
+
+Passing evidence: attempt 2 at `9d8a88e8f38a904fecfe3d99d6463c28c2910e9f` passed
+the required check in 40 seconds on Windows / Python 3.14.7:
+https://github.com/Poken-ninja/personalstyle/actions/runs/37540610582/job/112532422123
+All install/import/startup/test/lint/type/dependency/whitespace steps succeeded. Main
+protection readback confirmed all acceptance settings above. This final handoff-only
+commit preserves the passing workflow and product implementation; its PR check must also
+pass before merge. Gate task 2/3 attempts, 0/2 diagnosis, 0/1 recovery. No admin bypass.
