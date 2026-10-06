@@ -200,6 +200,10 @@ edit
 
 The model may propose a hypothesis, but only deterministic policy writes/promotes durable preference state.
 
+The adapter classifies edits before learning. Style/expression changes may contribute preference evidence; meaning/fact, constraint, and context corrections are routed as generation/verification failure evidence instead of being blindly learned as style.
+
+WritingExample and LearningEvent records must preserve provenance/learning eligibility so held-out or third-party reference text cannot silently enter the style profile.
+
 No hidden background learning runs in V1.
 
 ## Run state machine
