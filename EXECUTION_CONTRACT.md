@@ -1,0 +1,289 @@
+# PersonalStyle V1 Execution Contract
+
+## Status
+
+```text
+CONTRACT_ID: PS-V1-001
+CONTRACT_STATUS: contract_ready
+IMPLEMENTATION_STATUS: not_started
+ACTIVE_IMPLEMENTATION_LIMIT: 1
+```
+
+This file is a specification and current execution handoff. It is not evidence that initialization, implementation, or verification has occurred.
+
+## Objective
+
+Build the smallest local-first PersonalStyle vertical slice that can test whether context-specific personalization reduces user editing effort or increases accept-without-edit behavior versus a generic rewrite baseline while preserving meaning, required information, and explicit constraints.
+
+## Scope
+
+V1:
+- user-authorized writing examples;
+- explicit context tags;
+- inspectable Writing DNA;
+- deterministic bounded example selection;
+- generic and personalized rewrite generation;
+- hard semantic/information/constraint/context verification;
+- accept/edit feedback;
+- classified edit observations and evidence-backed context preferences;
+- A/B/C evaluation.
+
+Excluded until measured need:
+- multi-agent systems;
+- vector database / embedding retrieval;
+- broad RAG;
+- fine-tuning / reinforcement learning;
+- autonomous background learning;
+- n8n;
+- complex graphs;
+- cloud state;
+- production deployment.
+
+## Facts and current repository state
+
+At the contract revision:
+- repository and governing documentation exist;
+- `pyproject.toml` declares Python >=3.12, Typer, pytest/ruff/mypy, and `personalstyle = personalstyle.cli:app`;
+- `personalstyle.toml` declares local Ollama, SQLite, metadata retrieval, agent disabled, scheduling disabled, and bounded model-call/generation budgets;
+- the inspected repository tree does not yet contain the declared source package or tests;
+- the exact Ollama model is still `TODO`.
+
+Runtime/test behavior is not yet observed.
+
+## Consequential unknowns
+
+### U1 — local initialization capability
+Need builder evidence for Python >=3.12, dependency installation, and authorized local repo writes.
+
+Blocks: I01 activation only.
+
+### U2 — initial Ollama model
+Must be selected and recorded before the first model-generation feature activates.
+
+### U3 — held-out evaluation set and success rule
+Must be frozen before product-effectiveness evaluation. Do not choose the success threshold after seeing C results.
+
+## Source authority
+
+- V1 behavior/scope: this contract + owner decisions;
+- builder/control rules: `AGENTS.md`;
+- structural design: `ARCHITECTURE.md`;
+- architecture decisions: `docs/decisions/`;
+- current policy values: `personalstyle.toml`;
+- implementation: checked-out repository revision;
+- runtime: observed local execution;
+- verification: recorded evidence.
+
+## Readiness
+
+```text
+Contract readiness: READY
+Initialization readiness: NOT YET EVIDENCED
+Feature readiness: NOT READY
+```
+
+The contract is usable without runtime evidence because I01 is the bounded task that establishes the missing runtime/test capability.
+
+## Task plan
+
+| ID | Task | Depends on | Initial state |
+|---|---|---|---|
+| I01 | Establish runnable/testable Python harness | none | not_started |
+| F01 | Persist user-authorized writing examples + explicit context metadata | I01 | not_started |
+| F02 | Derive inspectable Writing DNA/context profile | F01 | not_started |
+| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | not_started |
+| F04 | Hard verification path and bounded candidate retry | F03 | not_started |
+| F05 | Record accept/edit events and classify edit type | F04 | not_started |
+| F06 | Evidence-backed context preference promotion | F05 | not_started |
+| E01 | Frozen A/B/C held-out evaluation | F06 + U3 | not_started |
+
+Do not fully design later tasks until their dependencies and evidence sharpen.
+
+# I01 — Establish Runnable/Testable Python Harness
+
+## State
+
+```text
+TYPE: initialization
+STATE: not_started
+VERIFICATION_STATUS: not_verified
+```
+
+## Objective
+
+Make the existing design/config repository minimally executable and testable without implementing PersonalStyle personalization features.
+
+## Entry guard
+
+I01 may become active only when:
+1. the intended repository revision is checked out;
+2. authorized local write access is available;
+3. Python >=3.12 exists or may be provisioned;
+4. declared dev dependencies may be installed in an isolated environment;
+5. no other implementation task is active.
+
+Ollama and a selected model are not prerequisites for I01.
+
+If a guard is missing, record `not_started -> blocked` with the blocker. Resolution does not auto-activate the task.
+
+## Permitted scope
+
+I01 may establish:
+- the declared Python package structure;
+- the declared Typer CLI entry point;
+- a non-generation help/startup-check path;
+- deterministic configuration loading/validation;
+- baseline test structure;
+- meaningful deterministic smoke tests;
+- one durable task/handoff state record.
+
+## Prohibited scope
+
+Do not implement during I01:
+- writing-example product behavior;
+- Writing DNA;
+- SQLite product schema beyond initialization necessity;
+- Ollama generation;
+- prompts/personalization retrieval;
+- semantic/style verification;
+- adaptation/learning;
+- agents;
+- scheduling;
+- web UI;
+- n8n;
+- production deployment.
+
+## Acceptance criteria
+
+### AC1 — package resolves
+The package declared by `pyproject.toml` can be installed/imported in the supported isolated development environment.
+
+Evidence: actual successful install/import result.
+
+### AC2 — CLI resolves
+The declared `personalstyle` entry point runs a help/startup-check path successfully without requiring an LLM.
+
+Evidence: actual successful CLI result.
+
+### AC3 — test harness is real
+pytest discovers and runs the initialization smoke suite successfully.
+
+A test that only contains an unconditional pass is not acceptable evidence.
+
+### AC4 — configuration loads
+The initialization path reads/validates current configuration and preserves the declared hard policy values.
+
+`model = "TODO"` must be surfaced as later generation-readiness state, not as a reason for non-generation startup to fail.
+
+### AC5 — handoff is reconstructable
+A fresh session can identify:
+- I01 state;
+- revision/checkpoint;
+- acceptance evidence;
+- blockers/failures;
+- attempts/budget used;
+- next permitted task/action.
+
+## Verification integrity
+
+I01 may not be made to pass by:
+- deleting the CLI declaration;
+- weakening/removing a meaningful smoke check;
+- hiding a configuration error;
+- changing expectations solely to fit broken behavior.
+
+If an existing declaration is shown to be wrong, record the authoritative requirement, mismatch, correction reason, and rerun evidence.
+
+## Action–verification–repair loop
+
+```text
+ACTIVATE
+-> implementation attempt
+-> run I01 acceptance checks
+   -> all pass: passing
+   -> fail: classify
+      -> material repair within budget
+      -> bounded diagnosis
+      -> block/escalate/stop
+```
+
+Failure classes likely relevant:
+- implementation_defect;
+- environment_failure;
+- dependency_failure;
+- verification_defect;
+- permission_failure;
+- scope_mismatch;
+- unknown_failure.
+
+A repeated attempt must have new information or a material change.
+
+## Budgets
+
+```text
+Implementation attempts: 3 total
+Initial attempt: counts as attempt 1
+Diagnosis cycles: 2 non-modifying cycles
+Task-local recovery actions: 1
+```
+
+All activity remains subject to the configured wall-clock/resource policy. Sessions, agent changes, or context resets do not reset these counters.
+
+Only the project owner may authorize more budget; the extension must record why new evidence makes further work worthwhile.
+
+## Stop / escalation
+
+### Success
+All I01 acceptance criteria have current evidence.
+
+### Block
+Use when continuation requires an unavailable dependency, permission, environment capability, or owner decision.
+
+Record blocker, evidence, required input, owner, and resume condition.
+
+### Controlled stop
+Stop when:
+- attempt/diagnosis/recovery budget is exhausted;
+- the next action exceeds I01 scope;
+- repository state cannot be trusted;
+- authorization would be exceeded.
+
+## Recovery
+
+Before I01 modifications, establish a task-start version-control checkpoint.
+
+Recovery order:
+1. repair current local change;
+2. revert I01-local changes;
+3. restore I01 task-start checkpoint.
+
+Do not remove unrelated pre-existing project files.
+
+Rerun affected I01 checks after recovery before another attempt.
+
+## Handoff record
+
+At every session boundary persist:
+
+```text
+CONTRACT_ID / VERSION
+ACTIVE_TASK
+TASK_STATE
+VERIFICATION_STATUS
+REPOSITORY_REVISION / CHECKPOINT
+ATTEMPTS_USED
+DIAGNOSIS_USED
+RECOVERY_USED
+PASSING_EVIDENCE
+FAILED_EVIDENCE
+BLOCKERS
+NEXT_PERMITTED_ACTION
+```
+
+## Definition of complete
+
+I01 is complete only when AC1–AC5 have actual current evidence and the handoff record is current.
+
+V1 is **not** complete when I01 completes.
+
+See `AGENTS.md` for separate definitions of run complete, feature complete, V1 implementation complete, and product hypothesis validated.
