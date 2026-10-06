@@ -20,6 +20,7 @@ The first builder task is therefore initialization of the minimal runnable/testa
 - [ARCHITECTURE.md](ARCHITECTURE.md): system structure, state/data flow, verification layers, research-informed design risks.
 - [docs/decisions/](docs/decisions/): consequential architecture decisions.
 - [personalstyle.toml](personalstyle.toml): current project/runtime policy values.
+- [EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md): current bounded work plan, readiness, first task, budgets, and handoff contract.
 
 ## V1 direction
 
