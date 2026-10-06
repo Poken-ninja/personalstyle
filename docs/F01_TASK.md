@@ -55,6 +55,11 @@ an earlier successful check is not permanent authorization. Refuse insecure or r
 that the database file does not bypass the boundary through a link or permissive ACL.
 Do not silently reset existing permissions or take over unrelated files.
 
+Invalidation examples: process restart, profile-path change, migration/recovery, detected
+filesystem replacement/reparse change, and reopening after a previous security failure.
+Do not cache successful boundary checks across operations; recheck before open/transaction
+and commit, and compare filesystem identities within an operation.
+
 Use SEC01's explicit preparation path for a new empty profile directory. Generation/imported
 text cannot select a storage path. Host OS account/admin trust and encryption limitations
 carry forward; same-account malicious processes are not isolated by this application.
@@ -79,6 +84,8 @@ storage mechanism. This is not a claim that PersonalStyle is a Windows-only prod
 - F01-AC4: explicit schema/version checks, parameterized SQL, transaction failure rollback,
   hostile writing kept as data and normal diagnostics free of synthetic writing/secret
   markers have executable evidence. No learning, preference or profile contamination path.
+  A caller-supplied example UUID is the idempotency key: identical retry returns the original
+  record without another row/version increment; different payload for that UUID is a conflict.
 - F01-AC5: I01/SEC01 regressions, Ruff, mypy and the required GitHub check pass on the committed
   artifact. Handoff records revision/base, checks, failures, persistent budgets, limitations
   and next permitted task. No F02 activation without a separate explicit task selection.
@@ -88,6 +95,19 @@ storage mechanism. This is not a claim that PersonalStyle is a Windows-only prod
 No Writing DNA, retrieval, generation/model/Ollama integration, prompts, feedback/learning,
 network API, pairing/client protocol, agents, scheduler, UI, mobile storage, encryption,
 release security gate, unrelated refactors or cosmetic document edits.
+
+Frozen initial limits: text 64 KiB UTF-8, context 64 ASCII characters (lowercase identifier),
+provenance 256 UTF-8 bytes each for supplier/owner-or-authorizer and source kind (user_owned
+or authorized_reference), 1000 examples per profile, SQLite file 128 MiB, database wait and
+query budget 2 seconds each, existing SEC01 ACL subprocess ceiling 10 seconds.
+Owner authorization is explicit local user attestation, not proof of third-party ownership.
+
+Failures are explicit fixed codes: STORAGE_BOUNDARY_INVALID, INVALID_EXAMPLE (including
+context/provenance), DATABASE_UNAVAILABLE_OR_CORRUPT, TRANSACTION_FAILED,
+IDEMPOTENCY_CONFLICT, PERSISTENCE_VERIFICATION_FAILED. Unexpected sensitive logging,
+required scope expansion and exhausted budget block the task. Fail/rollback/block, never
+best-effort persistence. Schema/version mismatch and hot journal/recovery state require an
+explicit recovery/migration decision; no automatic recovery is introduced in F01.
 
 Conservative task ceiling: 3 implementation attempts, 2 non-modifying diagnosis cycles,
 1 recovery action; first material implementation counts as attempt 1. Counters persist
