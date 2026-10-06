@@ -5,21 +5,22 @@
 ```text
 CONTRACT_ID: PS-V1-001 / F01 bounded task, owner selected after SEC01 merge
 TASK: F01
-STATE: active
-VERIFICATION_STATUS: local acceptance passed; committed-revision remote CI pending
+STATE: passing
+VERIFICATION_STATUS: valid for current Windows persistence artifact
 PRODUCT / PROTOCOL: 0.1.0 / 1.0
 CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
 REPOSITORY_REVISION / MERGE_BASE / CHECKPOINT: ae563ac9656cee0c84bd13465b3459f979ca9ad4
+VERIFIED_IMPLEMENTATION_REVISION: 34dd524133e6c684c69bc8aecb7f3e8604277a6b
 BRANCH: task/f01-writing-examples
 ENTRY_GUARD_RESULT: pass; I01 and SEC01 merged, GitHub gate enforced, clean synchronized main, Windows/Python isolated environment verified, owner selected F01, WIP 1
 DECLARED_WRITE_SET: docs/F01_TASK.md; src/personalstyle/storage.py; src/personalstyle/cli.py; tests/test_storage.py; tests/test_initialization.py only for additive CLI coverage; src/personalstyle/security.py only if file ACL verification requires a minimal extension
 ATTEMPTS_USED: 3 of 3
 DIAGNOSIS_USED: 1 of 2
 RECOVERY_USED: 0 of 1
-PASSING_EVIDENCE: attempt 3 local 73 tests passed in 56.21s; Ruff and mypy passed
+PASSING_EVIDENCE: attempt 3 local 73 tests, Ruff/mypy and required remote CI passed at verified revision
 FAILED_EVIDENCE: attempt 1 permission-test fixture, Ruff and mypy defects; history below
 BLOCKERS: none at activation
-NEXT_ACTION: commit/push verified artifact, required remote CI, committed-revision handoff
+NEXT_ACTION: review F01 PR #4 after final evidence-only head passes required CI; no F02 activation
 ```
 
 SEC01 PR #3 merged without further code changes as the checkpoint above. Local main was
@@ -166,7 +167,8 @@ precommit failure; existing-store rollback leaves no partial row/version update.
 future-version, foreign-schema, recovery-journal and locked stores fail without partial data.
 Normal CLI add/failure output and logs omit synthetic writing markers; explicit user-requested
 inspection prints the record. SQL schema/version are checked, statements parameterized.
-F01-AC5: durable record is current locally; remote/committed evidence remains pending.
+F01-AC5: required remote CI passed on verified implementation revision; this committed
+handoff records exact evidence, budgets, failures, base and next action.
 
 Final local verification after attempt 3: 73 tests passed in 56.21s; Ruff passed; mypy
 passed for 5 source files. Corrupt metadata now raises the fixed failure code and preserves
@@ -179,3 +181,28 @@ retry with the same UUID reconciles deterministically rather than inserting dupl
 Failed first initialization may leave an empty protected database file with no schema/records;
 reopening requires an explicit recovery decision, never guessed migration. No automatic
 recovery, migration, deletion or learning is implemented. Do not start F02.
+
+## Committed-revision completion evidence
+
+Required GitHub Actions run on `34dd524133e6c684c69bc8aecb7f3e8604277a6b` succeeded:
+https://github.com/Poken-ninja/personalstyle/actions/runs/37544337398/job/112544594453
+Package install/import, existing help/startup, complete 73-test suite (including I01/SEC01),
+Ruff, mypy, dependency consistency and patch checks all passed. Gate was observed pending/
+BLOCKED before completion; no bypass. Earlier committed attempt-2 CI also passed, but the
+current evidence is the corrected attempt-3 artifact. No real user writing used in tests.
+
+PR: https://github.com/Poken-ninja/personalstyle/pull/4
+Five changed files, all declared F01 scope; main base remains the SEC01 merge checkpoint.
+No conflicts/unrelated changes. Final handoff-only commit preserves all tested source and
+tests; its own required check must pass before merge. Branch is pushed; working tree was
+clean before this record update. Budgets: 3/3 attempts, 1/2 diagnosis, 0/1 recovery. Any
+further implementation repair requires explicit owner extension; merge/review is next.
+
+CLI usage from the project root: `personalstyle --prepare-storage`, then
+`personalstyle --add-example REQUEST.json`, and explicit inspection using
+`personalstyle --get-example UUID`. An example request contains exactly these keys:
+id (canonical UUID), text, context, supplier, authorizer, source_kind (user_owned or
+authorized_reference), authorized (true), learning_eligible (boolean), held_out (boolean).
+Use the same id/payload for a retry; held_out and learning_eligible cannot both be true.
+`--config PATH` selects an explicitly supplied local project configuration; writing cannot
+choose the profile path. Add output is metadata only; explicit inspection prints writing.
