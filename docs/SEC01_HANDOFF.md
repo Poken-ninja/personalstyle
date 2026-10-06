@@ -12,11 +12,11 @@ BRANCH: task/sec01-local-boundary
 DECLARED_WRITE_SET: EXECUTION_CONTRACT.md; .gitignore; src/personalstyle/config.py; src/personalstyle/cli.py; src/personalstyle/security.py; tests/test_security.py; docs/SEC01_HANDOFF.md
 ENTRY_GUARD_RESULT: pass; owner selected task, I01 and GitHub gate merged, clean base, Windows/Python and authorized writes available, WIP 1
 ATTEMPTS_USED: 2 of 3
-DIAGNOSIS_USED: 1 of 2
+DIAGNOSIS_USED: 2 of 2
 RECOVERY_USED: 0 of 1
 PASSING_EVIDENCE: local 41 tests, Ruff, mypy, startup and dependency checks passed; remote CI pending
 FAILED_EVIDENCE: attempt-1 pytest setup error; classified verifier defect below
-BLOCKERS: none
+BLOCKERS: hosted Windows ACL environment mismatch under diagnosis
 NEXT_ACTION: commit/reverify, push and run SEC-AC4 through required GitHub gate
 ```
 
@@ -51,3 +51,13 @@ client credentials, migrations, model calls or prompts exist, so their security 
 not applicable yet and is mandatory in the tasks that introduce them. Same-account code and
 OS administrators retain host privileges. No application encryption, release security,
 cross-platform support or product success is claimed. F01 is not authorized by this task.
+
+Remote failure: PR #3 at be32253d8553a1e410496fc06ea49143433bfbb1,
+https://github.com/Poken-ninja/personalstyle/actions/runs/37541566099/job/112535549450
+had 39 passing tests and 2 ACL-creation failures; GitHub merge state BLOCKED.
+Class: environment/configuration difference or implementation defect (not yet settled).
+Diagnosis cycle 2: temporary failure-only workflow step uses a synthetic empty directory
+and prints ACL stage identifiers/booleans/permission names only. No application changes.
+Declared write set temporarily includes .github/workflows/python-harness.yml for this
+observed environment diagnosis; remove the step before completion. No criterion is weakened.
+Remaining: 1 implementation attempt / 0 diagnosis / 1 recovery.
