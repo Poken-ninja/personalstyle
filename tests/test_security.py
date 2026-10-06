@@ -82,7 +82,9 @@ def test_telemetry_rejects_untrusted_values(caplog, event, count):
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows ACL boundary; other OS explicitly unsupported")
-def test_private_directory_acl_and_cli(tmp_path):
+def test_private_directory_acl_and_cli(tmp_path, monkeypatch):
+    # Windows PowerShell must reconstruct its own module path even under a PS7 parent.
+    monkeypatch.setenv("PSModulePath", str(tmp_path / "incompatible-modules"))
     # Quotes, semicolons and dollar signs remain literal filesystem data.
     directory = tmp_path / "private';$literal"
     assert prepare_private_directory(directory) == directory

@@ -11,12 +11,12 @@ REPOSITORY_REVISION / CHECKPOINT / MERGE_BASE: 29ec9b9235cd9dcb33da8281a7b7fa9c8
 BRANCH: task/sec01-local-boundary
 DECLARED_WRITE_SET: EXECUTION_CONTRACT.md; .gitignore; src/personalstyle/config.py; src/personalstyle/cli.py; src/personalstyle/security.py; tests/test_security.py; docs/SEC01_HANDOFF.md
 ENTRY_GUARD_RESULT: pass; owner selected task, I01 and GitHub gate merged, clean base, Windows/Python and authorized writes available, WIP 1
-ATTEMPTS_USED: 2 of 3
+ATTEMPTS_USED: 3 of 3
 DIAGNOSIS_USED: 2 of 2
 RECOVERY_USED: 0 of 1
 PASSING_EVIDENCE: local 41 tests, Ruff, mypy, startup and dependency checks passed; remote CI pending
 FAILED_EVIDENCE: attempt-1 pytest setup error; classified verifier defect below
-BLOCKERS: hosted Windows ACL environment mismatch under diagnosis
+BLOCKERS: final remote verification pending
 NEXT_ACTION: commit/reverify, push and run SEC-AC4 through required GitHub gate
 ```
 
@@ -61,3 +61,15 @@ and prints ACL stage identifiers/booleans/permission names only. No application 
 Declared write set temporarily includes .github/workflows/python-harness.yml for this
 observed environment diagnosis; remove the step before completion. No criterion is weakened.
 Remaining: 1 implementation attempt / 0 diagnosis / 1 recovery.
+
+Diagnosis result: synthetic run at d3eab00243ff5c880326ce2286f1e65fb0302db8,
+https://github.com/Poken-ninja/personalstyle/actions/runs/37541804686/job/112536329123
+reported CommandNotFoundException / CouldNotAutoloadMatchingModule before ACL creation.
+Root cause: PowerShell 7's PSModulePath passes through Python to Windows PowerShell,
+causing incompatible module autoloading. Class: environment-dependent implementation defect.
+Authoritative vendor guidance:
+https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_psmodulepath?view=powershell-7.6
+Attempt 3 removes only PSModulePath from the ACL subprocess environment (case-insensitive),
+adds regression coverage with a polluted parent module path, and removes the diagnostic step.
+Application/module paths, environment and logs otherwise unchanged; no ACL criterion relaxed.
+Remaining: 0 implementation attempts / 0 diagnosis / 1 recovery. Stop if final checks fail.

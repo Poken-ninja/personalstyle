@@ -32,34 +32,6 @@ jobs:
         run: personalstyle --config personalstyle.toml
       - name: Smoke tests
         run: python -m pytest -q
-      - name: Temporary SEC01 ACL diagnosis
-        if: failure()
-        run: |
-          @'
-          import os, subprocess, tempfile
-          from pathlib import Path
-          from personalstyle.security import ACL_CONTEXT, ACL_CREATE, ACL_VERIFY
-          with tempfile.TemporaryDirectory() as directory:
-              target = Path(directory) / 'synthetic-profile'
-              target.mkdir()
-              environment = os.environ.copy()
-              environment['PERSONALSTYLE_SECURE_PATH'] = str(target)
-              script = ACL_CONTEXT + "try {" + ACL_CREATE + "Write-Output 'CREATE_OK'\n" + r'''
-          $actual = Get-Acl -LiteralPath $target
-          Write-Output ('owner_matches=' + ($actual.GetOwner([Security.Principal.SecurityIdentifier]).Value -eq $sid.Value))
-          Write-Output ('protected=' + $actual.AreAccessRulesProtected)
-          $actualRules = $actual.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier])
-          Write-Output ('rule_count=' + $actualRules.Count)
-          foreach ($rule in $actualRules) {
-              Write-Output ('current_account=' + ($rule.IdentityReference.Value -eq $sid.Value))
-              Write-Output ('system=' + ($rule.IdentityReference.Value -eq $system.Value))
-              Write-Output ('rights=' + $rule.FileSystemRights)
-              Write-Output ('inheritance=' + $rule.InheritanceFlags)
-          }
-          ''' + ACL_VERIFY + "Write-Output 'VERIFY_OK'\n} catch { Write-Output ('error_type=' + $_.Exception.GetType().Name); Write-Output ('error_id=' + $_.FullyQualifiedErrorId) }"
-              result = subprocess.run([r'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe', '-NoProfile', '-NonInteractive', '-Command', script], env=environment, capture_output=True, timeout=10)
-              print(result.stdout.decode(errors='replace'))
-          '@ | python
       - name: Lint
         run: python -m ruff check src tests
       - name: Type check

@@ -77,7 +77,8 @@ def _check_path(path: Path) -> Path:
 
 
 def _acl(path: Path, create: bool = False) -> None:
-    environment = os.environ.copy()
+    # PS7 -> Python -> Windows PowerShell otherwise inherits incompatible PS7 modules.
+    environment = {key: value for key, value in os.environ.items() if key.upper() != "PSMODULEPATH"}
     environment["PERSONALSTYLE_SECURE_PATH"] = str(path)
     powershell = Path(os.environ.get("SystemRoot", r"C:\Windows")) / (
         "System32/WindowsPowerShell/v1.0/powershell.exe"
