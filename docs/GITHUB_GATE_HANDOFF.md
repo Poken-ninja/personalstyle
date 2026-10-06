@@ -7,10 +7,10 @@ VERIFICATION_STATUS: not_verified
 BASE / CHECKPOINT: 19585fd9c50311138d85e93f2cb0769d983c498d
 BRANCH: task/github-gate
 DECLARED_WRITE_SET: .github/workflows/python-harness.yml; docs/GITHUB_GATE_HANDOFF.md; remote main protection settings
-ATTEMPTS_USED: 1 of 3
+ATTEMPTS_USED: 2 of 3
 DIAGNOSIS_USED: 0 of 2
 RECOVERY_USED: 0 of 1
-BLOCKER: GitHub CLI lacks authenticated repository-admin access
+BLOCKER: attempt-2 CI pending
 NEXT_ACTION: verify PR workflow, configure/read back main protection, then evaluate SEC01 entry
 ```
 
@@ -40,3 +40,17 @@ Observed capability failure: gh was absent; owner-approved GitHub CLI installati
 branch-protection mutation tool. Owner must log in locally with administrative permission;
 credentials must not be pasted, committed or logged. SEC01 has not started and remains
 dependent on completing the gate in the owner's requested sequence.
+
+Authentication resolved by owner's local login; admin permission verified. Remote main
+protection configured and read back: strict required `Python harness checks` from GitHub
+Actions app 15368, enforce_admins true, PR required (0 approvals), conversations resolved,
+force pushes/deletions false. No existing rules were overwritten (previously unprotected).
+
+Failure evidence: PR #2 at 4dc11ef3efded49a18a88cf5840941f79b6a2368 ran
+https://github.com/Poken-ninja/personalstyle/actions/runs/37540408668 ; Python checks
+passed but whitespace step exited 1 because shallow checkout lacked HEAD^.
+Class: verification_defect in new workflow configuration. Expected: compare real parent
+commit, preserving whitespace criterion. Repair: attempt 2 fetches complete history.
+Remaining: 1 implementation attempt / 2 diagnosis / 1 recovery.
+Enforcement evidence: `gh pr view 2` reported mergeStateStatus BLOCKED with FAILURE for
+the required check. No merge was attempted and no gate was bypassed.
