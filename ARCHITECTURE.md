@@ -8,6 +8,8 @@ The personalization framing is:
 
 **Style × Context × Intent**
 
+Success means the personalized system is measurably closer to the user's demonstrated behavior for the relevant context than a non-personalized baseline.
+
 ## Baseline architecture
 
 ```
@@ -135,6 +137,22 @@ USER EDIT
 
 A single edit must not rewrite the whole profile. Preferences remain context-scoped unless evidence supports widening scope.
 
+## Loop engineering
+
+General execution flow:
+
+Trigger → Execution Policy → Loop Controller → Observe → Reason → Act → Verify → Persist → Termination Decision → Success / Failure / Escalation / Wait
+
+Trigger types include event-driven, scheduled, condition-triggered, and continuation. Scheduling is deterministic infrastructure; the model cannot schedule itself.
+
+Retry means repeating a failed attempt. Iteration means continuing toward a goal after observing a result. Use one authoritative execution budget to avoid retry amplification.
+
+## State machine
+
+A state machine is used only because execution has explicit legal phases and terminal outcomes that must be enforced deterministically. It is not an agentic planning graph.
+
+Typical states: RECEIVED → VALIDATING → CONTEXT_READY → GENERATING → VERIFYING → RETRYING → SUCCEEDED / FAILED / ESCALATED. Illegal transitions must be rejected.
+
 ## Loop controller
 
 The deterministic controller owns:
@@ -147,6 +165,16 @@ The deterministic controller owns:
 - terminal states
 
 The model can recommend actions only within these constraints.
+
+## Success criteria
+
+A successful run preserves meaning, required information, and explicit constraints; uses the correct context; is measurably closer to demonstrated user behavior; remains within resource limits; produces an explicit terminal outcome; and does not mutate unrelated personalization state.
+
+Longitudinal success additionally requires that feedback improves later generations, preferences do not leak across unrelated contexts, and user editing effort decreases or acceptance increases.
+
+## Failure criteria
+
+A run fails on material semantic change, lost required information, explicit-constraint violation, wrong context, exceeded execution/resource limits, unrecoverable persistence/state error, or exhaustion of bounded generation attempts without an acceptable candidate. System-level failure also includes profile corruption, preference leakage, verifier acceptance of a hard-invalid output, or bypass of harness limits.
 
 ## Security
 
