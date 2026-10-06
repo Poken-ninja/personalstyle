@@ -64,7 +64,7 @@ DETERMINISTIC PROMOTION POLICY
 VERSIONED PERSONALIZATION STATE
 ```
 
-V1 is a single-process deterministic harness around model calls. The optional bounded reasoning component is disabled until evidence justifies it.
+V1 is a single-process deterministic harness around model calls. The optional bounded reasoning component is disabled until an observed engineering problem justifies it.
 
 ## Components
 
@@ -125,7 +125,7 @@ Inputs:
 Outputs:
 - ordered example IDs and versions.
 
-Embeddings/vector retrieval are deferred until evaluation demonstrates a retrieval failure that metadata selection cannot solve.
+Embeddings/vector retrieval are deferred until a concrete retrieval failure shows metadata selection is insufficient.
 
 ### 5. Writing DNA
 
@@ -141,7 +141,7 @@ Candidate feature families:
 - recurring phrases;
 - directness/voice indicators.
 
-A feature should not exist merely because it is measurable. It should have a clear intended use in personalization or evaluation.
+A feature should not exist merely because it is measurable. It should have a clear intended use in personalization or verification.
 
 ### 6. Generator
 
@@ -180,10 +180,10 @@ If the generator and semantic verifier use the same model, this is a separate ve
 
 Independent verification requires a genuinely distinct mechanism.
 
-#### Style layer
-Style similarity is diagnostic/optimization evidence in V1, not a single hard oracle.
+#### Style/product-quality layer
+Style similarity is a product-quality signal, not a single hard oracle.
 
-Product-level truth comes from a combination of held-out style diagnostics and user behavior.
+Use several signals and real user behavior so one metric cannot define success by itself.
 
 ### 8. Feedback adapter
 
@@ -237,11 +237,11 @@ Nested model/API retry libraries must not multiply this budget invisibly.
 
 The first generation is attempt 1.
 
-## Evaluation architecture
+## Product-test architecture
 
-Evaluation is separate from normal product state.
+Product testing is separate from normal user state.
 
-Use a held-out dataset that is excluded from:
+Use held-out cases that are excluded from:
 - example retrieval;
 - Writing DNA derivation;
 - preference evidence;
@@ -253,7 +253,7 @@ Compare:
 A = generic rewrite
 B = personalized from examples/profile
 C = B + learned preferences
-D = optional bounded reasoning, only after evidence of need
+D = optional bounded reasoning, only after an engineering need is proven
 ```
 
 Freeze before a scored comparison:
@@ -264,7 +264,7 @@ Freeze before a scored comparison:
 - metric definitions;
 - success rule.
 
-Use several lenses:
+Use:
 - hard semantic/constraint validity;
 - context accuracy;
 - stylometric diagnostics;
@@ -273,48 +273,54 @@ Use several lenses:
 - user preference;
 - latency/resource use.
 
-Do not use the same extracted style traits as both the sole generation control and sole evaluation judge.
+Do not use the same extracted style traits as both the sole generation control and sole quality judge.
 
-## Research-informed risks
+## Engineering failure modes
 
-External work suggests several traps relevant to PersonalStyle:
+### Context contamination
+Examples from the wrong context can make personalization worse.
 
-### Model fingerprint can dominate user style
-Recent personalization benchmarks find that personalization can create author-differentiated output while still remaining systematically unlike genuine human writing.
+**Control:** explicit context IDs, deterministic filtering, bounded fallback, and no unrelated fill-to-count behavior.
 
-**Design response:** never equate a high model/judge style score with "writes like the user." Keep held-out human comparisons and real edit behavior.
+### Preference poisoning
+A factual or semantic correction can be mistaken for a style preference.
 
-### Few-shot style imitation is context-sensitive
-Large evaluations find stronger performance in structured domains such as email than in nuanced informal writing, and prompting/example choices materially affect results.
+**Control:** classify edits before learning; only style/expression evidence may promote style preferences.
 
-**Design response:** evaluate contexts separately; pin prompt/example-order policy; do not report one aggregate style score as universal performance.
+### Evaluation leakage
+Held-out examples can accidentally enter retrieval or profile construction.
 
-### Post-editing still leaves model traces
-Human edits can make generated text more stylistically similar to the writer, but post-edited text may remain closer to model output than to unassisted human writing.
+**Control:** explicit learning eligibility and held-out flags enforced by deterministic selection rules.
 
-**Design response:** treat edit reduction as a longitudinal product metric, not proof of perfect authorship imitation.
+### Model behavior mistaken for user style
+Generated text can be internally consistent without actually matching the user's demonstrated behavior.
 
-### Metric circularity
-Recent benchmark work reports disagreement between authorship-style measures and LLM judges, including circularity when trait extraction and evaluation reinforce the same representation.
+**Control:** use real user edits/acceptance plus held-out comparisons, not model confidence alone.
 
-**Design response:** use an ensemble of independent signals and real user behavior.
+### Verification self-confirmation
+A generator can approve its own mistakes.
 
-### Reproducibility failures are easy
-Personalization repositories/benchmarks expose ambiguity around retriever versions, prompt formatting, test-data preparation, and dataset availability.
+**Control:** deterministic checks for objective rules and clearly labeled second-pass versus genuinely independent verification.
 
-**Design response:** record exact model, prompt, retrieval policy, example IDs/order, data split, and profile version for every evaluation.
+### Retry amplification
+Client/network/model retries can multiply outer harness retries.
 
-### Writing samples are sensitive identity data
-Fully local personalization research shows that relatively small personal-writing collections can carry enough signal for convincing imitation.
+**Control:** one authoritative outer budget and explicit nested retry configuration.
 
-**Design response:** treat authorized writing samples as sensitive local data; preserve provenance and learning eligibility, avoid raw prompt/output logging by default, and do not silently learn from third-party reference text.
+### State corruption
+One edit or failed run can mutate durable profile state incorrectly.
 
-References:
-- https://aclanthology.org/2025.findings-emnlp.532/
-- https://aclanthology.org/2026.acl-long.2030/
-- https://github.com/yashsawant22/personalbench
-- https://github.com/LaMP-Benchmark/LaMP
-- https://proceedings.mlr.press/v328/nicolicioiu26a.html
+**Control:** versioned writes, promotion gates, and rollback/reconstructable events.
+
+### Overengineering
+A small failure can trigger unnecessary agents, RAG, workflows, or abstractions.
+
+**Control:** WIP=1, bounded task contracts, deferred architecture list, and measurable activation guards.
+
+### Sensitive writing-data exposure
+Personal writing samples can expose private or identifying information.
+
+**Control:** local storage baseline, provenance, no raw prompt/output logging by default, and no unauthorized learning sources.
 
 ## Scheduling architecture
 
@@ -326,20 +332,15 @@ If scheduled work is later required, scheduling remains outside model control an
 
 n8n is intentionally absent from V1.
 
-It becomes a candidate only for external multi-service workflows where its connectors, credential handling, webhooks, human approvals, and operations UI materially reduce complexity.
+It becomes a candidate only for external multi-service workflows where its connectors, credential handling, webhooks, human approvals, and operations UI materially reduce implementation complexity.
 
 It is not justified for the interactive rewrite loop or as a generic retry engine.
 
-If n8n is ever adopted, it must be the explicit owner of the workflow-level schedule/retry policy rather than stacking its retries around an already retrying PersonalStyle loop.
-
-Useful references:
-- https://docs.n8n.io/integrations/builtin/core-nodes/n8n-nodes-base.scheduletrigger/
-- https://docs.n8n.io/deploy/host-n8n/configure-n8n/scaling/enable-queue-mode
-- https://docs.n8n.io/deploy/host-n8n/configure-n8n/basic-configuration/configuration-examples/configure-workflow-timeouts
+If n8n is ever adopted, it must be the explicit owner of workflow-level schedule/retry policy rather than stacking its retries around an already retrying PersonalStyle loop.
 
 ## Deferred architecture
 
-Do not add until measured evidence identifies a concrete problem:
+Do not add until an observed engineering problem identifies a concrete need:
 - vector database;
 - general RAG;
 - multi-agent execution;
