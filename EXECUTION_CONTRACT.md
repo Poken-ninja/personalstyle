@@ -13,7 +13,7 @@ This file is a specification and current execution handoff. It is not evidence t
 
 ## Objective
 
-Build the smallest local-first PersonalStyle vertical slice that can test whether context-specific personalization reduces user editing effort or increases accept-without-edit behavior versus a generic rewrite baseline while preserving meaning, required information, and explicit constraints.
+Build the smallest local-first PersonalStyle vertical slice that can demonstrate in normal engineering tests that context-specific personalization reduces user editing effort or increases accept-without-edit behavior versus a generic rewrite baseline while preserving meaning, required information, and explicit constraints.
 
 ## Scope
 
@@ -26,9 +26,9 @@ V1:
 - hard semantic/information/constraint/context verification;
 - accept/edit feedback;
 - classified edit observations and evidence-backed context preferences;
-- A/B/C evaluation.
+- A/B/C product-performance testing.
 
-Excluded until measured need:
+Excluded until measured engineering need:
 - multi-agent systems;
 - vector database / embedding retrieval;
 - broad RAG;
@@ -60,8 +60,8 @@ Blocks: I01 activation only.
 ### U2 — initial Ollama model
 Must be selected and recorded before the first model-generation feature activates.
 
-### U3 — held-out evaluation set and success rule
-Must be frozen before product-effectiveness evaluation. Do not choose the success threshold after seeing C results.
+### U3 — held-out product-test set and success rule
+Must be frozen before final product-performance testing. Do not choose the pass rule after seeing C results.
 
 ## Source authority
 
@@ -95,7 +95,7 @@ The contract is usable without runtime evidence because I01 is the bounded task 
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
-| E01 | Frozen A/B/C held-out evaluation | F06 + U3 | not_started |
+| E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
 
 Do not fully design later tasks until their dependencies and evidence sharpen.
 
@@ -286,4 +286,4 @@ I01 is complete only when AC1–AC5 have actual current evidence and the handoff
 
 V1 is **not** complete when I01 completes.
 
-See `AGENTS.md` for separate definitions of run complete, feature complete, V1 implementation complete, and product hypothesis validated.
+See `AGENTS.md` for separate definitions of run complete, feature complete, V1 implementation complete, and product success validated.
