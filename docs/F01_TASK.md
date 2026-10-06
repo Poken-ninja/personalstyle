@@ -13,10 +13,10 @@ REPOSITORY_REVISION / MERGE_BASE / CHECKPOINT: ae563ac9656cee0c84bd13465b3459f97
 BRANCH: task/f01-writing-examples
 ENTRY_GUARD_RESULT: pass; I01 and SEC01 merged, GitHub gate enforced, clean synchronized main, Windows/Python isolated environment verified, owner selected F01, WIP 1
 DECLARED_WRITE_SET: docs/F01_TASK.md; src/personalstyle/storage.py; src/personalstyle/cli.py; tests/test_storage.py; tests/test_initialization.py only for additive CLI coverage; src/personalstyle/security.py only if file ACL verification requires a minimal extension
-ATTEMPTS_USED: 2 of 3
-DIAGNOSIS_USED: 0 of 2
+ATTEMPTS_USED: 3 of 3
+DIAGNOSIS_USED: 1 of 2
 RECOVERY_USED: 0 of 1
-PASSING_EVIDENCE: attempt 2 local 72 tests passed in 49.98s; Ruff and mypy passed
+PASSING_EVIDENCE: attempt 3 local 73 tests passed in 56.21s; Ruff and mypy passed
 FAILED_EVIDENCE: attempt 1 permission-test fixture, Ruff and mypy defects; history below
 BLOCKERS: none at activation
 NEXT_ACTION: commit/push verified artifact, required remote CI, committed-revision handoff
@@ -133,6 +133,14 @@ preserves rejection/no-write assertions, corrects imports/explicit subprocess ch
 optional result typing. Adds initialization rollback and bounded database-lock tests.
 Remaining: 1 implementation attempt / 2 diagnosis / 1 recovery. No criteria weakened.
 
+Final review diagnosis cycle 1: synthetic store with a nonnumeric profile_version produced
+TypeError rather than DATABASE_UNAVAILABLE_OR_CORRUPT; database bytes unchanged.
+Class: implementation_defect against the frozen corrupt-store failure requirement.
+Attempt 3 explicitly checks metadata integer type and adds the unchanged-store regression.
+Remaining: 0 implementation attempts / 1 diagnosis / 1 recovery. Stop on further failure.
+Diagnostic fixture cleanup initially failed because its direct SQLite connection was still
+open; process exit closed it. This affected only synthetic temporary data, not the candidate.
+
 ## Local acceptance evidence and operating limits
 
 Attempt 2 on Windows/Python 3.14.6: 72 tests passed in 49.98s; Ruff passed; mypy passed
@@ -159,6 +167,10 @@ future-version, foreign-schema, recovery-journal and locked stores fail without 
 Normal CLI add/failure output and logs omit synthetic writing markers; explicit user-requested
 inspection prints the record. SQL schema/version are checked, statements parameterized.
 F01-AC5: durable record is current locally; remote/committed evidence remains pending.
+
+Final local verification after attempt 3: 73 tests passed in 56.21s; Ruff passed; mypy
+passed for 5 source files. Corrupt metadata now raises the fixed failure code and preserves
+database bytes. Synthetic diagnostic directory was removed after its process exited.
 
 Only Windows persistence is verified. Same-account hostile processes and host administrators
 retain OS privileges; no application encryption, forensic erase or cross-platform storage

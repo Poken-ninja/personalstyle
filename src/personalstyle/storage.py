@@ -128,7 +128,10 @@ class ExampleStore:
         if dict(objects) != SCHEMA:
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT")
         metadata = connection.execute("SELECT schema_version, profile_version FROM store_meta").fetchall()
-        if len(metadata) != 1 or metadata[0][0] != 1 or metadata[0][1] < 1:
+        if (
+            len(metadata) != 1 or metadata[0][0] != 1
+            or type(metadata[0][1]) is not int or metadata[0][1] < 1
+        ):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT")
 
     def add(self, example: ExampleInput) -> dict[str, str | int]:

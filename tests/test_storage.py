@@ -175,7 +175,9 @@ def test_locked_database_fails_without_partial_record(store):
     assert store.get(request.id) is None
 
 
-@pytest.mark.parametrize("damage", ["corrupt", "future-version", "journal", "foreign-schema"])
+@pytest.mark.parametrize(
+    "damage", ["corrupt", "future-version", "journal", "foreign-schema", "malformed-metadata"]
+)
 def test_unavailable_or_incompatible_store_has_no_mutation(store, damage):
     store.add(example())
     if damage == "corrupt":
@@ -184,8 +186,11 @@ def test_unavailable_or_incompatible_store_has_no_mutation(store, damage):
         Path(str(store.path) + "-journal").write_bytes(b"requires recovery")
     else:
         with sqlite3.connect(store.path) as connection:
-            connection.execute("PRAGMA user_version=2" if damage == "future-version"
-                               else "CREATE TABLE unexpected (value TEXT)")
+            if damage == "malformed-metadata":
+                connection.execute("UPDATE store_meta SET profile_version=?", ("invalid",))
+            else:
+                connection.execute("PRAGMA user_version=2" if damage == "future-version"
+                                   else "CREATE TABLE unexpected (value TEXT)")
     before = store.path.read_bytes()
     with pytest.raises(StoreError, match="DATABASE_UNAVAILABLE_OR_CORRUPT"):
         store.add(example())
