@@ -304,6 +304,11 @@ Personalization repositories/benchmarks expose ambiguity around retriever versio
 
 **Design response:** record exact model, prompt, retrieval policy, example IDs/order, data split, and profile version for every evaluation.
 
+### Writing samples are sensitive identity data
+Fully local personalization research shows that relatively small personal-writing collections can carry enough signal for convincing imitation.
+
+**Design response:** treat authorized writing samples as sensitive local data; preserve provenance and learning eligibility, avoid raw prompt/output logging by default, and do not silently learn from third-party reference text.
+
 References:
 - https://aclanthology.org/2025.findings-emnlp.532/
 - https://aclanthology.org/2026.acl-long.2030/
