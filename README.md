@@ -8,11 +8,15 @@ PersonalStyle is successful only if continued use reduces editing effort or incr
 
 ## Current repository status
 
-This repository currently contains the **engineering specification and configuration baseline**.
+I01 is merged and verified; the Python harness is runnable/testable and the GitHub merge
+gate is enforced. SEC01 is merged and verified for its declared Windows protection
+boundary. F01 is merged and verified for Windows sensitive writing persistence at
+`8a2e3bfc2ab70507a1b10c2eca3cb49913886177`.
 
-It is not yet evidence of a runnable PersonalStyle application. At the current main revision, the source package and tests have not yet been established.
-
-The first builder task is initialization of the minimal runnable/testable Python harness declared by `pyproject.toml`—not feature expansion.
+F02 is the currently selected bounded task; see [docs/F02_TASK.md](docs/F02_TASK.md)
+for its state, budgets and evidence. F03 and later tasks remain unstarted.
+PersonalStyle V1 and product success are not complete. No cross-platform sensitive
+storage or application-level encryption is claimed.
 
 ## Document ownership
 
