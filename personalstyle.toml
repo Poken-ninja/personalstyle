@@ -2,6 +2,16 @@
 name = "personalstyle"
 environment = "local"
 
+# Version contracts are specified here before they are mechanized.
+# The Python/core package product version remains authoritative in pyproject.toml.
+[versions]
+protocol = "1.0"
+config_schema = 1
+storage_schema = 1
+profile_schema = 1
+prompt_contract = 1
+compatibility_policy = "same-major-capability-negotiated"
+
 [model]
 provider = "ollama"
 model = "TODO"
