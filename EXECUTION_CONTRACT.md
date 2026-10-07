@@ -6,11 +6,12 @@
 CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 merged and verified; V1 incomplete
-ACTIVE_PRODUCT_TASK: none
-NEXT_CANDIDATE: F03; not activated
-F03_AND_LATER: not_started
+SELECTED_PRODUCT_TASK: F03; blocked before implementation
+ACTIVE_PRODUCT_TASK: none; F03 entry guard failed
+NEXT_PERMITTED_ACTION: establish exact local Ollama model availability; recheck F03 entry
+F04_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
-CURRENT_VERIFIED_MAIN: e965f6781c9259bb45ab6bed7db0211e3bc9a505
+CURRENT_VERIFIED_MAIN: 8df79125131cce2fc373494a9846cd18bafc8e75
 ```
 
 This document owns product scope, roadmap, dependencies and completion definitions.
@@ -86,7 +87,9 @@ remains governed by [ADR-001](docs/decisions/ADR-001-single-bounded-reasoning.md
 I01 is merged/verified; see the completed-task references above.
 
 ### U2 — initial Ollama model
-Must be selected and recorded before the first model-generation feature activates.
+Resolved by the owner for initial development: `ollama / qwen3:235b`, not a permanent product
+requirement. Applying this selection to runtime configuration waits for the local
+runtime/model entry guard; see the [bounded F03 task](docs/F03_TASK.md).
 
 ### U3 — held-out product-test set and success rule
 Must be frozen before final product-performance testing. Do not choose the pass rule after seeing C results.
@@ -129,7 +132,7 @@ the already verified Windows path.
 | SEC01 | Mechanize Windows local security boundary | I01 | merged / verified |
 | F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | merged / verified (Windows) |
 | F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
-| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | not_started |
+| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | selected / blocked; [entry evidence](docs/F03_TASK.md) |
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
@@ -146,7 +149,8 @@ explicit owner decision and a fresh bounded task contract.
 
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
-does not auto-activate it. F03 requires U2 model selection and remains unstarted.
+does not auto-activate it. F03 is owner-selected and U2 is resolved, but implementation
+must wait for its local runtime/model entry guard. F04 is not activated.
 
 ## Completion definitions
 

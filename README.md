@@ -9,8 +9,9 @@ explicit constraints. The product is not yet complete.
 I01, the GitHub merge gate, SEC01, F01 and F02 are merged and verified for their declared
 scope. Sensitive persistence and protected-store reads are verified on Windows only.
 Application-level storage encryption and cross-platform sensitive storage are not claimed.
-No product implementation task is active. F03 is the next candidate, remains unstarted,
-and requires explicit selection plus the unresolved model decision.
+F03 is selected but blocked before implementation: the local Ollama runtime is unavailable.
+The initial development provider/model is `ollama / qwen3:235b`; no substitute is authorized.
+Read the [F03 task and checkpoint](docs/F03_TASK.md). F04 and later remain unstarted.
 See [current status and evidence](EXECUTION_CONTRACT.md#completed-tasks-and-evidence).
 
 ## Default read route
