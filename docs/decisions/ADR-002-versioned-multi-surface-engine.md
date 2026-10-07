@@ -2,15 +2,18 @@
 
 ## Status
 
-Accepted architecture direction. Not yet implemented or runtime-verified.
+Accepted long-term architecture direction. Not yet fully implemented or runtime-verified.
+Current V1 release scope is narrowed by
+[ADR-003](ADR-003-desktop-first-flutter.md) to Windows/macOS/Linux desktop; browser and
+mobile surfaces below are deferred rather than deleted from the long-term architecture.
 
 ## Decision
 
-PersonalStyle will have one authoritative product engine and multiple thin user surfaces.
+PersonalStyle will have one authoritative product engine and thin user surfaces.
 
-Target surfaces:
+Long-term possible surfaces:
 - terminal / CLI;
-- browser extension **as the current reversible interpretation of "extension"**;
+- browser extension;
 - desktop application;
 - iOS application;
 - Android application.
