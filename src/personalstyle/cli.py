@@ -1,4 +1,4 @@
-"""Non-generation initialization CLI."""
+"""Thin explicit inspection adapters over the authoritative engine."""
 
 import json
 import logging
@@ -8,11 +8,13 @@ from typing import Annotated
 import typer
 
 from personalstyle.config import ConfigError, load_config
+from personalstyle.generation import MAX_REQUEST_BYTES, RewriteRequest, generate_pair
 from personalstyle.profile import derive_writing_dna
+from personalstyle.provider import GenerationError
 from personalstyle.security import SecurityError, log_event, prepare_private_directory
 from personalstyle.storage import MAX_TEXT_BYTES, ExampleInput, ExampleStore, StoreError
 
-app = typer.Typer(help="PersonalStyle initialization tools. Product generation is unavailable.")
+app = typer.Typer(help="PersonalStyle engineering tools; generated candidates are unverified.")
 
 
 @app.command()
@@ -28,17 +30,36 @@ def check(
     writing_dna: Annotated[
         str | None, typer.Option(help="Inspect derived Writing DNA for one exact context")
     ] = None,
+    generate: Annotated[
+        Path | None, typer.Option(help="Explicitly generate/inspect an unverified pair from JSON")
+    ] = None,
 ) -> None:
     """Validate configuration without an LLM or storage writes."""
     try:
         settings = load_config(config)
         relative = PureWindowsPath(settings["storage"]["path"])
         if sum((prepare_storage, add_example is not None, get_example is not None,
-                writing_dna is not None)) > 1:
+                writing_dna is not None, generate is not None)) > 1:
             raise StoreError("INVALID_EXAMPLE")
-        if add_example is not None or get_example is not None or writing_dna is not None:
+        if any(value is not None for value in (add_example, get_example, writing_dna, generate)):
             store = ExampleStore(config.absolute().parent.joinpath(*relative.parts))
-            if writing_dna is not None:
+            if generate is not None:
+                try:
+                    with generate.open("rb") as stream:
+                        payload = stream.read(MAX_REQUEST_BYTES + 1)
+                    request = json.loads(payload)
+                    if (
+                        len(payload) > MAX_REQUEST_BYTES or not isinstance(request, dict)
+                        or request.keys() != {"original", "intent", "context", "constraints"}
+                        or not isinstance(request["constraints"], list)
+                    ):
+                        raise GenerationError("INVALID_REQUEST")
+                    request["constraints"] = tuple(request["constraints"])
+                    result = generate_pair(RewriteRequest(**request), settings, store)
+                except (OSError, UnicodeError, json.JSONDecodeError, TypeError):
+                    raise GenerationError("INVALID_REQUEST") from None
+                typer.echo(json.dumps(result, ensure_ascii=False))
+            elif writing_dna is not None:
                 snapshot = derive_writing_dna(
                     store, writing_dna, profile_schema=settings["versions"]["profile_schema"],
                     timeout_seconds=settings["harness"]["timeout_seconds"],
@@ -70,7 +91,7 @@ def check(
             directory = config.absolute().parent.joinpath(*relative.parts[:-1])
             prepare_private_directory(directory)
             log_event(logging.getLogger(__name__), "storage_prepared")
-    except (ConfigError, SecurityError, StoreError) as error:
+    except (ConfigError, SecurityError, StoreError, GenerationError) as error:
         log_event(logging.getLogger(__name__), "startup_rejected")
         typer.echo(f"Startup check failed: {error}", err=True)
         raise typer.Exit(code=1) from error
@@ -81,6 +102,6 @@ def check(
         typer.echo("No application-level encryption; protection relies on the OS account/disk.")
     typer.echo(f"Version declarations: {settings['versions']}")
     if settings["model"]["model"] == "TODO":
-        typer.echo("Generation not ready: model is TODO; generation is not implemented.")
+        typer.echo("Generation not ready: model is TODO.")
     else:
-        typer.echo("Generation is not implemented; model readiness is not verified.")
+        typer.echo("Model readiness is not verified by startup checks; --generate is explicit.")

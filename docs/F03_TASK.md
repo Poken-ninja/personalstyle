@@ -4,12 +4,12 @@
 
 ```text
 TASK: F03
-STATE: blocked before implementation; cold bound unresolved after diagnostic cleanup
-VERIFICATION_STATUS: not_verified; feature implementation has not started
+STATE: blocked; local regression environment failure; diagnosis/recovery budgets exhausted
+VERIFICATION_STATUS: not_verified; full local regression failed; real-model verification not run
 AUTHORITY: project owner selected F03 and initial development model
 BASE / MERGE_BASE / CHECKPOINT: 8df79125131cce2fc373494a9846cd18bafc8e75
 BRANCH: task/f03-generation
-ENTRY_GUARD_RESULT: bounded warm request passed at observation; cold request failed 60-second bound; now unloaded after cleanup, current readiness not established
+ENTRY_GUARD_RESULT: passed for implementation activation; branch/runtime/exact installed digest verified; owner decision resolves cold-bound blocker; new preparation mechanism still requires execution evidence
 DECLARED_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md; personalstyle.toml (model value only)
 ACTUAL_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md
 DECLARED_ONBOARDING_DOCS_AMENDMENT_WRITE_SET: README.md; ARCHITECTURE.md; EXECUTION_CONTRACT.md; docs/decisions/ADR-003-desktop-first-flutter.md; docs/F03_TASK.md
@@ -21,12 +21,12 @@ CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
 INITIAL_DEVELOPMENT_MODEL: ollama / qwen3:30b
 WRITING_DNA_ALGORITHM: writing_dna.v1
 PYTHON / SQLITE_RUNTIME: 3.14.6 / 3.50.4
-ATTEMPTS_USED: 0 of 3
+ATTEMPTS_USED: 2 of 3
 DIAGNOSIS_USED: 2 of 2
-RECOVERY_USED: 0 of 1
-IMPLEMENTATION_REVISION: none
+RECOVERY_USED: 1 of 1
+IMPLEMENTATION_REVISION: blocked checkpoint commit; exact SHA in draft PR #8 handoff
 DIAGNOSIS_2_STATE: completed; entry_capable for observed warm state only; inference calls 2 of 2
-NEXT_PERMITTED_ACTION: stop after diagnosis; separately authorized implementation must recheck runtime entry; no further diagnosis budget
+NEXT_PERMITTED_ACTION: owner-authorized environment recovery/budget extension; stop implementation; no F04 or merge
 ```
 
 Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Consult
@@ -34,6 +34,119 @@ Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Co
 [ADR-003](decisions/ADR-003-desktop-first-flutter.md), F01/F02 records and touched code as
 needed. Harness-Engineering is read-only reference material. Selection/configuration and
 this checkpoint are activation work, not implementation attempt 1.
+
+## Active owner decision: preparation is separate from generation
+
+### Controlled stop after recovery 1/1
+
+```text
+OBSERVED: the fresh bounded host regression completed with exit 1;
+  25 passed / 112 setup errors / 2 warnings in 66.78s; parent wall time 67.711s
+EXPECTED: the unchanged suite can create/access temporary fixtures and pass all checks
+FAILURE_CLASS: environment_failure
+EVIDENCE: PermissionError [WinError 5] Access is denied:
+  C:\Users\mamid\AppData\Local\Temp\pytest-of-mamid
+  during pytest temporary-directory setup (getbasetemp / os.scandir);
+  pytest also warned it could not create its cache paths (WinError 183)
+NEXT ACTION: stop; preserve the unverified artifact and failed evidence in draft PR #8;
+  further environment repair requires owner-authorized recovery; do not bypass protections
+BUDGET REMAINING: 1 implementation; 0 diagnosis; 0 recovery
+```
+
+This recovery failure occurred before the temporary-fixture tests could execute. It does
+not diagnose the original three protected-boundary rejections. Their cause remains unknown.
+No temporary-directory ACLs were changed, no checks were weakened, and no user applications
+were terminated. The original long elapsed time has no established cause. There was no
+real-model preparation/generic/personalized run during implementation verification.
+
+Passing evidence before the stop: attempt 1's 29 targeted tests; attempt 2 Ruff, mypy
+(eight source files) and pip check; attempt 2's full suite passed 134 tests, including new
+F03 tests, but failed three unchanged F02 cases. These partial results are not F03 acceptance.
+Required CI for the new checkpoint is separate evidence and cannot replace missing local
+or exact-model execution evidence. The task is not merge-ready. Versions remain unchanged.
+The final documentation link-target check and `git diff --check` passed. The declared
+twelve-file write set contains all changes; storage.py, existing F02 tests, schemas and
+dependency declarations are untouched. Fetched origin/main remains
+`8df79125131cce2fc373494a9846cd18bafc8e75`, also the merge base; there are no incoming
+main commits or merge conflicts to reconcile. PR #8 remains draft.
+
+The blocked checkpoint commit owns the implementation revision; obtain its exact SHA using
+`git log -1 --format=%H -- docs/F03_TASK.md`. The PR handoff records that SHA and current CI.
+
+```text
+OBSERVED: attempt 2 Ruff/mypy/pip check passed; full pytest had 134 passed / 3 failed;
+  reported elapsed 24263.93s (6h44m23s); real model verification has not run
+EXPECTED: original F02 provenance/metadata/text failure cases reach their expected codes
+FAILURE_CLASS: environment_failure suspected; protected-boundary rejection, root cause unknown
+EVIDENCE: test_invalid_source_or_version_never_returns_profile provenance failed during store.add;
+  metadata/text received STORAGE_BOUNDARY_INVALID instead of their original expected codes;
+  storage.py and test_profile.py are unchanged; all new F03 tests passed
+NEXT ACTION: recovery 1/1: one fresh host-environment full regression run with a hard
+  600-second process ceiling; preserve all boundary checks and expectations; no model activity
+BUDGET REMAINING: 1 implementation; 0 diagnosis; 0 recovery
+```
+
+The changed recovery conditions are a fresh host execution context outside the restricted
+sandbox and an enforced verification process ceiling instead of the earlier invocation.
+This does not establish the original cause, increase any SEC01 timeout, bypass an ACL check
+or alter tests. If the boundary failures recur, stop rather than repairing SEC01 inside F03.
+
+```text
+OBSERVED: attempt 1 targeted tests passed (29 in 53.22s); Ruff failed FURB167;
+  mypy reported four Optional-token-count typing errors; pip check passed
+EXPECTED: every required static check passes without changing acceptance/tests
+FAILURE_CLASS: implementation_defect (static verification)
+EVIDENCE: provider.py re.S alias and counts typed Any | None after combined validation
+NEXT ACTION: attempt 2 uses re.DOTALL and explicit integer validation/type narrowing;
+  readiness review also verifies loaded context allocation to avoid an implicit reload
+BUDGET REMAINING: 1 implementation after repair begins; 0 diagnosis; 1 recovery
+```
+
+The first static checks' combined shell command ended with successful pip check; that does
+not erase the individually reported Ruff/mypy failures. Both are recorded and will be rerun.
+Direct repair of those explicit compiler/linter findings is not an additional diagnosis cycle.
+
+Resumed from `af33c25f256e468d9706eb8c6f6f48a232d5cd8e` with a clean tree, matching draft
+PR #8 and unchanged verified main. Runtime 0.40.0 and exact 30B digest were rechecked.
+No conflicting task is active. The owner resolves the prior cold-bound blocker as follows:
+
+```text
+validate request/model
+-> prepare exact selected model: maximum 120 seconds, no retry, verify identity/digest
+-> generic generation: maximum 60 seconds
+-> personalized generation: maximum 60 seconds
+```
+
+Preparation uses Ollama's [supported empty-input load mechanism](https://docs.ollama.com/faq#how-can-i-preload-a-model-into-ollama-to-get-faster-response-times),
+never user writing. Charge one preparation plus one call for each candidate against existing
+`max_total_model_calls=8`; at most three model operations, no hidden retries. Metadata GET/show
+checks do not invoke inference. Preparation timeout or unverifiable identity prevents generation.
+The 120-second ceiling is an enforced provider invariant, not a config field/schema change.
+The previous 93.61-second cold diagnostic remains failed evidence, not a readiness pass.
+
+Actual implementation write set: README.md and EXECUTION_CONTRACT.md (current status);
+docs/F03_TASK.md; src/personalstyle/provider.py; src/personalstyle/generation.py;
+src/personalstyle/profile.py (one shared protected read snapshot); src/personalstyle/cli.py
+(thin explicit inspection adapter); tests/test_provider.py; tests/test_generation.py;
+tests/test_initialization.py; tests/test_security.py (model-independent fixtures);
+personalstyle.toml (reference model only). No storage/schema/dependency/architecture changes.
+
+Freeze selection as earliest UUIDs in F01's exact-context eligible stream, at most five;
+compute DNA from the full same protected snapshot. Oversized selected evidence fails rather
+than trimming text or filling from another context. For the verified Qwen3 GPT-2 byte-level
+BPE/template, count UTF-8 content bytes plus conservative verified-template literal framing
+as a token upper bound, never an exact token count. Enforce the configured context bound
+before inference, allocate room for configured output separately, and record provider token
+counts. Unknown tokenizer/template compatibility fails explicitly; no approximate-token
+claim or silent truncation. No new tokenizer dependency is introduced.
+
+Prompt contract 1 had no implemented generation template. This defines its first template
+with fixed system instructions and a separate JSON user-data envelope; no existing immutable
+template or implemented compatibility surface is changed. All declared versions stay unchanged.
+Validation, selection/DNA reading, preparation and each generation are individually bounded;
+the existing 60-second generation ceiling is never extended by preparation or transport retries.
+Activation started at 0/3; the first material feature-code edit began attempt 1. Diagnosis remains 2/2 and
+recovery 0/1. This owner-authorized implementation is not another diagnosis cycle.
 
 ## Current model decision and tiers
 
@@ -354,9 +467,10 @@ contract change against authoritative declarations before changing its version.
 
 ## Limits, failures and stop rules
 
-Use existing validated per-input/SQLite/SEC01 bounds, a single 60-second operation deadline,
+Use existing validated per-input/SQLite/SEC01 bounds, a 120-second preparation deadline and
+a separate 60-second deadline for each generation (and protected source-read operation),
 configured output limit and 10-minute CI ceiling. No aggregate lifetime count/file quota.
-One model call per candidate; no hidden provider/HTTP retries or F04 repair loop. Freeze
+One preparation call plus one model call per candidate; no hidden provider/HTTP retries or F04 repair loop. Freeze
 request/response bounds and token-accounting details when runtime evidence permits entry.
 Failure returns a fixed code, never a partial profile or misleading verified success.
 

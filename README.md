@@ -9,10 +9,12 @@ explicit constraints. The product is not yet complete.
 I01, the GitHub merge gate, SEC01, F01 and F02 are merged and verified for their declared
 scope. Sensitive persistence and protected-store reads are verified on Windows only.
 Application-level storage encryption and cross-platform sensitive storage are not claimed.
-F03 feature implementation has not started. Ollama 0.40.0 and exact `qwen3:30b` are installed;
-diagnosis verified a warm synthetic request within 60 seconds. The cold diagnostic request
-took 93.61 seconds under substantial paging and did not pass that bound. Entry capability
-is evidence for the observed warm state and must be rechecked if runtime/model state changes.
+F03 is blocked on local verification: the recovery run cannot access pytest's temporary
+directory, and recovery/diagnosis budgets are exhausted. Its implementation is unverified.
+The owner separated exact-model preparation (120 seconds, no retry) from
+each generation (60 seconds). Ollama 0.40.0 and exact `qwen3:30b` are installed. The prior
+93.61-second cold diagnostic remains failed historical generation-bound evidence.
+Feature implementation and current verification are tracked in the F03 checkpoint.
 Initial development uses `ollama / qwen3:30b`.
 Owner-selected tiers are `qwen3:8b` (option 1, Standard/default user option),
 `qwen3:30b` (Recommended/reference development),

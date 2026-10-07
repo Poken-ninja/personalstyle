@@ -6,9 +6,9 @@
 CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 merged and verified; V1 incomplete
-SELECTED_PRODUCT_TASK: F03; blocked before implementation; cold bound unresolved, warm capability observed
-ACTIVE_PRODUCT_TASK: none; diagnosis 2/2 completed, implementation not authorized by this diagnosis
-NEXT_PERMITTED_ACTION: stop after diagnosis; separately authorized implementation must recheck runtime entry
+SELECTED_PRODUCT_TASK: F03
+ACTIVE_PRODUCT_TASK: F03 blocked; implementation unverified; local regression environment failure
+NEXT_PERMITTED_ACTION: owner-authorized environment recovery; diagnosis/recovery budgets exhausted; no further implementation now
 F04_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 CURRENT_VERIFIED_MAIN: 8df79125131cce2fc373494a9846cd18bafc8e75
@@ -92,7 +92,7 @@ product requirement. Deployment/user configuration selects the model behind Mode
 every generation records the exact provider/model actually used. Ordered starter tiers and
 future onboarding belong to [architecture](ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03);
 current reference-model entry evidence is in the [bounded F03 task](docs/F03_TASK.md).
-Keep runtime configuration at `model = "TODO"` until the entry gate passes and implementation begins.
+F03 activates the reference model in runtime configuration when implementation begins.
 
 ### U3 — held-out product-test set and success rule
 Must be frozen before final product-performance testing. Do not choose the pass rule after seeing C results.
@@ -135,7 +135,7 @@ the already verified Windows path.
 | SEC01 | Mechanize Windows local security boundary | I01 | merged / verified |
 | F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | merged / verified (Windows) |
 | F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
-| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | selected / blocked; warm capability observed, cold bound unresolved; [entry evidence](docs/F03_TASK.md) |
+| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | blocked; local verification environment failure; [task/evidence](docs/F03_TASK.md) |
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
@@ -152,8 +152,8 @@ explicit owner decision and a fresh bounded task contract.
 
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
-does not auto-activate it. F03 is owner-selected and U2 is resolved, but implementation
-must wait for its local runtime/model entry guard. F04 is not activated.
+does not auto-activate it. F03 is owner-selected and U2 is resolved; its unverified
+implementation is blocked on the recorded local verification failure. F04 is not activated.
 
 ### S03 desktop model setup acceptance
 

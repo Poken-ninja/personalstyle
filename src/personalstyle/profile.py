@@ -4,6 +4,7 @@ import hashlib
 import re
 import time
 from collections import Counter
+from collections.abc import Iterator
 
 from personalstyle.storage import ExampleStore, StoreError
 
@@ -32,50 +33,84 @@ def derive_writing_dna(
     if type(timeout_seconds) is not int or not 0 < timeout_seconds <= 60:
         raise ProfileError("PROFILE_RESOURCE_LIMIT")
     deadline = time.monotonic() + timeout_seconds
+    with store.eligible_examples(context, deadline) as (source_version, rows):
+        result = _derive_rows(rows, context, source_version, profile_schema, deadline)
+    _check_deadline(deadline)
+    return result
+
+
+def derive_personalization(
+    store: ExampleStore, context: str, *, max_examples: int = 5, profile_schema: int = 1,
+    timeout_seconds: int = 60,
+) -> tuple[dict[str, object], list[dict[str, object]]]:
+    """DNA and earliest UUID examples from the same guarded SQLite read snapshot."""
+    if type(max_examples) is not int or not 0 < max_examples <= 5:
+        raise ProfileError("PROFILE_RESOURCE_LIMIT")
+    if type(profile_schema) is not int or profile_schema != 1:
+        raise ProfileError("PROFILE_VERSION_INCOMPATIBLE")
+    if type(timeout_seconds) is not int or not 0 < timeout_seconds <= 60:
+        raise ProfileError("PROFILE_RESOURCE_LIMIT")
+    deadline = time.monotonic() + timeout_seconds
+    selected: list[dict[str, object]] = []
+    with store.eligible_examples(context, deadline) as (version, rows):
+        def capture() -> Iterator[tuple[str, int, str]]:
+            for example_id, record_version, text in rows:
+                if len(selected) < max_examples:
+                    selected.append({"id": example_id, "record_version": record_version, "text": text})
+                yield example_id, record_version, text
+
+        dna = _derive_rows(capture(), context, version, profile_schema, deadline)
+    _check_deadline(deadline)
+    return dna, selected
+
+
+def _derive_rows(
+    rows: Iterator[tuple[str, int, str]], context: str, source_version: int,
+    profile_schema: int, deadline: float,
+) -> dict[str, object]:
     samples = words = paragraphs = sentences = 0
     lengths: Counter[int] = Counter()
     punctuation = {mark: 0 for mark in PUNCTUATION}
     fingerprint = hashlib.sha256()
-    with store.eligible_examples(context, deadline) as (source_version, rows):
-        for example_id, record_version, text in rows:
-            _check_deadline(deadline)
-            samples += 1
-            fingerprint.update(f"{example_id}:{record_version}\n".encode("ascii"))
-            normalized = text.replace("\r\n", "\n").replace("\r", "\n")
-            for paragraph in PARAGRAPHS.split(normalized):
-                _check_deadline(deadline)
-                if not paragraph.strip():
-                    continue
-                paragraphs += 1
-                for span in SENTENCES.split(paragraph):
-                    size = sum(1 for _ in WORDS.finditer(span))
-                    if size:
-                        lengths[size] += 1
-                        words += size
-                        sentences += 1
-            for mark in punctuation:
-                punctuation[mark] += text.count(mark)
-        if not samples:
-            raise ProfileError("NO_ELIGIBLE_EXAMPLES")
+    for example_id, record_version, text in rows:
         _check_deadline(deadline)
-        # Histogram size is bounded by per-example input length, not corpus count.
-        middle = [(sentences + 1) // 2, sentences // 2 + 1]
-        cumulative = 0
-        medians: list[int] = []
-        for length, count in sorted(lengths.items()):
-            previous, cumulative = cumulative, cumulative + count
-            medians.extend(length for rank in middle if previous < rank <= cumulative)
-        features = {
-            "sample_count": samples, "word_count": words, "sentence_count": sentences,
-            "paragraph_count": paragraphs,
-            "mean_words_per_sentence": words / sentences if sentences else 0.0,
-            "median_words_per_sentence": sum(medians) / 2 if sentences else 0.0,
-            "mean_sentences_per_paragraph": sentences / paragraphs if paragraphs else 0.0,
-            "punctuation_counts": punctuation,
-            "punctuation_per_100_words": {
-                mark: count * 100 / words if words else 0.0 for mark, count in punctuation.items()
-            },
-        }
+        samples += 1
+        fingerprint.update(f"{example_id}:{record_version}\n".encode("ascii"))
+        normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+        for paragraph in PARAGRAPHS.split(normalized):
+            _check_deadline(deadline)
+            if not paragraph.strip():
+                continue
+            paragraphs += 1
+            for span in SENTENCES.split(paragraph):
+                size = sum(1 for _ in WORDS.finditer(span))
+                if size:
+                    lengths[size] += 1
+                    words += size
+                    sentences += 1
+        for mark in punctuation:
+            punctuation[mark] += text.count(mark)
+    if not samples:
+        raise ProfileError("NO_ELIGIBLE_EXAMPLES")
+    _check_deadline(deadline)
+    # Histogram size is bounded by per-example input length, not corpus count.
+    middle = [(sentences + 1) // 2, sentences // 2 + 1]
+    cumulative = 0
+    medians: list[int] = []
+    for length, count in sorted(lengths.items()):
+        previous, cumulative = cumulative, cumulative + count
+        medians.extend(length for rank in middle if previous < rank <= cumulative)
+    features = {
+        "sample_count": samples, "word_count": words, "sentence_count": sentences,
+        "paragraph_count": paragraphs,
+        "mean_words_per_sentence": words / sentences if sentences else 0.0,
+        "median_words_per_sentence": sum(medians) / 2 if sentences else 0.0,
+        "mean_sentences_per_paragraph": sentences / paragraphs if paragraphs else 0.0,
+        "punctuation_counts": punctuation,
+        "punctuation_per_100_words": {
+            mark: count * 100 / words if words else 0.0 for mark, count in punctuation.items()
+        },
+    }
     _check_deadline(deadline)
     return {
         "profile_schema": profile_schema, "writing_dna_algorithm_version": ALGORITHM_VERSION,
