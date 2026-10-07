@@ -4,16 +4,17 @@
 
 ```text
 TASK: F03
-STATE: blocked
+STATE: blocked before implementation; cold bound unresolved after diagnostic cleanup
 VERIFICATION_STATUS: not_verified; feature implementation has not started
 AUTHORITY: project owner selected F03 and initial development model
 BASE / MERGE_BASE / CHECKPOINT: 8df79125131cce2fc373494a9846cd18bafc8e75
 BRANCH: task/f03-generation
-ENTRY_GUARD_RESULT: failed; installed exact qwen3:30b synthetic probe exceeded the 60-second deadline
+ENTRY_GUARD_RESULT: bounded warm request passed at observation; cold request failed 60-second bound; now unloaded after cleanup, current readiness not established
 DECLARED_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md; personalstyle.toml (model value only)
 ACTUAL_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md
 DECLARED_ONBOARDING_DOCS_AMENDMENT_WRITE_SET: README.md; ARCHITECTURE.md; EXECUTION_CONTRACT.md; docs/decisions/ADR-003-desktop-first-flutter.md; docs/F03_TASK.md
 DECLARED_ENVIRONMENT_CHECKPOINT_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md
+DECLARED_DIAGNOSIS_2_WRITE_SET: docs/F03_TASK.md; README.md and EXECUTION_CONTRACT.md (current status only)
 PROPOSED_IMPLEMENTATION_WRITE_SET: src/personalstyle/generation.py; src/personalstyle/provider.py; src/personalstyle/storage.py (minimal read extension only if needed); src/personalstyle/profile.py (shared snapshot only if needed); src/personalstyle/cli.py (thin adapter); tests/test_generation.py; tests/test_provider.py; tests/test_initialization.py and tests/test_security.py (model-independent fixtures); personalstyle.toml (selected model value); docs/F03_TASK.md
 PRODUCT / PROTOCOL: 0.1.0 / 1.0
 CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
@@ -21,10 +22,11 @@ INITIAL_DEVELOPMENT_MODEL: ollama / qwen3:30b
 WRITING_DNA_ALGORITHM: writing_dna.v1
 PYTHON / SQLITE_RUNTIME: 3.14.6 / 3.50.4
 ATTEMPTS_USED: 0 of 3
-DIAGNOSIS_USED: 1 of 2
+DIAGNOSIS_USED: 2 of 2
 RECOVERY_USED: 0 of 1
 IMPLEMENTATION_REVISION: none
-NEXT_PERMITTED_ACTION: owner-directed environment reassessment with changed evidence; no feature implementation, substitute model or longer deadline
+DIAGNOSIS_2_STATE: completed; entry_capable for observed warm state only; inference calls 2 of 2
+NEXT_PERMITTED_ACTION: stop after diagnosis; separately authorized implementation must recheck runtime entry; no further diagnosis budget
 ```
 
 Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Consult
@@ -69,7 +71,103 @@ that lists and actually serves a bounded synthetic request using exactly `qwen3:
 Record runtime version, model digest and execution outcome before feature-code edits.
 Do not substitute another model. Missing runtime/model or inability to run blocks F03.
 
-### Resumed environment entry: installed model, bounded probe failed
+### Diagnosis cycle 2/2: cold initialization and paging versus warm inference
+
+Owner authorized this final diagnosis cycle from
+`0b21bc202806a1412102ba62243bf40de5922d74`. Local HEAD, origin/task/f03-generation and
+draft PR #8 matched that revision; the tree was clean and GitHub main remained the declared
+base. Ollama CLI/API still reported 0.40.0. The installed exact `qwen3:30b` full digest
+remained `ad815644918f0eaab341c12b67837cc6dd4562342cdaf118f83d5d554cb37226`.
+Initial `/api/ps` was empty; RAM available was 4,548,423,680 bytes and GPU free 7877 MiB.
+Nothing was reinstalled/redownloaded, no user applications were terminated and no system
+configuration was changed by the builder.
+
+Before inference, existing Ollama logs showed the prior failed request entered loading
+with 2.6 GiB free RAM, allocated CPU model buffers of 12191.92 MiB and CUDA buffers of
+5499.42 MiB, then logged HTTP 499 after client cancellation at about 61 seconds. The later
+zero-content generate entry was the previously recorded unload, not a second inference.
+This localized the earlier failure to startup under low available memory without proving
+which phase consumed its unobserved time.
+
+The temporary diagnostic helper initially failed with a missing `tempfile` import before
+any request: `verification_defect` in temporary instrumentation, expected helper startup,
+observed `NameError`; the justified correction added the missing import. It used no inference
+call, changed no repository
+source/test and did not open another diagnosis cycle. Both actual calls used only the same
+synthetic request for READY, exact model, `think=false`, `stream=false`, temperature 0,
+context 2048, output at most 32 tokens, and a 64-KiB response cap. No hidden HTTP/model retries.
+
+| Timing (seconds) | Cold diagnostic | Warm bounded request |
+|---|---:|---:|
+| Observation ceiling | 300 (diagnosis only) | 60 (unchanged product bound) |
+| Request wall time | 93.613 | 1.153 |
+| Ollama total | 93.389498 | 1.104912 |
+| Model load | 58.584391 | 0.082901 |
+| Prompt evaluation | 25.400286 | 0.048263 |
+| Output generation | 9.134382 | 0.957594 |
+| Prompt / output tokens | 17 / 32 | 17 / 32 |
+
+Cold observations ran 2026-10-07T06:49:25.868686Z through 06:51:02.212779Z;
+warm observations ran 06:51:49.572209Z through 06:51:52.513866Z. These intervals include
+resource collection before/after the timed request. Resource sampling overhead explains
+parent collection time (cold 94.663s; warm 1.414s), not the recorded request timing.
+Both requests returned HTTP 200, nonempty text and `done=true`, `done_reason=length` at the
+32-token cap. Neither returned exactly READY; no instruction fidelity, rewrite quality or
+F04 semantic/constraint verification is claimed. Warm reused the identical synthetic prompt;
+its fast prompt evaluation is not evidence for uncached inputs or the full 6000-token budget.
+
+| Resource | Cold before | Cold after | Warm before | Warm after |
+|---|---:|---:|---:|---:|
+| Available physical RAM (bytes, native observation) | 3,915,210,752 | 1,159,073,792 | 936,841,216 | 816,160,768 |
+| Free VRAM (MiB; total 8151) | 7877 | 1796 | 1796 | 1796 |
+| Pagefile current use (MiB) | 2480 | 12737 | 12799 | 12777 |
+| System committed bytes | 27,119,550,464 | 46,909,075,456 | 46,916,218,880 | 46,931,341,312 |
+
+During cold loading, a CIM sample measured just 423,092,224 available RAM bytes and
+257849 pages input/sec (1669 page reads/sec), versus baseline 11 pages input/sec. Pagefile
+allocation grew automatically from 18158 to 29104 MiB; current use reached 12737 MiB at
+the cold after-sample. Some bounded counter queries timed out during pressure; that missing
+telemetry is not a zero-paging observation. These are system-wide counters, so attribution
+to this model alone is not proven. Concurrent allocation growth, Ollama CPU-buffer metadata,
+and timings support startup/paging as the primary explanation rather than ordinary warm
+inference latency. Precise causal separation of disk reads versus pagefile reads is unavailable.
+
+The exact digest was attested loaded after cold, before warm and after warm via `/api/ps`:
+runtime size 18,985,758,225 bytes, VRAM allocation 6,190,499,101 bytes, context 2048.
+It remained loaded after both requests with bounded `keep_alive=10m` (warm expiry reported
+2026-10-07T07:01:51.6308935Z). No third inference call or reload was performed.
+After recording those states, diagnostic cleanup `ollama stop qwen3:30b` exited 0 under a
+separate 15-second bound, and `/api/ps` returned no loaded models. Available RAM was then
+3,136,958,464 bytes and GPU free 7877 MiB. Unload is a zero-content cleanup operation,
+not a third inference measurement or feature recovery. The exact model/runtime remain installed.
+
+```text
+OBSERVED: cold complete request 93.613s with substantial paging; exact loaded model serves warm request in 1.153s
+EXPECTED: exact model serves a bounded request within the unchanged 60-second ceiling
+DIAGNOSIS_CLASSIFICATION: entry_capable for the observed warm state only
+FAILURE_CLASS: prior environment_failure / GENERATION_RESOURCE_LIMIT; cold initialization under observed memory pressure
+EVIDENCE: separate load/prompt/generation timings, exact loaded digest and before/during/after resources above
+NEXT ACTION: stop; no more diagnosis calls; separately authorized implementation must recheck runtime entry
+BUDGET REMAINING: 3 implementation; 0 diagnosis; 1 recovery
+```
+
+The warm request satisfies the existing minimal runtime entry condition; the larger cold
+observation ceiling is never passing evidence. This is not `cold_start_only` under the owner's
+literal definition because measured model loading alone was below 60 seconds; loading plus
+prompt evaluation and generation exceeded it. Warm latency passed and the exact model stayed
+loaded, so `runtime_resource_limit` for warm inference was not observed in these two calls.
+Entry capability is limited to this observed warm state, not a durable READY guarantee after
+unloading/restart or proof of full F03 acceptance. Cold startup still fails the unchanged
+complete-request bound and must not be silently warmed/retried inside an over-budget run.
+F03 remains blocked after diagnostic cleanup: the model is now unloaded, the original cold
+failure is retained, and current entry must be reassessed before implementation. The warm
+passing observation is preserved rather than being presented as current cold readiness.
+No preload policy, timeout change, acceptance change or recovery was introduced.
+Implementation remains 0/3, diagnosis is now exhausted at 2/2 and recovery remains 0/1.
+PR #8 stays draft; no feature implementation or F04 is activated. All versions and
+`model = "TODO"` remain unchanged. Committed checkpoint/CI evidence is recorded in PR #8.
+
+### Historical environment entry: installed model, bounded probe failed
 
 Owner authorized runtime installation, provisioning exactly `qwen3:30b` and one bounded
 synthetic probe. Before installation, local branch and draft PR #8 both matched
@@ -281,9 +379,10 @@ inference connection is the sole provider integration in scope; no cloud fallbac
 
 ## Handoff evidence status
 
-The current environment checkpoint records the failed exact-model probe above; it is not
-a passing F03 generation artifact. Source/tests/configuration remain unchanged and PR #8
-remains draft. Its committed head, documentation checks and required CI are recorded there.
+The current checkpoint records diagnosis 2/2, the cold failure and the bounded warm runtime
+entry evidence above; it is not a passing F03 feature artifact. Source/tests/configuration
+remain unchanged and PR #8 remains draft. Its committed head, documentation checks and
+required CI are recorded there. Earlier checkpoints below retain their historical counters.
 
 The prior onboarding amendment is specification only. Its five-document scope, exact committed
 head, docs checks and required CI evidence are recorded in draft PR #8. F03 remains blocked;

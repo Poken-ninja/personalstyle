@@ -6,9 +6,9 @@
 CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 merged and verified; V1 incomplete
-SELECTED_PRODUCT_TASK: F03; blocked before implementation
-ACTIVE_PRODUCT_TASK: none; F03 entry guard failed
-NEXT_PERMITTED_ACTION: owner-directed environment reassessment with changed evidence; exact 30B probe timed out
+SELECTED_PRODUCT_TASK: F03; blocked before implementation; cold bound unresolved, warm capability observed
+ACTIVE_PRODUCT_TASK: none; diagnosis 2/2 completed, implementation not authorized by this diagnosis
+NEXT_PERMITTED_ACTION: stop after diagnosis; separately authorized implementation must recheck runtime entry
 F04_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 CURRENT_VERIFIED_MAIN: 8df79125131cce2fc373494a9846cd18bafc8e75
@@ -135,7 +135,7 @@ the already verified Windows path.
 | SEC01 | Mechanize Windows local security boundary | I01 | merged / verified |
 | F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | merged / verified (Windows) |
 | F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
-| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | selected / blocked; [entry evidence](docs/F03_TASK.md) |
+| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | selected / blocked; warm capability observed, cold bound unresolved; [entry evidence](docs/F03_TASK.md) |
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
