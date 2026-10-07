@@ -32,7 +32,10 @@ selected, do not infer permission from the roadmap or a completed handoff.
 | Selected `docs/Fxx_TASK.md` | Bounded current task scope, acceptance, budgets and checkpoint |
 | Completed [task/handoff records](EXECUTION_CONTRACT.md#completed-tasks-and-evidence) | Historical revision-specific evidence; not current activation |
 
-Delivery targets one authoritative engine with thin terminal, browser-extension, desktop,
-iOS and Android surfaces. See [architecture](ARCHITECTURE.md#multi-surface-architecture)
-for arrangements and [completion definitions](EXECUTION_CONTRACT.md#completion-definitions)
-for what may be claimed. Security rules remain in [AGENTS.md](AGENTS.md#security-contract).
+Current V1 release scope is desktop-first: one Flutter shell targeting Windows, macOS and
+Linux over the authoritative PersonalStyle engine. The CLI remains an engineering and
+acceptance surface. Browser-extension, iOS and Android clients are deferred and are not V1
+release blockers. See [architecture](ARCHITECTURE.md#multi-surface-architecture),
+[ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md), and the
+[completion definitions](EXECUTION_CONTRACT.md#completion-definitions). Security rules
+remain in [AGENTS.md](AGENTS.md#security-contract).
