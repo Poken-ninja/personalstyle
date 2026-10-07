@@ -7,8 +7,8 @@ CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 merged and verified; V1 incomplete
 SELECTED_PRODUCT_TASK: F03
-ACTIVE_PRODUCT_TASK: F03 blocked; local regressions passed; exact-model generic generation timed out
-NEXT_PERMITTED_ACTION: owner decision on runtime blocker; diagnosis/recovery exhausted; no retry or implementation now
+ACTIVE_PRODUCT_TASK: F03 blocked; selected 8B template compatibility qualification failed
+NEXT_PERMITTED_ACTION: owner review before compatibility repair/further qualification; no retry or implementation now
 F04_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 CURRENT_VERIFIED_MAIN: 8df79125131cce2fc373494a9846cd18bafc8e75
@@ -87,12 +87,15 @@ remains governed by [ADR-001](docs/decisions/ADR-001-single-bounded-reasoning.md
 I01 is merged/verified; see the completed-task references above.
 
 ### U2 — initial Ollama model
-Resolved by the owner: `INITIAL_DEVELOPMENT_MODEL = ollama / qwen3:30b`, not a permanent
+Resolved by the owner: `F03_CURRENT_DEVELOPMENT_MODEL = ollama / qwen3:8b`, not a permanent
 product requirement. Deployment/user configuration selects the model behind ModelProvider;
 every generation records the exact provider/model actually used. Ordered starter tiers and
 future onboarding belong to [architecture](ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03);
 current reference-model entry evidence is in the [bounded F03 task](docs/F03_TASK.md).
-F03 activates the reference model in runtime configuration when implementation begins.
+This supersedes the earlier 30B reference for this machine: preparation passed, but generic
+generation exceeded 60 seconds with severe memory/pagefile pressure. 30B remains a Quality
+option on environments that verify readiness/performance. 8B is installed but its template
+compatibility qualification failed; active configuration awaits successful qualification.
 
 ### U3 — held-out product-test set and success rule
 Must be frozen before final product-performance testing. Do not choose the pass rule after seeing C results.
@@ -135,7 +138,7 @@ the already verified Windows path.
 | SEC01 | Mechanize Windows local security boundary | I01 | merged / verified |
 | F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | merged / verified (Windows) |
 | F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
-| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | blocked; exact-model generation deadline; [task/evidence](docs/F03_TASK.md) |
+| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | blocked; selected 8B template compatibility; [task/evidence](docs/F03_TASK.md) |
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
@@ -152,8 +155,8 @@ explicit owner decision and a fresh bounded task contract.
 
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
-does not auto-activate it. F03 is owner-selected and U2 is resolved; after successful local
-regressions, real generic generation failed its deadline. F04 is not activated.
+does not auto-activate it. F03 is owner-selected and U2 is resolved; 8B qualification is
+blocked before inference by the provider's template validation. F04 is not activated.
 
 ### S03 desktop model setup acceptance
 
@@ -162,8 +165,9 @@ workflow in [architecture](ARCHITECTURE.md#desktop-model-onboarding-and-setup-fu
 [ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md#model-onboarding-decision), in addition
 to existing desktop workflow, security, packaging and platform release acceptance.
 
-- Offer option 1 `qwen3:8b` (Standard/default user option), option 2 `qwen3:30b`
-  (Recommended/reference development), and option 3 `qwen3:235b` (Maximum/optional enthusiast).
+- Offer option 1 `qwen3:8b` (Standard/default and current F03 development target), option 2
+  `qwen3:30b` (Quality, only after environment readiness/performance verification), and option 3
+  `qwen3:235b` (Maximum/high-end optional, unverified unless separately tested).
   Require explicit choice/confirmation; never silently substitute. A later existing-model
   path accepts only models satisfying defined provider/runtime/model compatibility validation.
 - Demonstrate the complete choose/inspect/estimate/runtime-check/instructions/recheck/model-check/
@@ -182,7 +186,7 @@ to existing desktop workflow, security, packaging and platform release acceptanc
   a bounded probe is inference setup evidence, not security or overall release completion.
 
 Freeze detailed compatibility/probe acceptance in S03's bounded task before implementation.
-F03 continues to prove only its generation/provider seam with 30B reference development
+F03 continues to prove only its generation/provider seam with the selected 8B development
 evidence; this roadmap addition does not move onboarding into F03 or activate later work.
 
 ## Completion definitions

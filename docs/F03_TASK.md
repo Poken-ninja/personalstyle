@@ -4,12 +4,12 @@
 
 ```text
 TASK: F03
-STATE: blocked; exact-model generic generation exceeded the unchanged 60-second deadline
-VERIFICATION_STATUS: local deterministic regressions/static checks passed; real F03 pair failed
+STATE: blocked; qwen3:8b qualification rejected by existing provider template compatibility gate
+VERIFICATION_STATUS: MODEL_INCOMPATIBLE before loading/generation; 8B timing capability unverified
 AUTHORITY: project owner selected F03 and initial development model
 BASE / MERGE_BASE / CHECKPOINT: 8df79125131cce2fc373494a9846cd18bafc8e75
 BRANCH: task/f03-generation
-ENTRY_GUARD_RESULT: passed for implementation activation; branch/runtime/exact installed digest verified; owner decision resolves cold-bound blocker; new preparation mechanism still requires execution evidence
+ENTRY_GUARD_RESULT: blocked for selected 8B; installed identity verified but provider compatibility failed; original 30B activation remains historical
 DECLARED_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md; personalstyle.toml (model value only)
 ACTUAL_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md
 DECLARED_ONBOARDING_DOCS_AMENDMENT_WRITE_SET: README.md; ARCHITECTURE.md; EXECUTION_CONTRACT.md; docs/decisions/ADR-003-desktop-first-flutter.md; docs/F03_TASK.md
@@ -18,7 +18,8 @@ DECLARED_DIAGNOSIS_2_WRITE_SET: docs/F03_TASK.md; README.md and EXECUTION_CONTRA
 PROPOSED_IMPLEMENTATION_WRITE_SET: src/personalstyle/generation.py; src/personalstyle/provider.py; src/personalstyle/storage.py (minimal read extension only if needed); src/personalstyle/profile.py (shared snapshot only if needed); src/personalstyle/cli.py (thin adapter); tests/test_generation.py; tests/test_provider.py; tests/test_initialization.py and tests/test_security.py (model-independent fixtures); personalstyle.toml (selected model value); docs/F03_TASK.md
 PRODUCT / PROTOCOL: 0.1.0 / 1.0
 CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
-INITIAL_DEVELOPMENT_MODEL: ollama / qwen3:30b
+F03_CURRENT_DEVELOPMENT_MODEL: ollama / qwen3:8b (owner-selected; qualification failed)
+CONFIGURED_MODEL: ollama / qwen3:30b (unchanged pending successful 8B qualification; not a fallback)
 WRITING_DNA_ALGORITHM: writing_dna.v1
 PYTHON / SQLITE_RUNTIME: 3.14.6 / 3.50.4
 ATTEMPTS_USED: 2 of 3
@@ -26,7 +27,7 @@ DIAGNOSIS_USED: 2 of 2
 RECOVERY_USED: 2 of 2 (owner extended ceiling from 1 to 2; pytest environment repair completed)
 IMPLEMENTATION_REVISION: 16155a5698de29d95886daac524543bd39a6fd99; feature code unchanged during recovery
 DIAGNOSIS_2_STATE: completed; entry_capable for observed warm state only; inference calls 2 of 2
-NEXT_PERMITTED_ACTION: owner decision on the evidenced runtime blocker and exhausted recovery/diagnosis budgets; no retry, substitution, feature edit, F04 or merge
+NEXT_PERMITTED_ACTION: owner review of explicit 8B template compatibility and further bounded verification authority; no retry, feature edit, F04 or merge
 ```
 
 Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Consult
@@ -35,7 +36,92 @@ Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Co
 needed. Harness-Engineering is read-only reference material. Selection/configuration and
 this checkpoint are activation work, not implementation attempt 1.
 
-## Active owner decision: preparation is separate from generation
+## Current owner decision: bounded 8B runtime qualification
+
+Resumed from exact clean checkpoint `ddaa4088296a14e27625025bad4c093ccf05bc0d`
+on `task/f03-generation`. No stale Python/pytest process was present. The owner supersedes
+the development-runtime choice with `F03_CURRENT_DEVELOPMENT_MODEL = ollama / qwen3:8b`,
+subject to one real production-shaped qualification before changing active configuration.
+This is a machine/runtime suitability decision, not a fixed model requirement for all users.
+
+On this Windows machine, 30B preparation passed in 45.616595 seconds, but production-shaped
+generic generation exceeded the fixed 60-second bound with severe memory/pagefile pressure.
+Therefore 30B is not currently verified for this machine; it is not generally unsupported.
+All preceding 30B evidence and failed outcomes remain historical evidence below.
+
+```text
+QUALIFICATION_AUTHORITY: project owner
+QUALIFICATION_MODEL: ollama / qwen3:8b (exact tag; no substitution)
+QUALIFICATION_BUDGET: one cycle; provision if absent, then one empty preparation and
+  one generic plus one personalized generation, no retry
+QUALIFICATION_CYCLES_USED: 1 of 1 (completed; MODEL_INCOMPATIBLE; zero model operations)
+PREPARATION / GENERATION CEILINGS: 120s / 60s unchanged
+PRODUCTION POLICY: num_ctx=8000; 6000 context + 2000 output; temperature=0.2
+HISTORICAL COUNTERS: implementation 2/3; diagnosis 2/2; recovery 2/2; no reset
+DECLARED_WRITE_SET: docs/F03_TASK.md; README.md; EXECUTION_CONTRACT.md;
+  ARCHITECTURE.md; docs/decisions/ADR-003-desktop-first-flutter.md;
+  personalstyle.toml (model value only after qualification passes);
+  tests/test_generation.py (only a proven configuration-coupled fixture correction)
+SOURCE / SCHEMA / DEPENDENCY CHANGES: none authorized for model suitability
+```
+
+Owner-selected product roles: option 1 `qwen3:8b` Standard/default user tier and current
+F03 development/acceptance model; option 2 `qwen3:30b` Quality tier, selectable only after
+that environment passes readiness/performance verification; option 3 `qwen3:235b`
+Maximum/high-end optional tier, unverified unless separately tested. Explicit selection,
+no silent substitution and exact per-run model identity remain required.
+
+### 8B qualification evidence and controlled stop
+
+One `ollama pull qwen3:8b` completed with exit 0 in **86.274 seconds**, within its
+1200-second provisioning ceiling; no pull restart or alternate model. Installed model:
+**qwen3:8b**, 8.2B, Q4_K_M, GGUF, **5,225,388,164 bytes**, full digest
+`500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41`.
+Ollama runtime remained **0.40.0**; no model was loaded before qualification.
+Initial available physical RAM was 5,511,069,696 bytes (CIM 5,381,904 KiB), GPU total/free
+8151/7881 MiB, and C: free disk 95,772,844,032 bytes.
+
+The single qualification invoked the unchanged engine `generate_pair` with synthetic
+request/example data and the owner-selected 8B tag in the in-memory settings only. All
+production policy values were unchanged: 6000 context + 2000 output, `num_ctx=8000`,
+temperature 0.2, preparation 120 seconds and each generation 60 seconds. Configuration
+on disk was left unchanged because qualification did not pass.
+
+Preparation verified the exact installed digest and runtime, then failed
+**MODEL_INCOMPATIBLE** after `/api/show`: the installed 8B prompt template hash is
+`ae370d884f108d16e7cc8fd5259ebc5773a0afa6e078b11f4ed7e39a27e0dfc4`, whereas the
+existing provider validates only
+`2d54db2b9bb29ce7db54fea63a891f5859603813c555b1f88b5e0994652897f9`.
+Both reported tokenizer `gpt2`; tokenizer identity alone does not validate a different
+template or authorize bypassing the framing/resource compatibility guard.
+
+There were **zero model-load/inference operations**, no retries or substitutions.
+No generic/personalized generation was attempted. Therefore this is an evidenced provider
+template compatibility blocker, **not an 8B runtime timeout or proof of hardware suitability**.
+Qualification including post-failure protected-store checks took 1.944177 seconds;
+parent exit 1 in 5.854 seconds, below its 360-second ceiling. Synthetic fixture database
+bytes and file set were unchanged, the storage boundary passed its post-check, and captured
+ordinary INFO logs contained zero characters. No raw prompts/examples/outputs were emitted.
+
+```text
+OBSERVED: exact installed 8B rejected with MODEL_INCOMPATIBLE during preparation metadata checks
+EXPECTED: selected model passes verified preparation <=120s and both generations <=60s
+FAILURE_CLASS: provider/model template compatibility difference / MODEL_INCOMPATIBLE
+EVIDENCE: exact 8B digest and runtime verified; template hash differs from the sole validated
+  template; zero model operations; no timing acceptance reached
+NEXT ACTION: stop; owner review required before a template-compatibility code change or
+  further live qualification; do not weaken the gate or spend implementation attempt 3
+BUDGET REMAINING: 1 implementation; 0 diagnosis; 0 recovery; 0 qualification cycles
+```
+
+Source, tests, active configuration, dependencies, versions and compatibility surfaces are
+unchanged. The declared fixture correction was not needed because configuration remains 30B.
+Only owner-decision/status documentation changes. Full pytest, Ruff, mypy, pip check and
+required CI for the committed documentation checkpoint are recorded in draft PR #8's handoff;
+these regressions cannot turn the failed 8B qualification into a pass. The prior checkpoint's
+30B failures below remain preserved and machine-specific.
+
+## Owner decision: preparation is separate from generation
 
 ### Owner-authorized environment recovery 2/2
 
@@ -245,7 +331,10 @@ the existing 60-second generation ceiling is never extended by preparation or tr
 Activation started at 0/3; the first material feature-code edit began attempt 1. Diagnosis remains 2/2 and
 recovery 0/1. This owner-authorized implementation is not another diagnosis cycle.
 
-## Current model decision and tiers
+## Historical 30B model decision and tiers (superseded)
+
+This selection and entry wording describe the earlier 30B activation. The current owner
+selection/failed 8B qualification is recorded above; this section is not an active 30B requirement.
 
 Owner amendment replaces the previous 235B development selection:
 `INITIAL_DEVELOPMENT_MODEL = ollama / qwen3:30b`. This is the reference for F03 development
@@ -273,7 +362,7 @@ actually begins. This amendment changes a model decision and status only: produc
 protocol 1.0 and config/storage/profile/prompt versions 1 remain unchanged. No implemented
 compatibility surface, prompt contract, source, tests or schema changed.
 
-## Current entry guard and environment evidence
+## Historical 30B entry guard and environment evidence
 
 Require clean current main containing merged F02/PR #7, owner authorization, available
 Python/development checks, no conflicting implementation task, and a local Ollama runtime

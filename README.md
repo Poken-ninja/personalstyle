@@ -9,18 +9,20 @@ explicit constraints. The product is not yet complete.
 I01, the GitHub merge gate, SEC01, F01 and F02 are merged and verified for their declared
 scope. Sensitive persistence and protected-store reads are verified on Windows only.
 Application-level storage encryption and cross-platform sensitive storage are not claimed.
-F03 is blocked on real-model generation: the pytest environment repair succeeded and
-all 137 local tests/static checks passed, but generic generation hit its 60-second deadline.
-Exact-model preparation passed; personalized generation was not attempted. The task
-checkpoint preserves failures and budgets. F03 is not merge-ready.
+F03 is blocked on selected-model compatibility. The owner selected `ollama / qwen3:8b`
+for current development/acceptance, but its installed template was rejected by the unchanged
+provider before model loading or generation. Configuration remains unchanged until qualification
+passes. The task checkpoint preserves failures and budgets. F03 is not merge-ready.
 The owner separated exact-model preparation (120 seconds, no retry) from
-each generation (60 seconds). Ollama 0.40.0 and exact `qwen3:30b` are installed. The prior
+each generation (60 seconds). Ollama 0.40.0 and exact `qwen3:8b`/`qwen3:30b` are installed. The prior
 93.61-second cold diagnostic remains failed historical generation-bound evidence.
 Feature implementation and current verification are tracked in the F03 checkpoint.
-Initial development uses `ollama / qwen3:30b`.
-Owner-selected tiers are `qwen3:8b` (option 1, Standard/default user option),
-`qwen3:30b` (Recommended/reference development),
-and `qwen3:235b` (Maximum/optional enthusiast). Model choice is deployment/user configuration
+On this Windows machine, 30B preparation passed in 45.6 seconds, but generic generation
+exceeded 60 seconds with severe memory/pagefile pressure; 30B is not currently verified here.
+Owner-selected tiers are `qwen3:8b` (option 1, Standard/default and current F03 acceptance target),
+`qwen3:30b` (Quality, requiring environment-specific readiness/performance verification),
+and `qwen3:235b` (Maximum/high-end optional, unverified unless separately tested).
+Model choice is deployment/user configuration
 behind ModelProvider, not one fixed product requirement; each run records its actual identity.
 Users explicitly choose; no silent substitution. The future
 [desktop onboarding flow](ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03) belongs

@@ -44,16 +44,22 @@ runtime configuration and must be recorded with generation evidence.
 ## Model onboarding decision
 
 Owner decision: the future S03 Flutter setup offers, in order, `qwen3:8b` as Standard/default
-user option, `qwen3:30b` as Recommended/reference development model, and `qwen3:235b` as
-Maximum/optional enthusiast tier. The user explicitly chooses/confirms; default presentation
+user tier and current F03 development/acceptance target, `qwen3:30b` as Quality tier requiring
+environment readiness/performance verification, and `qwen3:235b` as Maximum/high-end optional,
+unverified unless separately tested. The user explicitly chooses/confirms; default presentation
 does not authorize a selection or download. PersonalStyle never silently substitutes models.
 These are starter-tier targets, not evidence of current platform/runtime compatibility.
 
 Model choice remains deployment/user configuration behind the authoritative ModelProvider.
 The later "use existing compatible Ollama model" path requires defined compatibility
 validation; arbitrary Ollama models are not automatically supported. Every generation records
-the exact provider/model identity actually used. Initial F03 development remains
-`ollama / qwen3:30b`, not a permanent requirement for every user.
+the exact provider/model identity actually used. The owner superseded the initial 30B
+development reference with `F03_CURRENT_DEVELOPMENT_MODEL = ollama / qwen3:8b`, not a
+permanent requirement for every user. On this Windows machine, 30B preparation passed
+in ~45.6s, but production-shaped generic generation exceeded 60s with severe memory/pagefile
+pressure. 30B is not currently verified here; this does not make it generally unsupported.
+The [F03 checkpoint](../F03_TASK.md) preserves that history and the selected 8B qualification
+outcome. The 120s preparation/60s generation bounds and architecture are unchanged.
 
 The [architecture setup flow](../../ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03)
 owns the sequence and instructions/mechanism/evidence distinction. Hardware guidance is
@@ -99,7 +105,7 @@ protocol or schema change must be versioned when that actual compatibility surfa
 
 Core tasks F03-F06 remain conceptually unchanged. F03 should introduce only the smallest
 ModelProvider seam needed to keep Ollama outside core product rules.
-Its development evidence uses the selected 30B reference; the setup wizard belongs to
+Its development evidence uses the selected 8B target; the setup wizard belongs to
 [S03 roadmap acceptance](../../EXECUTION_CONTRACT.md#s03-desktop-model-setup-acceptance).
 
 Before cross-platform desktop release:

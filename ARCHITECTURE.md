@@ -92,9 +92,9 @@ order; the first is the easiest/default onboarding suggestion, not an automatic 
 
 | Option | Ollama model | Role |
 |---|---|---|
-| 1 | `qwen3:8b` | Standard / default user option |
-| 2 | `qwen3:30b` | Recommended / reference development model |
-| 3 | `qwen3:235b` | Maximum / optional enthusiast tier |
+| 1 | `qwen3:8b` | Standard / default user tier; current F03 development/acceptance target |
+| 2 | `qwen3:30b` | Quality tier; environment must pass readiness/performance verification |
+| 3 | `qwen3:235b` | Maximum / high-end optional; unverified unless separately tested |
 
 The user must explicitly choose/confirm the model. No silent model substitution is allowed.
 PersonalStyle does not require one fixed model for all users; every generation records the
@@ -145,7 +145,13 @@ setup only, not protected storage, surface/release completion or security suppor
 S03 owns this onboarding UI/integration and its platform acceptance; see
 [S03 acceptance](EXECUTION_CONTRACT.md#s03-desktop-model-setup-acceptance) and
 [ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md#model-onboarding-decision).
-F03 owns only its minimal ModelProvider/Ollama generation seam and 30B reference development
+The owner superseded the earlier 30B development reference with 8B for this machine.
+30B preparation passed (~45.6s), but production-shaped generic generation exceeded 60s
+with severe memory/pagefile pressure. This evidence is machine-specific, not a general
+30B support prohibition. The [F03 checkpoint](docs/F03_TASK.md) records both 30B history
+and the selected 8B compatibility/qualification outcome; tier selection is not readiness.
+
+F03 owns only its minimal ModelProvider/Ollama generation seam and selected 8B development
 evidence; it does not implement this setup wizard or activate S03.
 
 ## Version boundaries
