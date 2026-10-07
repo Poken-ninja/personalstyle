@@ -29,19 +29,19 @@ The personalization model is:
 
 ## Multi-surface architecture
 
-PersonalStyle is one product engine with multiple thin surfaces.
+PersonalStyle remains one authoritative product engine with thin clients. Current V1 release
+scope is desktop-first:
 
 ```text
-CLI / TERMINAL
-BROWSER EXTENSION
-DESKTOP APP
-IOS APP
-ANDROID APP
-      |
-      v
-VERSIONED PERSONALSTYLE PROTOCOL
-      |
-      v
+FLUTTER DESKTOP
+  - Windows
+  - macOS
+  - Linux
+        |
+        v
+ENGINE / VERSIONED CLIENT BOUNDARY
+        |
+        v
 PERSONALSTYLE ENGINE
   - validation
   - context
@@ -52,50 +52,38 @@ PERSONALSTYLE ENGINE
   - feedback classification
   - preference promotion
   - budgets/state
-      |
-      +------> PERSONALIZATION STORE
-      |
-      +------> INFERENCE PROVIDER
+        |
+        +------> PERSONALIZATION STORE
+        |
+        +------> MODEL PROVIDER
+                    |
+                    +------> OLLAMA (initial desktop provider)
 ```
 
-The engine is the only canonical writer of personalization state.
+The CLI remains an engineering/acceptance surface and may call the engine in-process.
+The Flutter shell owns presentation, platform integration and local UX state only. It must
+not reimplement personalization, verification, retry, migration or persistence policy, and
+it never writes the canonical profile store directly.
 
-Clients do not read/write SQLite directly and do not reimplement personalization logic.
+The model runtime is behind a provider boundary. Ollama is the initial desktop provider;
+provider/model identity is runtime configuration and must not leak into Flutter-owned
+product rules. F03 may implement the smallest provider seam needed for Ollama without
+building unused provider frameworks.
 
-### Terminal
+Browser extension, iOS and Android are deferred surfaces. ADR-002 preserves the long-term
+thin-client/protocol constraints if they are activated later; they are not V1 release
+blockers. ADR-003 owns the current desktop scope and Flutter shell decision.
 
-The CLI may call the engine in-process, but its behavior must match the public engine/protocol contract so terminal-only shortcuts do not become a second implementation.
-
-### Browser extension
-
-Current architectural assumption: "extension" means browser extension.
-
-The extension is a thin client. It does not host its own personalization state or retry policy. It connects to an authorized PersonalStyle engine endpoint/companion and handles engine unavailable/incompatible-version states explicitly.
-
-If the intended extension is later VS Code or another host, replace only the surface adapter; keep the engine contract.
-
-### Desktop application
-
-The desktop app is a presentation/client layer over the same engine.
-
-The initial desktop inference provider may be Ollama where supported.
-
-### iOS and Android
-
-The desktop Ollama provider is not assumed to exist natively on mobile.
-
-Mobile supports one of two engine arrangements:
-
-1. **Companion mode** — paired authenticated connection to the user's PersonalStyle engine on another trusted device.
-2. **Standalone mode** — a future mobile-supported inference provider implements the same engine/provider boundary and passes the mobile compatibility suite.
-
-Standalone mobile is not complete until its provider, hardware limits, minimum OS versions, persistence behavior, and release tests are explicitly verified.
+Current protected persistence/read evidence is Windows-only. macOS and Linux may not be
+called supported for sensitive PersonalStyle workflows until platform-appropriate storage
+ownership/permission mechanisms and executable evidence exist. That future work extends the
+platform boundary; it does not invalidate Windows evidence already recorded for SEC01/F01/F02.
 
 ### Local-first meaning
 
-"Local-first" means user personalization state remains local by default and external transmission is not silently required.
-
-Companion mode may transmit over a trusted local connection after explicit pairing. Cloud inference, sync, or remote storage requires a separate explicit architecture decision.
+"Local-first" means user personalization state remains local by default and external
+transmission is not silently required. Cloud inference, sync or remote storage requires a
+separate explicit architecture decision.
 
 ## Version boundaries
 

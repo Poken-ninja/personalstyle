@@ -64,10 +64,12 @@ Core V1:
 - classified edit observations and evidence-backed preference hypotheses/promotion;
 - A/B/C product-performance testing.
 
-Target surfaces after the authoritative core works: terminal/CLI, browser extension,
-desktop, iOS and Android. Structural arrangements and the reversible browser-extension
-interpretation are owned by [ARCHITECTURE.md](ARCHITECTURE.md) and
-[ADR-002](docs/decisions/ADR-002-versioned-multi-surface-engine.md).
+Current V1 release target after the authoritative core works is one Flutter desktop app on
+Windows, macOS and Linux. The terminal/CLI remains an engineering and acceptance surface.
+Browser extension, iOS and Android are deferred and are not V1 release blockers. Structural
+arrangements are owned by [ARCHITECTURE.md](ARCHITECTURE.md),
+[ADR-002](docs/decisions/ADR-002-versioned-multi-surface-engine.md), and
+[ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md).
 
 Excluded until observed engineering need: multi-agent systems, vector databases/embedding
 retrieval, broad/general RAG, fine-tuning/reinforcement learning, autonomous or scheduled
@@ -89,20 +91,21 @@ Must be selected and recorded before the first model-generation feature activate
 ### U3 — held-out product-test set and success rule
 Must be frozen before final product-performance testing. Do not choose the pass rule after seeing C results.
 
-### U4 — extension host
-Current reversible assumption: "extension" means browser extension.
+### U4 — extension host (deferred)
+Browser-extension work is outside current V1 release scope. If reactivated, the host choice
+must not change the authoritative engine contract.
 
-If VS Code or another host is intended, this changes the surface adapter task but must not change the engine contract.
+### U5 — mobile inference (deferred)
+iOS/Android companion and standalone inference are outside current V1 release scope. Their
+previous architecture constraints remain preserved for future activation but do not block
+desktop V1.
 
-### U5 — standalone mobile inference
-The configured Ollama desktop provider does not establish native iOS/Android inference.
+### U6 — desktop shell and release matrix (partially resolved)
+Flutter is selected as the shared desktop shell for Windows, macOS and Linux. Exact minimum
+supported OS/runtime versions remain release-time evidence and are not frozen yet.
 
-Mobile companion mode is architecturally defined. Standalone mobile remains blocked until a mobile-supported inference provider and its OS/hardware requirements are selected and verified.
-
-### U6 — app-shell framework and release matrix
-No UI framework or minimum iOS/Android/macOS/Windows/Linux matrix is selected yet.
-
-This does not block I01 or the core engine. It blocks claiming a cross-platform application release.
+Flutter selection does not by itself establish PersonalStyle support on those platforms.
+The required engine/inference/storage mechanisms must also be supported and verified.
 
 ### U7 — application-level encryption at rest
 Current policy explicitly does not claim application-level database encryption.
@@ -111,25 +114,35 @@ Before any release claims encrypted-at-rest profile storage, a concrete mechanis
 
 This does not block local V1 engineering if the product clearly relies on host OS/account/disk protection and does not misrepresent the guarantee.
 
+### U8 — macOS/Linux protected profile boundary
+SEC01, F01 and F02 currently provide sensitive-storage evidence on Windows only. Before
+PersonalStyle handles sensitive persisted writing on macOS or Linux, platform-appropriate
+ownership/permission mechanisms and negative/positive executable evidence must exist.
+This does not invalidate the existing Windows evidence and does not block core F03 work on
+the already verified Windows path.
+
 ## Task plan
 
 | ID | Task | Depends on | Current state |
 |---|---|---|---|
 | I01 | Establish runnable/testable Python harness | none | merged / verified |
-| SEC01 | Mechanize core local security boundary | I01 | merged / verified |
-| F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | merged / verified |
-| F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified |
+| SEC01 | Mechanize Windows local security boundary | I01 | merged / verified |
+| F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | merged / verified (Windows) |
+| F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
 | F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | not_started |
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
 | P01 | Mechanize versioned engine protocol + authenticated capability handshake | F04 + SEC01 | not_started |
+| SEC02 | Mechanize macOS protected local profile boundary | F01 | not_started |
+| SEC03 | Mechanize Linux protected local profile boundary | F01 | not_started |
 | E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
-| S01 | Terminal/CLI release acceptance | F06 | not_started |
-| S02 | Extension adapter + compatibility acceptance | P01 + F06 + U4 resolved | not_started |
-| S03 | Desktop app adapter + release matrix | P01 + F06 + U6 resolved | not_started |
-| S04 | iOS/Android companion-mode app | P01 + F06 + U6 resolved | not_started |
-| S05 | Standalone mobile inference | S04 + U5 resolved | not_started |
+| S01 | Terminal/CLI acceptance surface | F06 | not_started |
+| S03 | Flutter desktop app + Windows/macOS/Linux release acceptance | P01 + F06 + SEC02 + SEC03 + U6 | not_started |
+
+Deferred backlog, not V1 blockers: S02 browser-extension adapter, S04 iOS/Android companion
+client, and S05 standalone mobile inference. Reactivating any deferred surface requires an
+explicit owner decision and a fresh bounded task contract.
 
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
