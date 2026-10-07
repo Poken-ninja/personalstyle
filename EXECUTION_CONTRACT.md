@@ -107,19 +107,19 @@ supported OS/runtime versions remain release-time evidence and are not frozen ye
 Flutter selection does not by itself establish PersonalStyle support on those platforms.
 The required engine/inference/storage mechanisms must also be supported and verified.
 
-### U8 — macOS/Linux protected profile boundary
-SEC01, F01 and F02 currently provide sensitive-storage evidence on Windows only. Before
-PersonalStyle handles sensitive persisted writing on macOS or Linux, platform-appropriate
-ownership/permission mechanisms and negative/positive executable evidence must exist.
-This does not invalidate the existing Windows evidence and does not block core F03 work on
-the already verified Windows path.
-
 ### U7 — application-level encryption at rest
 Current policy explicitly does not claim application-level database encryption.
 
 Before any release claims encrypted-at-rest profile storage, a concrete mechanism plus migration, recovery, backup/export, and compatibility behavior must be implemented and verified.
 
 This does not block local V1 engineering if the product clearly relies on host OS/account/disk protection and does not misrepresent the guarantee.
+
+### U8 — macOS/Linux protected profile boundary
+SEC01, F01 and F02 currently provide sensitive-storage evidence on Windows only. Before
+PersonalStyle handles sensitive persisted writing on macOS or Linux, platform-appropriate
+ownership/permission mechanisms and negative/positive executable evidence must exist.
+This does not invalidate the existing Windows evidence and does not block core F03 work on
+the already verified Windows path.
 
 ## Task plan
 
@@ -133,7 +133,7 @@ This does not block local V1 engineering if the product clearly relies on host O
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
-| P01 | Mechanize versioned engine protocol/client boundary | F04 + SEC01 | not_started |
+| P01 | Mechanize versioned engine protocol + authenticated capability handshake | F04 + SEC01 | not_started |
 | SEC02 | Mechanize macOS protected local profile boundary | F01 | not_started |
 | SEC03 | Mechanize Linux protected local profile boundary | F01 | not_started |
 | E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
