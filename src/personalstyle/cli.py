@@ -8,6 +8,7 @@ from typing import Annotated
 import typer
 
 from personalstyle.config import ConfigError, load_config
+from personalstyle.profile import derive_writing_dna
 from personalstyle.security import SecurityError, log_event, prepare_private_directory
 from personalstyle.storage import MAX_TEXT_BYTES, ExampleInput, ExampleStore, StoreError
 
@@ -24,16 +25,26 @@ def check(
     ] = False,
     add_example: Annotated[Path | None, typer.Option(help="Bounded JSON example request file")] = None,
     get_example: Annotated[str | None, typer.Option(help="Explicitly print a stored example UUID")] = None,
+    writing_dna: Annotated[
+        str | None, typer.Option(help="Inspect derived Writing DNA for one exact context")
+    ] = None,
 ) -> None:
     """Validate configuration without an LLM or storage writes."""
     try:
         settings = load_config(config)
         relative = PureWindowsPath(settings["storage"]["path"])
-        if sum((prepare_storage, add_example is not None, get_example is not None)) > 1:
+        if sum((prepare_storage, add_example is not None, get_example is not None,
+                writing_dna is not None)) > 1:
             raise StoreError("INVALID_EXAMPLE")
-        if add_example is not None or get_example is not None:
+        if add_example is not None or get_example is not None or writing_dna is not None:
             store = ExampleStore(config.absolute().parent.joinpath(*relative.parts))
-            if add_example is not None:
+            if writing_dna is not None:
+                snapshot = derive_writing_dna(
+                    store, writing_dna, profile_schema=settings["versions"]["profile_schema"],
+                    timeout_seconds=settings["harness"]["timeout_seconds"],
+                )
+                typer.echo(json.dumps(snapshot, ensure_ascii=False))
+            elif add_example is not None:
                 try:
                     with add_example.open("rb") as stream:
                         payload = stream.read(MAX_TEXT_BYTES + 4097)

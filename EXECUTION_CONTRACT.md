@@ -5,11 +5,23 @@
 ```text
 CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
-IMPLEMENTATION_STATUS: not_started
+IMPLEMENTATION_STATUS: I01 / SEC01 / F01 merged and verified; V1 incomplete
+SELECTED_TASK: F02; current task state/evidence in docs/F02_TASK.md
+F03_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 ```
 
 This file is a specification and current execution handoff. It is not evidence that initialization, implementation, or verification has occurred.
+
+Current execution status supersedes the historical initial-state facts below: I01 is
+merged/verified and the GitHub merge gate is enforced. SEC01 is merged/verified for its
+declared Windows boundary; F01 is merged/verified for Windows sensitive persistence.
+Current activation base is `8a2e3bfc2ab70507a1b10c2eca3cb49913886177`;
+merged-revision regression and CI evidence is recorded on
+[F01 PR #4](https://github.com/Poken-ninja/personalstyle/pull/4).
+F02 alone is selected; F03 and later remain unstarted. V1 is not complete.
+Historical specifications and handoffs remain unchanged; current F02 execution lives in
+`docs/F02_TASK.md`. The unresolved model selection blocks F03, not F02.
 
 ## Objective
 
@@ -48,7 +60,7 @@ Excluded until measured engineering need:
 - cloud state;
 - production deployment.
 
-## Facts and current repository state
+## Historical facts at initial contract revision
 
 At the contract revision:
 - repository and governing documentation exist;
@@ -105,7 +117,7 @@ This does not block local V1 engineering if the product clearly relies on host O
 - runtime: observed local execution;
 - verification: recorded evidence.
 
-## Readiness
+## Historical readiness at initial contract revision
 
 ```text
 Contract readiness: READY
