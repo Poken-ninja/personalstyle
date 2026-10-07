@@ -24,10 +24,13 @@ REQUEST = RewriteRequest("Meeting on Monday at 10.", "Make this concise", "work.
 class FakeProvider:
     def __init__(self):
         self.calls = []
+        self.model = load_config(CONFIG)["model"]["model"]
+        self.framing_bytes = {"qwen3:30b": 1360, "qwen3:8b": 1472}[self.model]
 
     def prepare(self, context_tokens):
         self.calls.append(("prepare", context_tokens))
-        return PreparedModel("ollama", "qwen3:30b", "a" * 64, "0.40.0", context_tokens, 1360, 1)
+        return PreparedModel("ollama", self.model, "a" * 64, "0.40.0",
+                             context_tokens, self.framing_bytes, 1)
 
     def generate(self, prepared, messages, **options):
         self.calls.append(("generate", messages, options))

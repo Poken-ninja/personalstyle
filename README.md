@@ -9,10 +9,10 @@ explicit constraints. The product is not yet complete.
 I01, the GitHub merge gate, SEC01, F01 and F02 are merged and verified for their declared
 scope. Sensitive persistence and protected-store reads are verified on Windows only.
 Application-level storage encryption and cross-platform sensitive storage are not claimed.
-F03 is blocked on selected-model compatibility. The owner selected `ollama / qwen3:8b`
-for current development/acceptance, but its installed template was rejected by the unchanged
-provider before model loading or generation. Configuration remains unchanged until qualification
-passes. The task checkpoint preserves failures and budgets. F03 is not merge-ready.
+F03 is in its owner-authorized final implementation attempt, fixing exact model/template
+compatibility for the selected `ollama / qwen3:8b`. Unknown or changed template pairs stay
+rejected. Configuration remains unchanged until the single new live acceptance passes.
+The task checkpoint preserves failures and budgets. F03 is not yet verified or merge-ready.
 The owner separated exact-model preparation (120 seconds, no retry) from
 each generation (60 seconds). Ollama 0.40.0 and exact `qwen3:8b`/`qwen3:30b` are installed. The prior
 93.61-second cold diagnostic remains failed historical generation-bound evidence.

@@ -7,8 +7,8 @@ CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 merged and verified; V1 incomplete
 SELECTED_PRODUCT_TASK: F03
-ACTIVE_PRODUCT_TASK: F03 blocked; selected 8B template compatibility qualification failed
-NEXT_PERMITTED_ACTION: owner review before compatibility repair/further qualification; no retry or implementation now
+ACTIVE_PRODUCT_TASK: F03 active final implementation attempt 3/3; exact model/template compatibility repair
+NEXT_PERMITTED_ACTION: deterministic checks then one owner-authorized fresh 8B acceptance; stop on failure; no further repair
 F04_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 CURRENT_VERIFIED_MAIN: 8df79125131cce2fc373494a9846cd18bafc8e75
@@ -95,7 +95,8 @@ current reference-model entry evidence is in the [bounded F03 task](docs/F03_TAS
 This supersedes the earlier 30B reference for this machine: preparation passed, but generic
 generation exceeded 60 seconds with severe memory/pagefile pressure. 30B remains a Quality
 option on environments that verify readiness/performance. 8B is installed but its template
-compatibility qualification failed; active configuration awaits successful qualification.
+compatibility qualification failed historically; the owner authorized the final attempt to
+validate exact model/template pairs. Active configuration awaits its single live acceptance.
 
 ### U3 — held-out product-test set and success rule
 Must be frozen before final product-performance testing. Do not choose the pass rule after seeing C results.
@@ -138,7 +139,7 @@ the already verified Windows path.
 | SEC01 | Mechanize Windows local security boundary | I01 | merged / verified |
 | F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | merged / verified (Windows) |
 | F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
-| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | blocked; selected 8B template compatibility; [task/evidence](docs/F03_TASK.md) |
+| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | final attempt; model-aware compatibility; [task/evidence](docs/F03_TASK.md) |
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
@@ -155,8 +156,8 @@ explicit owner decision and a fresh bounded task contract.
 
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
-does not auto-activate it. F03 is owner-selected and U2 is resolved; 8B qualification is
-blocked before inference by the provider's template validation. F04 is not activated.
+does not auto-activate it. F03 is owner-selected and U2 is resolved; its final compatibility
+attempt has one fresh 8B live acceptance allowance. F04 is not activated.
 
 ### S03 desktop model setup acceptance
 

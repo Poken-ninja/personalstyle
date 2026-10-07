@@ -13,7 +13,10 @@ from typing import Any, Protocol
 PREPARATION_SECONDS = 120
 PORT = 11434
 MAX_RESPONSE_BYTES = 1024 * 1024
-TEMPLATE_SHA256 = "2d54db2b9bb29ce7db54fea63a891f5859603813c555b1f88b5e0994652897f9"
+MODEL_TEMPLATE_SHA256 = {
+    "qwen3:30b": "2d54db2b9bb29ce7db54fea63a891f5859603813c555b1f88b5e0994652897f9",
+    "qwen3:8b": "ae370d884f108d16e7cc8fd5259ebc5773a0afa6e078b11f4ed7e39a27e0dfc4",
+}
 
 
 class GenerationError(ValueError):
@@ -144,7 +147,9 @@ class OllamaProvider:
             if (
                 type(version) is not str or re.fullmatch(r"\d+\.\d+\.\d+", version) is None
                 or type(template) is not str
-                or hashlib.sha256(template.encode()).hexdigest() != TEMPLATE_SHA256
+                or hashlib.sha256(template.encode()).hexdigest() != MODEL_TEMPLATE_SHA256.get(
+                    self.model
+                )
                 or not isinstance(info, dict) or info.get("tokenizer.ggml.model") != "gpt2"
                 or show.get("system", "") or show.get("remote_host") or show.get("remote_model")
                 or not isinstance(capabilities, list) or "completion" not in capabilities

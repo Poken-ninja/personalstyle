@@ -4,12 +4,12 @@
 
 ```text
 TASK: F03
-STATE: blocked; qwen3:8b qualification rejected by existing provider template compatibility gate
-VERIFICATION_STATUS: MODEL_INCOMPATIBLE before loading/generation; 8B timing capability unverified
+STATE: active; owner-authorized final implementation attempt 3/3 for model-aware compatibility
+VERIFICATION_STATUS: 57 deterministic tests and static checks passed; one fresh 8B acceptance pending
 AUTHORITY: project owner selected F03 and initial development model
 BASE / MERGE_BASE / CHECKPOINT: 8df79125131cce2fc373494a9846cd18bafc8e75
 BRANCH: task/f03-generation
-ENTRY_GUARD_RESULT: blocked for selected 8B; installed identity verified but provider compatibility failed; original 30B activation remains historical
+ENTRY_GUARD_RESULT: owner authorizes repair of concrete template-pair defect; exact installed 8B identity/template inspected; live acceptance still required
 DECLARED_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md; personalstyle.toml (model value only)
 ACTUAL_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md
 DECLARED_ONBOARDING_DOCS_AMENDMENT_WRITE_SET: README.md; ARCHITECTURE.md; EXECUTION_CONTRACT.md; docs/decisions/ADR-003-desktop-first-flutter.md; docs/F03_TASK.md
@@ -18,16 +18,16 @@ DECLARED_DIAGNOSIS_2_WRITE_SET: docs/F03_TASK.md; README.md and EXECUTION_CONTRA
 PROPOSED_IMPLEMENTATION_WRITE_SET: src/personalstyle/generation.py; src/personalstyle/provider.py; src/personalstyle/storage.py (minimal read extension only if needed); src/personalstyle/profile.py (shared snapshot only if needed); src/personalstyle/cli.py (thin adapter); tests/test_generation.py; tests/test_provider.py; tests/test_initialization.py and tests/test_security.py (model-independent fixtures); personalstyle.toml (selected model value); docs/F03_TASK.md
 PRODUCT / PROTOCOL: 0.1.0 / 1.0
 CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
-F03_CURRENT_DEVELOPMENT_MODEL: ollama / qwen3:8b (owner-selected; qualification failed)
+F03_CURRENT_DEVELOPMENT_MODEL: ollama / qwen3:8b (owner-selected; final-attempt live acceptance pending)
 CONFIGURED_MODEL: ollama / qwen3:30b (unchanged pending successful 8B qualification; not a fallback)
 WRITING_DNA_ALGORITHM: writing_dna.v1
 PYTHON / SQLITE_RUNTIME: 3.14.6 / 3.50.4
-ATTEMPTS_USED: 2 of 3
+ATTEMPTS_USED: 3 of 3 (first material provider edit for this owner-authorized attempt)
 DIAGNOSIS_USED: 2 of 2
 RECOVERY_USED: 2 of 2 (owner extended ceiling from 1 to 2; pytest environment repair completed)
-IMPLEMENTATION_REVISION: 16155a5698de29d95886daac524543bd39a6fd99; feature code unchanged during recovery
+IMPLEMENTATION_REVISION: attempt 3 working tree; source revision will be recorded in draft PR handoff
 DIAGNOSIS_2_STATE: completed; entry_capable for observed warm state only; inference calls 2 of 2
-NEXT_PERMITTED_ACTION: owner review of explicit 8B template compatibility and further bounded verification authority; no retry, feature edit, F04 or merge
+NEXT_PERMITTED_ACTION: exactly one fresh 8B acceptance, then configuration/full regression only if passing; stop on failure; no further repair, F04 or merge
 ```
 
 Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Consult
@@ -36,7 +36,64 @@ Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Co
 needed. Harness-Engineering is read-only reference material. Selection/configuration and
 this checkpoint are activation work, not implementation attempt 1.
 
-## Current owner decision: bounded 8B runtime qualification
+## Current owner decision: attempt 3 model-aware compatibility
+
+Resumed from exact clean `a4f003a9be1e444014e82d92b745a9660b60a535` on
+`task/f03-generation`, matching draft PR #8. The owner classifies the single global
+30B-template assumption as a concrete compatibility defect and authorizes the remaining
+implementation attempt. The repair binds each exact supported tag to its reviewed hash;
+unknown/cross-paired/modified templates remain rejected. No provider framework is added.
+
+```text
+TASK: F03
+STATE: active final attempt
+REPOSITORY_REVISION: a4f003a9be1e444014e82d92b745a9660b60a535
+MERGE_BASE: 8df79125131cce2fc373494a9846cd18bafc8e75
+DECLARED_WRITE_SET: src/personalstyle/provider.py; tests/test_provider.py;
+  tests/test_generation.py (configuration-independent provider fixture only);
+  personalstyle.toml (model value only after live acceptance passes);
+  docs/F03_TASK.md; README.md; EXECUTION_CONTRACT.md (status only)
+ENTRY_GUARD_RESULT: exact checkpoint/clean tree/draft PR; runtime and 8B template inspected
+ATTEMPTS_USED: 3/3 with first material provider edit; no attempt extension
+DIAGNOSIS_USED: 2/2 unchanged
+RECOVERY_USED: 2/2 unchanged
+HISTORICAL_QUALIFICATION_CYCLES_USED: 1/1 unchanged
+ATTEMPT_3_ACCEPTANCE_BUDGET: exactly one new owner-authorized 8B cycle after deterministic checks
+ATTEMPT_3_ACCEPTANCE_CYCLES_USED: 0/1
+CHECKPOINT: 57 provider/generation tests passed in 65.17s (parent 65.907s); Ruff/mypy/pip check passed
+```
+
+### Reviewed 8B template assumptions
+
+The installed `/api/show` template is 1723 UTF-8 bytes and hashes to
+`ae370d884f108d16e7cc8fd5259ebc5773a0afa6e078b11f4ed7e39a27e0dfc4`.
+Its system branch frames `.System` inside a system role, the user branch frames `.Content`
+inside a user role, and the assistant prefix/branch has its separate assistant frame.
+Message roles select branches; writing content is inserted as data, not executed as Go
+template logic. F03 supplies fixed system instructions and one JSON user-data message,
+no tools or assistant history. Tool template branches stay inactive; no tool execution is added.
+`think=false` adds fixed `/no_think` user suffix and an empty assistant thinking prefix.
+
+Removing Go actions leaves 736 literal UTF-8 bytes; the existing twice-literal calculation
+therefore gives **1472 bytes** (30B remains 1360). All conditional/tool branch literals are
+included in that conservative sum, exceeding the fixed system/user/assistant framing and
+single Go-produced space in F03's two-message, no-tools request. Content UTF-8 bytes remain
+the byte-level GPT-2 BPE token upper bound, not an exact token count. The bound calculation
+and existing context/output policy do not change. Tests freeze each actual template/hash
+and assert its framing bound. Different templates require explicit review, not family matching.
+
+Runtime 0.40.0 reports `gpt2`, completion/tools/thinking capabilities, no system override
+and no remote/cloud metadata for 8B. Existing tokenizer/completion/no-system/no-remote checks,
+loopback transport, installed/loaded digest checks and deadlines remain enforced.
+No template is accepted based solely on tokenizer, model family or a tier label.
+
+The 8B model remains installed at full digest
+`500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41`, currently unloaded.
+Historical 30B preparation/generation/resource failures below are unchanged. An 8B pass
+would establish only this machine/runtime's synthetic F03 mechanism, not product quality,
+F04 verification, broader model support or cross-platform sensitive storage.
+
+## Historical owner decision: bounded 8B runtime qualification
 
 Resumed from exact clean checkpoint `ddaa4088296a14e27625025bad4c093ccf05bc0d`
 on `task/f03-generation`. No stale Python/pytest process was present. The owner supersedes
