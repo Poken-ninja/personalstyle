@@ -9,10 +9,11 @@ VERIFICATION_STATUS: not_verified; feature implementation has not started
 AUTHORITY: project owner selected F03 and initial development model
 BASE / MERGE_BASE / CHECKPOINT: 8df79125131cce2fc373494a9846cd18bafc8e75
 BRANCH: task/f03-generation
-ENTRY_GUARD_RESULT: failed; local Ollama unavailable / exact-model probe unverified; low free RAM is advisory
+ENTRY_GUARD_RESULT: failed; installed exact qwen3:30b synthetic probe exceeded the 60-second deadline
 DECLARED_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md; personalstyle.toml (model value only)
 ACTUAL_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md
 DECLARED_ONBOARDING_DOCS_AMENDMENT_WRITE_SET: README.md; ARCHITECTURE.md; EXECUTION_CONTRACT.md; docs/decisions/ADR-003-desktop-first-flutter.md; docs/F03_TASK.md
+DECLARED_ENVIRONMENT_CHECKPOINT_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md
 PROPOSED_IMPLEMENTATION_WRITE_SET: src/personalstyle/generation.py; src/personalstyle/provider.py; src/personalstyle/storage.py (minimal read extension only if needed); src/personalstyle/profile.py (shared snapshot only if needed); src/personalstyle/cli.py (thin adapter); tests/test_generation.py; tests/test_provider.py; tests/test_initialization.py and tests/test_security.py (model-independent fixtures); personalstyle.toml (selected model value); docs/F03_TASK.md
 PRODUCT / PROTOCOL: 0.1.0 / 1.0
 CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
@@ -23,7 +24,7 @@ ATTEMPTS_USED: 0 of 3
 DIAGNOSIS_USED: 1 of 2
 RECOVERY_USED: 0 of 1
 IMPLEMENTATION_REVISION: none
-NEXT_PERMITTED_ACTION: reassess resources and Ollama / exact 30B runtime entry; no feature implementation in this docs amendment
+NEXT_PERMITTED_ACTION: owner-directed environment reassessment with changed evidence; no feature implementation, substitute model or longer deadline
 ```
 
 Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Consult
@@ -67,6 +68,68 @@ Python/development checks, no conflicting implementation task, and a local Ollam
 that lists and actually serves a bounded synthetic request using exactly `qwen3:30b`.
 Record runtime version, model digest and execution outcome before feature-code edits.
 Do not substitute another model. Missing runtime/model or inability to run blocks F03.
+
+### Resumed environment entry: installed model, bounded probe failed
+
+Owner authorized runtime installation, provisioning exactly `qwen3:30b` and one bounded
+synthetic probe. Before installation, local branch and draft PR #8 both matched
+`4523172cf89f79cece317b49eedd03ce649d3129`; the tree was clean. Local main, origin/main
+and GitHub main remained `8df79125131cce2fc373494a9846cd18bafc8e75`. No other implementation
+task was active. This remains environment entry, not feature implementation.
+
+Observed environment on 2026-10-07:
+
+| Evidence | Observation |
+|---|---|
+| OS/architecture | Windows 11 Home, build 26100, x86-64 |
+| Installed physical RAM | 16,868,618,240 bytes (15.71 GiB) |
+| Initial available RAM / disk | 1,696,632,832 bytes / 129,040,261,120 bytes free on C: |
+| GPU / driver | NVIDIA RTX 5070 Laptop; 8151 MiB total VRAM; driver 610.47; compute capability 12.0 |
+| Runtime | Ollama 0.40.0; CLI and `/api/version` agree; listener verified at `127.0.0.1:11434` only |
+| Installed model | `qwen3:30b`; GGUF, qwen3moe, 30.5B, Q4_K_M; 18,556,699,314 bytes |
+| Full model digest | `ad815644918f0eaab341c12b67837cc6dd4562342cdaf118f83d5d554cb37226` |
+| Probe-time inventory | 2026-10-07T06:34:53.5293236Z; available RAM 2,921,107,456 bytes (2.72 GiB); free virtual memory 8,365,899,776 bytes; GPU free 7888 MiB; C: free 105,902,972,928 bytes |
+| Probe interval | 2026-10-07T06:34:53.764180Z to 2026-10-07T06:35:54.299000Z |
+| Outcome | No completed response before the 60-second hard deadline; successful model load not attested |
+
+Installed the official [Ollama 0.40.0 Windows release](https://github.com/ollama/ollama/releases/tag/v0.40.0)
+outside the repository. Installer SHA-256 matched the release asset:
+`135bf4d927b1de03e884cd2fe66729bdf4d6a2983c5a453b99eb403489e460e1`.
+Authenticode was valid with publisher Ollama Inc. The exact model pull exited 0 after
+digest verification; `/api/tags` supplied the full identity above and `/api/show` reported
+completion/thinking capabilities. No other model was provisioned or substituted.
+
+The sole generation request used synthetic text requesting the single word READY, not
+PersonalStyle writing/profile data. It called `/api/generate` for exactly `qwen3:30b` with
+`stream=false`, `think=false`, `temperature=0`, `num_ctx=2048`, `num_predict=32`, and a
+64-KiB response cap. One outer subprocess deadline bounded the cold-load/request/response
+and loaded-identity attestation to 60 seconds, without HTTP/model retries. The worker was
+terminated at timeout; parent completion including termination took 60.529 seconds.
+The deadline was not increased. No response, load-duration or loaded-digest success evidence
+was obtained, so this does not establish whether loading could finish with a longer wait.
+
+Cleanup was not another inference probe: `ollama stop qwen3:30b` exited 0 within its separate
+15-second cleanup bound, and `/api/ps` then returned no loaded models. Runtime and exact
+model files remain installed outside Git; loopback-only runtime remains available.
+
+```text
+OBSERVED: one exact-model synthetic request exceeded its hard 60-second deadline
+EXPECTED: exact qwen3:30b loads and completes a bounded request within 60 seconds
+FAILURE_CLASS: environment_failure / GENERATION_RESOURCE_LIMIT
+EVIDENCE: installed full digest and probe-time resources above; timeout terminated worker;
+  no completed generation or successful loaded-model attestation
+NEXT ACTION: stop blocked; owner-directed environment reassessment requires changed evidence;
+  no automatic retry, timeout increase, model substitution or feature implementation
+BUDGET REMAINING: 3 implementation; 1 diagnosis; 1 recovery
+```
+
+F03 entry failed. Counters remain implementation 0/3, diagnosis 1/2, recovery 0/1:
+authorized prerequisite provisioning and probe cleanup did not repair feature code or
+consume an implementation attempt. `model = "TODO"`, all compatibility versions,
+source/tests and acceptance requirements remain unchanged. PR #8 stays draft.
+This checkpoint's committed revision and documentation/CI evidence are recorded in PR #8.
+
+### Historical 30B assessment before runtime installation
 
 Reassessment after the owner amendment (2026-10-07), outside the sandbox:
 
@@ -218,7 +281,11 @@ inference connection is the sole provider integration in scope; no cloud fallbac
 
 ## Handoff evidence status
 
-The onboarding amendment is specification only. Its five-document scope, exact committed
+The current environment checkpoint records the failed exact-model probe above; it is not
+a passing F03 generation artifact. Source/tests/configuration remain unchanged and PR #8
+remains draft. Its committed head, documentation checks and required CI are recorded there.
+
+The prior onboarding amendment is specification only. Its five-document scope, exact committed
 head, docs checks and required CI evidence are recorded in draft PR #8. F03 remains blocked;
 S03/F04 are not activated. Counters remain implementation 0/3, diagnosis 1/2, recovery 0/1.
 

@@ -8,7 +8,7 @@ CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 merged and verified; V1 incomplete
 SELECTED_PRODUCT_TASK: F03; blocked before implementation
 ACTIVE_PRODUCT_TASK: none; F03 entry guard failed
-NEXT_PERMITTED_ACTION: recheck local Ollama / exact 30B runtime entry; resource estimates advisory
+NEXT_PERMITTED_ACTION: owner-directed environment reassessment with changed evidence; exact 30B probe timed out
 F04_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 CURRENT_VERIFIED_MAIN: 8df79125131cce2fc373494a9846cd18bafc8e75

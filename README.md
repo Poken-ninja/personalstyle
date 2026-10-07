@@ -9,8 +9,9 @@ explicit constraints. The product is not yet complete.
 I01, the GitHub merge gate, SEC01, F01 and F02 are merged and verified for their declared
 scope. Sensitive persistence and protected-store reads are verified on Windows only.
 Application-level storage encryption and cross-platform sensitive storage are not claimed.
-F03 is selected but blocked before implementation: local Ollama is unavailable and the exact
-model probe is unverified. Low free RAM is an advisory resource warning, not a new hard gate.
+F03 is selected but blocked before implementation: Ollama 0.40.0 and the exact `qwen3:30b`
+model are installed, but the single synthetic probe exceeded the existing 60-second deadline.
+Successful model loading and bounded generation remain unverified.
 Initial development uses `ollama / qwen3:30b`.
 Owner-selected tiers are `qwen3:8b` (option 1, Standard/default user option),
 `qwen3:30b` (Recommended/reference development),
