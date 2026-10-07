@@ -4,12 +4,12 @@
 
 ```text
 TASK: F03
-STATE: active; owner-authorized final implementation attempt 3/3 for model-aware compatibility
-VERIFICATION_STATUS: 57 deterministic tests and static checks passed; one fresh 8B acceptance pending
+STATE: implemented and verified locally; final required CI verdict recorded in draft PR #8 handoff
+VERIFICATION_STATUS: 57 targeted + 162 full tests, static checks and exact-model live acceptance passed; current PR head CI is the final gate
 AUTHORITY: project owner selected F03 and initial development model
 BASE / MERGE_BASE / CHECKPOINT: 8df79125131cce2fc373494a9846cd18bafc8e75
 BRANCH: task/f03-generation
-ENTRY_GUARD_RESULT: owner authorizes repair of concrete template-pair defect; exact installed 8B identity/template inspected; live acceptance still required
+ENTRY_GUARD_RESULT: passed; exact 8B identity/template and bounded preparation/generic/personalized acceptance verified
 DECLARED_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md; personalstyle.toml (model value only)
 ACTUAL_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md
 DECLARED_ONBOARDING_DOCS_AMENDMENT_WRITE_SET: README.md; ARCHITECTURE.md; EXECUTION_CONTRACT.md; docs/decisions/ADR-003-desktop-first-flutter.md; docs/F03_TASK.md
@@ -18,16 +18,16 @@ DECLARED_DIAGNOSIS_2_WRITE_SET: docs/F03_TASK.md; README.md and EXECUTION_CONTRA
 PROPOSED_IMPLEMENTATION_WRITE_SET: src/personalstyle/generation.py; src/personalstyle/provider.py; src/personalstyle/storage.py (minimal read extension only if needed); src/personalstyle/profile.py (shared snapshot only if needed); src/personalstyle/cli.py (thin adapter); tests/test_generation.py; tests/test_provider.py; tests/test_initialization.py and tests/test_security.py (model-independent fixtures); personalstyle.toml (selected model value); docs/F03_TASK.md
 PRODUCT / PROTOCOL: 0.1.0 / 1.0
 CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
-F03_CURRENT_DEVELOPMENT_MODEL: ollama / qwen3:8b (owner-selected; final-attempt live acceptance pending)
-CONFIGURED_MODEL: ollama / qwen3:30b (unchanged pending successful 8B qualification; not a fallback)
+F03_CURRENT_DEVELOPMENT_MODEL: ollama / qwen3:8b (owner-selected; live acceptance passed)
+CONFIGURED_MODEL: ollama / qwen3:8b (only model value changed after live acceptance)
 WRITING_DNA_ALGORITHM: writing_dna.v1
 PYTHON / SQLITE_RUNTIME: 3.14.6 / 3.50.4
 ATTEMPTS_USED: 3 of 3 (first material provider edit for this owner-authorized attempt)
 DIAGNOSIS_USED: 2 of 2
 RECOVERY_USED: 2 of 2 (owner extended ceiling from 1 to 2; pytest environment repair completed)
-IMPLEMENTATION_REVISION: attempt 3 working tree; source revision will be recorded in draft PR handoff
+IMPLEMENTATION_REVISION: 00bdb9040c9a811efacee50ef1c88f32a59e666c
 DIAGNOSIS_2_STATE: completed; entry_capable for observed warm state only; inference calls 2 of 2
-NEXT_PERMITTED_ACTION: exactly one fresh 8B acceptance, then configuration/full regression only if passing; stop on failure; no further repair, F04 or merge
+NEXT_PERMITTED_ACTION: observe required CI then owner review of draft PR #8; stop; no further repair, live call, F04 or merge
 ```
 
 Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Consult
@@ -59,8 +59,9 @@ DIAGNOSIS_USED: 2/2 unchanged
 RECOVERY_USED: 2/2 unchanged
 HISTORICAL_QUALIFICATION_CYCLES_USED: 1/1 unchanged
 ATTEMPT_3_ACCEPTANCE_BUDGET: exactly one new owner-authorized 8B cycle after deterministic checks
-ATTEMPT_3_ACCEPTANCE_CYCLES_USED: 0/1
+ATTEMPT_3_ACCEPTANCE_CYCLES_USED: 1/1 (passed; no repeat after interruption)
 CHECKPOINT: 57 provider/generation tests passed in 65.17s (parent 65.907s); Ruff/mypy/pip check passed
+ACCEPTANCE_EVIDENCE_ARTIFACT: %TEMP%\personalstyle-f03-attempt3-evidence.json (metadata only)
 ```
 
 ### Reviewed 8B template assumptions
@@ -88,10 +89,122 @@ loopback transport, installed/loaded digest checks and deadlines remain enforced
 No template is accepted based solely on tokenizer, model family or a tier label.
 
 The 8B model remains installed at full digest
-`500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41`, currently unloaded.
+`500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41`, unloaded before acceptance.
 Historical 30B preparation/generation/resource failures below are unchanged. An 8B pass
 would establish only this machine/runtime's synthetic F03 mechanism, not product quality,
 F04 verification, broader model support or cross-platform sensitive storage.
+
+### Passing exact-model attempt 3 acceptance
+
+Source revision: **`00bdb9040c9a811efacee50ef1c88f32a59e666c`**. After interruption, branch,
+head, files and the unused acceptance counter were checked before starting; no prior probe
+process/model was active. The single new cycle then ran from an unloaded model, using
+Ollama **0.40.0**, exact `qwen3:8b` full digest
+`500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41`.
+No download, reinstall, retry or alternate model was needed during this attempt.
+
+| Operation | Overall observed seconds | Model response evidence |
+|---|---:|---|
+| Empty preparation | 19.317401 | One `/api/generate`, wall 19.136528s, `done_reason=load`; exact installed/loaded identity and `context_length=8000` verified |
+| Generic | 7.040657 | `done_reason=stop`; 179 prompt / 17 output tokens |
+| Personalized | 0.587122 | `done_reason=stop`; 546 prompt / 19 output tokens |
+
+Model-reported generic load/prompt/generation durations were 0.0323364 / 6.480252 /
+0.322480 seconds; personalized durations were 0.0294843 / 0.145791 / 0.273593 seconds.
+The empty preparation response supplies no separate model load duration; its observed
+request/overall wall measurements are stated instead. Personalized follows generic with
+shared system/request prefix, so cached prompt performance is not a claim for every input.
+
+Production policies were unchanged: preparation 120 seconds, each generation 60 seconds,
+6000 input context + 2000 output (`num_ctx=8000`), temperature 0.2, no retry. Model operations
+were exactly **one preparation + two generations**, charged as three against max calls 8.
+The qualification settings changed only the explicitly owner-selected tag in memory before
+the disk configuration changed; after the pass `personalstyle.toml` changes only that same
+tag to 8B. No source edit follows the passing live evidence.
+
+Run ID `03800eff-d22b-43d1-9d21-fecdccc72e5a`; exact context `work.email`; prompt contract 1;
+selection `exact_context.uuid.v1`; budget method `utf8_byte_upper_bound.v1`; framing 1472 bytes.
+Both candidates received the same validated request/intent/context/constraints and system
+instructions. Generic had no personalization; personalized used example
+`00000000-0000-0000-0000-0000000003e9`, record version 1, and `writing_dna.v1`, profile schema 1,
+source profile version 2, fingerprint
+`4490be4912f3b6ddfc9d51371a99e14855ee9de133052b7f7a633f5eb776419e`.
+Input-token upper bounds were 2218 / 3010, both below 6000. Source prose/output is omitted.
+Candidates retain `verification_status=not_verified`; no F04 or semantic/style quality pass
+is claimed. The fixture was synthetic only, not PersonalStyle user/profile writing.
+
+Database bytes and profile file set were identical before/after generation; the protected
+boundary verified after the operation. Captured ordinary INFO logs contained zero characters;
+no raw prompt/example/output leak was observed. Loaded digest/context remained matched before
+and after each generation. VRAM allocation was 6,186,378,198 bytes. Native available RAM
+before/after preparation/after acceptance was 2,959,757,312 / 2,515,779,584 / 2,331,627,520 bytes
+(memory load 82/85/86%). Complete cycle including post-checks took 28.853323 seconds;
+parent 32.579 seconds, exit 0, below its 360-second ceiling.
+
+Full configured-8B regression/static checks passed; required CI remains the final F03 gate.
+Its exact committed-head verdict and immutable run link are recorded in draft PR #8's handoff.
+All historical failed evidence/counters remain preserved; no additional live cycle is allowed.
+
+### Final local handoff and current committed-head CI route
+
+```text
+TASK: F03
+LOCAL_STATE: verified; final pass requires required CI on the exact current PR head
+REPOSITORY_REVISION: exact handoff SHA and current CI run recorded in draft PR #8
+SOURCE_REVISION: 00bdb9040c9a811efacee50ef1c88f32a59e666c (unchanged after live acceptance)
+BASE / MERGE_BASE: 8df79125131cce2fc373494a9846cd18bafc8e75; current main unchanged
+BRANCH / PR: task/f03-generation / #8; keep draft; no merge authorized
+ACTUAL_FINAL_ATTEMPT_WRITE_SET: src/personalstyle/provider.py; tests/test_provider.py;
+  tests/test_generation.py; personalstyle.toml (only model value); docs/F03_TASK.md;
+  README.md; EXECUTION_CONTRACT.md (status only)
+PRODUCT / PROTOCOL / CONFIG / STORAGE / PROFILE / PROMPT: 0.1.0 / 1.0 / 1 / 1 / 1 / 1
+WRITING_DNA_ALGORITHM: writing_dna.v1
+MODEL / RUNTIME: ollama / qwen3:8b / 0.40.0; full digest recorded above
+PYTHON / SQLITE_RUNTIME: 3.14.6 / 3.50.4 (engine runtime is not storage schema)
+ATTEMPTS_USED: 3/3
+DIAGNOSIS_USED: 2/2
+RECOVERY_USED: 2/2
+HISTORICAL_QUALIFICATION_CYCLES_USED: 1/1
+ATTEMPT_3_ACCEPTANCE_CYCLES_USED: 1/1; passed
+FINAL_FULL_PYTEST: 162 passed in 285.65s; parent 286.226s; unchanged 600s ceiling
+RUFF / MYPY / PIP_CHECK: passed / passed (8 source files) / passed
+CI_GATE: Python harness checks on exact current head; immutable evidence in PR handoff
+NEXT_PERMITTED_ACTION: owner review draft PR #8 and required checks; stop
+F04: unstarted; only a candidate after F03 review/merge and explicit owner selection
+```
+
+[Draft PR #8](https://github.com/Poken-ninja/personalstyle/pull/8) owns the resolved external
+CI verdict and exact checkpoint SHA, preventing a status-document edit from claiming an
+unexecuted CI pass. Its [current required checks](https://github.com/Poken-ninja/personalstyle/pull/8/checks)
+must be green for the committed head before F03 is reported passing. No pending/old-head
+run can substitute for that result. If required CI fails, stop and report blocked; there
+is no remaining implementation/diagnosis/recovery/live allowance.
+
+| Criterion | Actual evidence |
+|---|---|
+| F03-AC1 | Live exact-8B generic and personalized candidates completed within their separate deadlines; same validated request and fixed system message |
+| F03-AC2 | Exact-context F01/F02 shared snapshot tests, UUID ordering, five-example bound, full DNA, held-out/ineligible/unrelated exclusion and context-bound tests; live provenance above |
+| F03-AC3 | Prompt/data isolation tests and reviewed exact model/template pairs; live database bytes/file set unchanged and protected boundary rechecked |
+| F03-AC4 | Live provider/model/digest/runtime/prompt/context/IDs/versions/DNA evidence above; zero ordinary log characters; raw writing omitted |
+| F03-AC5 | Full 162-test Windows regressions, Ruff, mypy and pip check passed; required current-head CI is the final external gate in the PR handoff |
+| F03-AC6 | This committed handoff, full history/counters, and PR's exact SHA/CI link; stop with PR draft |
+
+Final-attempt unknown/cross-paired/modified template, unsupported tokenizer, remote/cloud,
+system override, missing completion, identity-change and resource failure tests all passed.
+The configuration-dependent fake provider identity/framing now follows the configured
+explicit tag; failure assertions and generation behavior were preserved. Source changes
+are limited to the exact model/hash map and lookup; no generation/storage/timeout/retry
+logic changed. No schema, dependency, architecture or version change is needed.
+
+Preserved failures: attempt 1 static typing/lint defects; attempt 2's three original
+boundary rejections and long elapsed time; recovery 1's pytest temp permission failure;
+30B cold and production-generation timeouts with resource observations; the initial 8B
+single-hash rejection. Owner recovery 2 repaired only the disposable pytest environment;
+owner attempt 3 corrected the concrete compatibility defect. None was rewritten as a pass.
+No new final-attempt verification failure occurred. Remaining blocker is only the required
+CI verdict until observed; the PR handoff records the final outcome. Passing F03 proves this
+bounded mechanism on this Windows/runtime/model setup, not personalization quality, F04,
+V1 completion, security for another OS, or desktop/mobile support.
 
 ## Historical owner decision: bounded 8B runtime qualification
 

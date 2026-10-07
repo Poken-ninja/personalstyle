@@ -9,10 +9,12 @@ explicit constraints. The product is not yet complete.
 I01, the GitHub merge gate, SEC01, F01 and F02 are merged and verified for their declared
 scope. Sensitive persistence and protected-store reads are verified on Windows only.
 Application-level storage encryption and cross-platform sensitive storage are not claimed.
-F03 is in its owner-authorized final implementation attempt, fixing exact model/template
-compatibility for the selected `ollama / qwen3:8b`. Unknown or changed template pairs stay
-rejected. Configuration remains unchanged until the single new live acceptance passes.
-The task checkpoint preserves failures and budgets. F03 is not yet verified or merge-ready.
+F03 is implemented and verified locally with exact `ollama / qwen3:8b` synthetic live
+acceptance and 162 passing regression tests; 8B is now the reference configuration.
+Exact model/template validation still rejects unknown or changed pairs. The final
+committed-head CI verdict is recorded in [draft PR #8](https://github.com/Poken-ninja/personalstyle/pull/8),
+and is required for a F03 pass. The task checkpoint preserves failures and budgets.
+F04 is unstarted; owner review/merge and explicit selection are still required.
 The owner separated exact-model preparation (120 seconds, no retry) from
 each generation (60 seconds). Ollama 0.40.0 and exact `qwen3:8b`/`qwen3:30b` are installed. The prior
 93.61-second cold diagnostic remains failed historical generation-bound evidence.

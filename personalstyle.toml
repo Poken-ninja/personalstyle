@@ -14,7 +14,7 @@ compatibility_policy = "same-major-capability-negotiated"
 
 [model]
 provider = "ollama"
-model = "qwen3:30b"
+model = "qwen3:8b"
 temperature = 0.2
 max_tokens = 2000
 
