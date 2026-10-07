@@ -4,9 +4,10 @@
 
 ```text
 TASK: F02
-STATE: active
-VERIFICATION_STATUS: not_verified
+STATE: passing
+VERIFICATION_STATUS: valid for verified Windows candidate
 BASE / MERGE_BASE / CHECKPOINT: 8a2e3bfc2ab70507a1b10c2eca3cb49913886177
+VERIFIED_IMPLEMENTATION_REVISION: 37ea6aa259abd3fc4481743a5921b35060aae803
 BRANCH: task/f02-writing-dna
 ENTRY_GUARD_RESULT: pass; verified F01 main, clean tree, owner activation, WIP 1
 DECLARED_WRITE_SET: README.md (status only); EXECUTION_CONTRACT.md (status only); docs/F02_TASK.md; src/personalstyle/storage.py (read extension only); src/personalstyle/profile.py; src/personalstyle/cli.py (thin inspection option); tests/test_profile.py
@@ -18,10 +19,10 @@ SQLITE_RUNTIME_VERSION: 3.50.4 (not a storage schema version)
 ATTEMPTS_USED: 2 of 3
 DIAGNOSIS_USED: 0 of 2
 RECOVERY_USED: 0 of 1
-PASSING_EVIDENCE: prerequisites only; F01 merge has 73 passing regressions and main CI
+PASSING_EVIDENCE: attempt 2 local 105 tests, Ruff, mypy, pip check and required GitHub CI
 FAILED_EVIDENCE: attempt 1 mypy defects; classified repair below
 BLOCKERS: none
-NEXT_PERMITTED_ACTION: F02 attempt 1; no F03 or automatic merge
+NEXT_PERMITTED_ACTION: owner review of PR #5; stop, no automatic merge or F03 activation
 ```
 
 Review found stale README/contract entry status, classified as historical status presented
@@ -124,3 +125,51 @@ NEXT ACTION: attempt 2 uses explicit validated-row constructor fields and annota
              list[int]; behavior, acceptance and all test assertions unchanged.
 BUDGET REMAINING: after attempt 2 starts, 1 implementation / 2 diagnosis / 1 recovery.
 ```
+
+## Committed completion evidence
+
+Verified source revision: `37ea6aa259abd3fc4481743a5921b35060aae803`.
+Attempt 2 local Windows/Python 3.14.6, SQLite 3.50.4: **105 tests passed in 241.94s**;
+Ruff passed; mypy passed for 6 source files; pip check found no broken requirements;
+git diff --check passed. Existing 73 I01/SEC01/F01 tests and assertions are unchanged.
+Required GitHub `Python harness checks` passed every step at that exact revision:
+https://github.com/Poken-ninja/personalstyle/actions/runs/37549706443/job/112562005722
+The gate was observed IN_PROGRESS/BLOCKED before passing; no bypass was used.
+
+- AC1: engine and CLI derive exact-context eligible, non-held-out examples. Queries
+  are parameterized, UUID-ordered and streamed from a read-only transaction.
+- AC2: identical calls and a fresh process return identical snapshots. Ordered UUID/version
+  fingerprint matches a hand-calculated digest; source revision remains transactionally
+  consistent. Database bytes are unchanged and trace contains no mutation statements.
+- AC3: both work.email/friends.chat isolation directions, held-out/ineligible exclusion,
+  rejected unauthorized F01 writes, malformed provenance and unsupported versions pass.
+  Empty eligible corpus reports NO_ELIGIBLE_EXAMPLES. Related additions change count and
+  fingerprint; unrelated additions advance only the global source revision.
+- AC4: hand-calculated counts/means/median/density and all punctuation counts/rates pass
+  across Unicode/apostrophes, CRLF/CR/blank lines, punctuation-only/clustered spans,
+  underscores/numbers and unterminated sentences. No linguistic/semantic accuracy claim.
+- AC5: real ACL widening, hardlinks, replaced directory and pre-return boundary failure
+  reject profile reads; SQL interruption and elapsed budget return fixed failures without
+  partial output or changed database bytes. Fresh-process and CLI output/logs contain no
+  raw writing marker. Existing SEC01 junction/unsupported-platform and F01 regression
+  tests remain green. SQLite schema/version checks and F01 write behavior are unchanged.
+- AC6: this committed handoff and [PR #5](https://github.com/Poken-ninja/personalstyle/pull/5)
+  record exact evidence, versions/runtime, seven-file declared scope and persistent counters.
+
+Final counters: implementation **2 of 3**, diagnosis **0 of 2**, recovery **0 of 1**.
+Only failure was attempt-1 typing; repaired with explicit constructor fields/annotation,
+without changing behavior/tests/criteria. No unresolved blockers or conflicts.
+Refreshed main and merge base remain `8a2e3bfc2ab70507a1b10c2eca3cb49913886177`.
+Source review confirms no added SQLite tables/migrations, aggregate quota, dependency,
+config/version change, model call or F03 retrieval/ranking behavior. Product/protocol remain
+0.1.0/1.0; config/storage/profile/prompt remain 1/1/1/1; algorithm is writing_dna.v1.
+
+CLI inspection: `personalstyle --writing-dna work.email` (optionally `--config PATH`).
+The output is a sensitive derived snapshot; no source prose is copied into it. Features
+are structural heuristics with intended future use, not verified personalization benefits.
+Only the Windows protected store is verified; no mobile/cross-platform sensitive storage,
+model/generation, V1 completion, application encryption or new security-release claim.
+
+This final evidence-only commit preserves the verified source/tests. Its own required
+CI must also pass before merge; final head SHA/check are recorded on PR #5. Stop after
+handoff; owner review/merge and explicit selection are required before F03 can activate.
