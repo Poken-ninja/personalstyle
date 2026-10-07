@@ -55,13 +55,22 @@ Version declarations are written requirements until code/tests enforce them.
 
 ## Multi-surface rule
 
+Current V1 release scope is a shared Flutter desktop shell on Windows, macOS and Linux.
+The CLI remains an engineering/acceptance surface. Browser extension, iOS and Android are
+deferred until a later explicit owner decision; their existence in long-term architecture
+does not make them V1 blockers.
+
 Surface clients must not fork personalization, verification, retry, or persistence rules.
-They call the authoritative engine/protocol. Surface arrangements and inference-provider
-boundaries live in [ARCHITECTURE.md](ARCHITECTURE.md#multi-surface-architecture) and
-[ADR-002](docs/decisions/ADR-002-versioned-multi-surface-engine.md).
+They call the authoritative engine/protocol. Flutter owns presentation and platform
+integration only; protected product behavior remains engine-owned. Surface arrangements and
+inference-provider boundaries live in
+[ARCHITECTURE.md](ARCHITECTURE.md#multi-surface-architecture),
+[ADR-002](docs/decisions/ADR-002-versioned-multi-surface-engine.md), and
+[ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md).
 
 A platform/version is called **supported** only when the selected framework/runtime/provider
-supports it and release verification covers it. Do not promise unlimited backward OS support.
+supports it and release verification covers it. Current Windows security evidence does not
+establish macOS/Linux sensitive-storage support. Do not promise unlimited backward OS support.
 
 ## Deterministic ownership
 
@@ -167,7 +176,7 @@ Do not store reusable authentication secrets in:
 
 Pairing grants only the capabilities required by that surface and must be revocable.
 
-### Browser-extension boundary
+### Browser-extension boundary (deferred)
 
 The browser extension must use least privilege:
 - request only necessary browser/host permissions;
@@ -177,7 +186,7 @@ The browser extension must use least privilege:
 - do not expose engine credentials to page scripts;
 - do not allow arbitrary websites to invoke privileged local-engine mutations.
 
-### Mobile surface boundary
+### Mobile surface boundary (deferred)
 
 - pairing/client credentials use platform secure credential storage;
 - app lifecycle/background behavior must not leak sensitive drafts/profile state;
