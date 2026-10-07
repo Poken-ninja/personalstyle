@@ -15,11 +15,11 @@ CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
 WRITING_DNA_ALGORITHM_VERSION: writing_dna.v1
 PYTHON_VERSION: 3.14.6
 SQLITE_RUNTIME_VERSION: 3.50.4 (not a storage schema version)
-ATTEMPTS_USED: 0 of 3
+ATTEMPTS_USED: 2 of 3
 DIAGNOSIS_USED: 0 of 2
 RECOVERY_USED: 0 of 1
 PASSING_EVIDENCE: prerequisites only; F01 merge has 73 passing regressions and main CI
-FAILED_EVIDENCE: none
+FAILED_EVIDENCE: attempt 1 mypy defects; classified repair below
 BLOCKERS: none
 NEXT_PERMITTED_ACTION: F02 attempt 1; no F03 or automatic merge
 ```
@@ -110,3 +110,17 @@ network/protocol/client surfaces, mobile storage, scheduling/agents, vectors/RAG
 durable DNA tables, unrelated cleanup. Windows protected reads only; host account/admin
 and encryption limitations carry forward. F03 is only a candidate after review, merge
 and explicit owner selection; never auto-activate or merge F02.
+
+## Attempt history
+
+```text
+OBSERVED: attempt 1 pytest 105 passed in 239.72s; Ruff/pip check/whitespace passed;
+          mypy reported three ambiguous ExampleInput keyword assignments and
+          one missing median-list type annotation.
+EXPECTED: complete regression and static checks pass.
+FAILURE_CLASS: implementation_defect (typing)
+EVIDENCE: mypy storage.py:119 and profile.py:64; no runtime/test failure.
+NEXT ACTION: attempt 2 uses explicit validated-row constructor fields and annotates
+             list[int]; behavior, acceptance and all test assertions unchanged.
+BUDGET REMAINING: after attempt 2 starts, 1 implementation / 2 diagnosis / 1 recovery.
+```

@@ -3,6 +3,8 @@
 import re
 import sqlite3
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -76,6 +78,67 @@ class ExampleStore:
 
     def __init__(self, path: Path):
         self.path = path.absolute()
+
+    @contextmanager
+    def eligible_examples(
+        self, context: str, deadline: float,
+    ) -> Iterator[tuple[int, Iterator[tuple[str, int, str]]]]:
+        """Stream one exact-context corpus from a protected, consistent read snapshot."""
+        if type(context) is not str or re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", context) is None:
+            raise StoreError("PROFILE_SOURCE_INVALID")
+        connection = None
+
+        def check_time() -> None:
+            if time.monotonic() >= deadline:
+                raise StoreError("PROFILE_RESOURCE_LIMIT")
+
+        try:
+            check_time()
+            identity = self._boundary()
+            connection = self._connect(readonly=True)
+            connection.execute("BEGIN")
+            self._schema(connection)
+            self._recheck(identity)
+            version = connection.execute("SELECT profile_version FROM store_meta").fetchone()[0]
+            cursor = connection.execute(
+                "SELECT * FROM examples WHERE context=? AND learning_eligible=1 AND held_out=0 "
+                "ORDER BY id COLLATE BINARY", (context,),
+            )
+
+            def rows() -> Iterator[tuple[str, int, str]]:
+                for row in cursor:
+                    check_time()
+                    if type(row[8]) is not int or row[8] != 1:
+                        raise StoreError("PROFILE_VERSION_INCOMPATIBLE")
+                    if (
+                        type(row[6]) is not int or row[6] != 1
+                        or type(row[7]) is not int or row[7] != 0 or row[2] != context
+                    ):
+                        raise StoreError("PROFILE_SOURCE_INVALID")
+                    try:
+                        ExampleInput(
+                            id=row[0], text=row[1], context=row[2], supplier=row[3],
+                            authorizer=row[4], source_kind=row[5], authorized=True,
+                            learning_eligible=True, held_out=False,
+                        ).validate()
+                    except StoreError:
+                        raise StoreError("PROFILE_SOURCE_INVALID") from None
+                    yield row[0], row[8], row[1]
+
+            yield version, rows()
+            self._recheck(identity)
+            check_time()
+        except SecurityError:
+            raise StoreError("STORAGE_BOUNDARY_INVALID") from None
+        except sqlite3.Error as error:
+            if getattr(error, "sqlite_errorcode", None) == sqlite3.SQLITE_INTERRUPT:
+                raise StoreError("PROFILE_RESOURCE_LIMIT") from None
+            raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT") from None
+        except OSError:
+            raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT") from None
+        finally:
+            if connection is not None:
+                connection.close()
 
     def _boundary(self, check_sidecars: bool = True) -> tuple[tuple[int, int], tuple[int, int]]:
         verify_private_directory(self.path.parent)
