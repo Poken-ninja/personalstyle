@@ -8,7 +8,7 @@ CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 merged and verified; V1 incomplete
 SELECTED_PRODUCT_TASK: F03; blocked before implementation
 ACTIVE_PRODUCT_TASK: none; F03 entry guard failed
-NEXT_PERMITTED_ACTION: resolve free RAM / local Ollama availability; recheck F03 30B entry
+NEXT_PERMITTED_ACTION: recheck local Ollama / exact 30B runtime entry; resource estimates advisory
 F04_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 CURRENT_VERIFIED_MAIN: 8df79125131cce2fc373494a9846cd18bafc8e75
@@ -89,10 +89,10 @@ I01 is merged/verified; see the completed-task references above.
 ### U2 — initial Ollama model
 Resolved by the owner: `INITIAL_DEVELOPMENT_MODEL = ollama / qwen3:30b`, not a permanent
 product requirement. Deployment/user configuration selects the model behind ModelProvider;
-every generation records the exact provider/model actually used. The Standard 8B,
-Recommended/reference 30B and Maximum/optional 235B tiers and current entry evidence are in
-the [bounded F03 task](docs/F03_TASK.md#current-model-decision-and-tiers). Keep runtime
-configuration at `model = "TODO"` until the entry gate passes and implementation begins.
+every generation records the exact provider/model actually used. Ordered starter tiers and
+future onboarding belong to [architecture](ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03);
+current reference-model entry evidence is in the [bounded F03 task](docs/F03_TASK.md).
+Keep runtime configuration at `model = "TODO"` until the entry gate passes and implementation begins.
 
 ### U3 — held-out product-test set and success rule
 Must be frozen before final product-performance testing. Do not choose the pass rule after seeing C results.
@@ -154,6 +154,36 @@ Do not fully design later tasks until dependencies and evidence sharpen. A next 
 requires explicit owner selection and a bounded task contract; completing a dependency
 does not auto-activate it. F03 is owner-selected and U2 is resolved, but implementation
 must wait for its local runtime/model entry guard. F04 is not activated.
+
+### S03 desktop model setup acceptance
+
+Specification for later S03, which remains unstarted. S03 includes the Flutter model setup
+workflow in [architecture](ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03) and
+[ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md#model-onboarding-decision), in addition
+to existing desktop workflow, security, packaging and platform release acceptance.
+
+- Offer option 1 `qwen3:8b` (Standard/default user option), option 2 `qwen3:30b`
+  (Recommended/reference development), and option 3 `qwen3:235b` (Maximum/optional enthusiast).
+  Require explicit choice/confirmation; never silently substitute. A later existing-model
+  path accepts only models satisfying defined provider/runtime/model compatibility validation.
+- Demonstrate the complete choose/inspect/estimate/runtime-check/instructions/recheck/model-check/
+  exact-install-action/identity-recheck/bounded-probe/READY flow on each claimed desktop OS.
+  Instructions must be platform-specific and obtain exactly the selected model.
+- Distinguish shown instructions, engine/provider availability checks and executed inference
+  evidence. Prove missing/stopped Ollama, missing/wrong/incompatible model, setup actions that
+  did not succeed, probe failure and timeout all leave setup not READY with actionable UX.
+- Treat hardware/resource estimates as advisory unless a known hard runtime requirement is
+  violated. Show warnings/alternate tiers for likely unsuitable selections and prove that
+  changing tiers requires user confirmation; no silent fallback or invented hardware cutoff.
+- Keep detection, exact identity, readiness and bounded probe ownership in the engine/provider,
+  with Flutter limited to setup UX. Verify readiness invalidation after runtime/model changes;
+  probes use synthetic text and do not mutate sensitive profile data or bypass budgets.
+- Record platform/runtime/model/probe evidence for every claimed supported starter combination;
+  a bounded probe is inference setup evidence, not security or overall release completion.
+
+Freeze detailed compatibility/probe acceptance in S03's bounded task before implementation.
+F03 continues to prove only its generation/provider seam with 30B reference development
+evidence; this roadmap addition does not move onboarding into F03 or activate later work.
 
 ## Completion definitions
 

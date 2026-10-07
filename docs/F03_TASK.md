@@ -9,9 +9,10 @@ VERIFICATION_STATUS: not_verified; feature implementation has not started
 AUTHORITY: project owner selected F03 and initial development model
 BASE / MERGE_BASE / CHECKPOINT: 8df79125131cce2fc373494a9846cd18bafc8e75
 BRANCH: task/f03-generation
-ENTRY_GUARD_RESULT: failed; local Ollama unavailable and available RAM insufficient
+ENTRY_GUARD_RESULT: failed; local Ollama unavailable / exact-model probe unverified; low free RAM is advisory
 DECLARED_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md; personalstyle.toml (model value only)
 ACTUAL_ACTIVATION_WRITE_SET: README.md; EXECUTION_CONTRACT.md; docs/F03_TASK.md
+DECLARED_ONBOARDING_DOCS_AMENDMENT_WRITE_SET: README.md; ARCHITECTURE.md; EXECUTION_CONTRACT.md; docs/decisions/ADR-003-desktop-first-flutter.md; docs/F03_TASK.md
 PROPOSED_IMPLEMENTATION_WRITE_SET: src/personalstyle/generation.py; src/personalstyle/provider.py; src/personalstyle/storage.py (minimal read extension only if needed); src/personalstyle/profile.py (shared snapshot only if needed); src/personalstyle/cli.py (thin adapter); tests/test_generation.py; tests/test_provider.py; tests/test_initialization.py and tests/test_security.py (model-independent fixtures); personalstyle.toml (selected model value); docs/F03_TASK.md
 PRODUCT / PROTOCOL: 0.1.0 / 1.0
 CONFIG / STORAGE / PROFILE / PROMPT: 1 / 1 / 1 / 1
@@ -22,7 +23,7 @@ ATTEMPTS_USED: 0 of 3
 DIAGNOSIS_USED: 1 of 2
 RECOVERY_USED: 0 of 1
 IMPLEMENTATION_REVISION: none
-NEXT_PERMITTED_ACTION: resolve free RAM / Ollama prerequisite and recheck exact 30B entry; no feature implementation in this docs amendment
+NEXT_PERMITTED_ACTION: reassess resources and Ollama / exact 30B runtime entry; no feature implementation in this docs amendment
 ```
 
 Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Consult
@@ -39,7 +40,7 @@ and its real-runtime entry evidence, not a permanent product requirement.
 
 | Model | Owner-selected role |
 |---|---|
-| `qwen3:8b` | Standard user option |
+| `qwen3:8b` | Option 1: Standard / default user option; explicit user choice required |
 | `qwen3:30b` | Recommended/reference development model |
 | `qwen3:235b` | Maximum/optional enthusiast tier |
 
@@ -48,6 +49,11 @@ configuration chooses the model behind the existing ModelProvider architecture; 
 must not require one fixed model for every user. Every generation records its exact actual
 provider/model identity and digest. No implicit substitution for the selected development
 model is allowed; choosing 8B or 235B for development needs a new owner decision.
+
+The later [S03 desktop setup contract](../ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03)
+owns user onboarding, platform instructions and the explicit-choice/availability/probe/READY
+flow. F03 only proves the minimal ModelProvider/Ollama generation seam and 30B development
+evidence. It does not implement a setup wizard or require 30B for all users.
 
 Keep `personalstyle.toml` at `model = "TODO"` until runtime entry passes and F03 implementation
 actually begins. This amendment changes a model decision and status only: product 0.1.0,
@@ -84,16 +90,19 @@ registry short identity `ad815644918f`; this is not a verified local digest.
 Feasibility inference: 30B cannot fit wholly in the 8-GiB GPU. Total physical RAM plus VRAM
 makes a CPU/GPU split plausible, unlike the previous 235B assessment. However, current free
 RAM plus VRAM is only about 9 GiB, below the roughly 17.7-GiB model file before runtime/context
-overhead. Available memory must increase substantially; paging is not verified runtime
+overhead. This is an advisory suitability warning, not a newly proven minimum-RAM threshold.
+Hardware/resource estimates alone do not replace runtime/probe evidence or impose a hard
+pre-download gate unless a hard runtime requirement is known. Paging is not verified runtime
 evidence. No measured claim is made that a request meets the existing 60-second ceiling.
 The model's smaller active parameter count does not mean all its weights fit in 8-GiB VRAM.
 
 ```text
-OBSERVED: Ollama unavailable; insufficient currently free RAM for reference-model footprint
+OBSERVED: Ollama unavailable; current free-RAM estimate warns of unsuitable resource availability
 EXPECTED: exact qwen3:30b can load and serve one bounded synthetic request
-FAILURE_CLASS: environment_failure / MODEL_RUNTIME_UNAVAILABLE / available_memory
+FAILURE_CLASS: environment_failure / MODEL_RUNTIME_UNAVAILABLE; resource warning advisory
 EVIDENCE: current inventory above; 19-GB registry model listing; local API unreachable
-NEXT ACTION: free sufficient RAM; install/start supported local Ollama; then provision
+NEXT ACTION: explain resource warning and reassess known runtime requirements;
+  install/start supported local Ollama; then provision
   exactly qwen3:30b and record runtime version, full digest and bounded execution evidence
   in a separately resumed environment assessment. No installation/download in this amendment.
 BUDGET REMAINING: 3 implementation; 1 diagnosis; 1 recovery
@@ -209,7 +218,12 @@ inference connection is the sole provider integration in scope; no cloud fallbac
 
 ## Handoff evidence status
 
-Current docs-amendment checks: Ruff, mypy (6 source files), pip check, 35 local references,
+The onboarding amendment is specification only. Its five-document scope, exact committed
+head, docs checks and required CI evidence are recorded in draft PR #8. F03 remains blocked;
+S03/F04 are not activated. Counters remain implementation 0/3, diagnosis 1/2, recovery 0/1.
+
+Prior 30B-selection amendment checks (`dbd303f7d7dd85f9140c60417db75b680cd08826`):
+Ruff, mypy (6 source files), pip check, 35 local references,
 the current 30B entry / optional-or-historical 235B reference audit and `git diff --check`
 pass. Source/tests/configuration and all compatibility versions match the verified base.
 

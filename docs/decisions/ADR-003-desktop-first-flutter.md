@@ -41,6 +41,32 @@ Inference stays behind a ModelProvider boundary. Ollama is the initial desktop p
 Flutter code must not depend on Ollama-specific product behavior. Exact model identity is
 runtime configuration and must be recorded with generation evidence.
 
+## Model onboarding decision
+
+Owner decision: the future S03 Flutter setup offers, in order, `qwen3:8b` as Standard/default
+user option, `qwen3:30b` as Recommended/reference development model, and `qwen3:235b` as
+Maximum/optional enthusiast tier. The user explicitly chooses/confirms; default presentation
+does not authorize a selection or download. PersonalStyle never silently substitutes models.
+These are starter-tier targets, not evidence of current platform/runtime compatibility.
+
+Model choice remains deployment/user configuration behind the authoritative ModelProvider.
+The later "use existing compatible Ollama model" path requires defined compatibility
+validation; arbitrary Ollama models are not automatically supported. Every generation records
+the exact provider/model identity actually used. Initial F03 development remains
+`ollama / qwen3:30b`, not a permanent requirement for every user.
+
+The [architecture setup flow](../../ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03)
+owns the sequence and instructions/mechanism/evidence distinction. Hardware guidance is
+advisory before download unless a hard runtime requirement is known. Warn and offer alternatives
+when a tier is likely unsuitable; require explicit confirmation before changing the choice.
+The engine/provider must verify the exact selected model through a bounded synthetic probe
+before setup is READY. Instructions or installation alone do not prove readiness.
+
+Flutter owns setup UX; runtime detection, selected-model identity, readiness state and probe
+policy remain engine/provider-owned. This preserves the existing engine/client boundary.
+Onboarding belongs to later S03, not the full F03 implementation. This documentation decision
+does not implement a wizard, install a model or broaden current security/platform evidence.
+
 ## Security consequence
 
 Existing SEC01/F01/F02 evidence remains valid for its declared Windows scope. This decision
@@ -73,6 +99,8 @@ protocol or schema change must be versioned when that actual compatibility surfa
 
 Core tasks F03-F06 remain conceptually unchanged. F03 should introduce only the smallest
 ModelProvider seam needed to keep Ollama outside core product rules.
+Its development evidence uses the selected 30B reference; the setup wizard belongs to
+[S03 roadmap acceptance](../../EXECUTION_CONTRACT.md#s03-desktop-model-setup-acceptance).
 
 Before cross-platform desktop release:
 
