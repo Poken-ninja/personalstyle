@@ -9,8 +9,11 @@ explicit constraints. The product is not yet complete.
 I01, the GitHub merge gate, SEC01, F01 and F02 are merged and verified for their declared
 scope. Sensitive persistence and protected-store reads are verified on Windows only.
 Application-level storage encryption and cross-platform sensitive storage are not claimed.
-F03 is selected but blocked before implementation: the local Ollama runtime is unavailable.
-The initial development provider/model is `ollama / qwen3:235b`; no substitute is authorized.
+F03 is selected but blocked before implementation: local Ollama is unavailable and free RAM
+is insufficient for the reference model. Initial development uses `ollama / qwen3:30b`.
+Owner-selected tiers are `qwen3:8b` (Standard), `qwen3:30b` (Recommended/reference development),
+and `qwen3:235b` (Maximum/optional enthusiast). Model choice is deployment/user configuration
+behind ModelProvider, not one fixed product requirement; each run records its actual identity.
 Read the [F03 task and checkpoint](docs/F03_TASK.md). F04 and later remain unstarted.
 See [current status and evidence](EXECUTION_CONTRACT.md#completed-tasks-and-evidence).
 

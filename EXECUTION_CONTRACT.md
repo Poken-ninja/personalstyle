@@ -8,7 +8,7 @@ CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 merged and verified; V1 incomplete
 SELECTED_PRODUCT_TASK: F03; blocked before implementation
 ACTIVE_PRODUCT_TASK: none; F03 entry guard failed
-NEXT_PERMITTED_ACTION: establish exact local Ollama model availability; recheck F03 entry
+NEXT_PERMITTED_ACTION: resolve free RAM / local Ollama availability; recheck F03 30B entry
 F04_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 CURRENT_VERIFIED_MAIN: 8df79125131cce2fc373494a9846cd18bafc8e75
@@ -87,9 +87,12 @@ remains governed by [ADR-001](docs/decisions/ADR-001-single-bounded-reasoning.md
 I01 is merged/verified; see the completed-task references above.
 
 ### U2 — initial Ollama model
-Resolved by the owner for initial development: `ollama / qwen3:235b`, not a permanent product
-requirement. Applying this selection to runtime configuration waits for the local
-runtime/model entry guard; see the [bounded F03 task](docs/F03_TASK.md).
+Resolved by the owner: `INITIAL_DEVELOPMENT_MODEL = ollama / qwen3:30b`, not a permanent
+product requirement. Deployment/user configuration selects the model behind ModelProvider;
+every generation records the exact provider/model actually used. The Standard 8B,
+Recommended/reference 30B and Maximum/optional 235B tiers and current entry evidence are in
+the [bounded F03 task](docs/F03_TASK.md#current-model-decision-and-tiers). Keep runtime
+configuration at `model = "TODO"` until the entry gate passes and implementation begins.
 
 ### U3 — held-out product-test set and success rule
 Must be frozen before final product-performance testing. Do not choose the pass rule after seeing C results.
