@@ -4,8 +4,8 @@
 
 ```text
 TASK: F03
-STATE: blocked; local regression environment failure; diagnosis/recovery budgets exhausted
-VERIFICATION_STATUS: not_verified; full local regression failed; real-model verification not run
+STATE: blocked; exact-model generic generation exceeded the unchanged 60-second deadline
+VERIFICATION_STATUS: local deterministic regressions/static checks passed; real F03 pair failed
 AUTHORITY: project owner selected F03 and initial development model
 BASE / MERGE_BASE / CHECKPOINT: 8df79125131cce2fc373494a9846cd18bafc8e75
 BRANCH: task/f03-generation
@@ -23,10 +23,10 @@ WRITING_DNA_ALGORITHM: writing_dna.v1
 PYTHON / SQLITE_RUNTIME: 3.14.6 / 3.50.4
 ATTEMPTS_USED: 2 of 3
 DIAGNOSIS_USED: 2 of 2
-RECOVERY_USED: 1 of 1
-IMPLEMENTATION_REVISION: blocked checkpoint commit; exact SHA in draft PR #8 handoff
+RECOVERY_USED: 2 of 2 (owner extended ceiling from 1 to 2; pytest environment repair completed)
+IMPLEMENTATION_REVISION: 16155a5698de29d95886daac524543bd39a6fd99; feature code unchanged during recovery
 DIAGNOSIS_2_STATE: completed; entry_capable for observed warm state only; inference calls 2 of 2
-NEXT_PERMITTED_ACTION: owner-authorized environment recovery/budget extension; stop implementation; no F04 or merge
+NEXT_PERMITTED_ACTION: owner decision on the evidenced runtime blocker and exhausted recovery/diagnosis budgets; no retry, substitution, feature edit, F04 or merge
 ```
 
 Default read: [README](../README.md), [AGENTS](../AGENTS.md), then this task. Consult
@@ -36,6 +36,103 @@ needed. Harness-Engineering is read-only reference material. Selection/configura
 this checkpoint are activation work, not implementation attempt 1.
 
 ## Active owner decision: preparation is separate from generation
+
+### Owner-authorized environment recovery 2/2
+
+```text
+Previous recovery budget: 1 action
+Previous recovery used: 1/1
+Additional authorized recovery actions: 1
+New total recovery ceiling: 2
+At authorization: RECOVERY_USED 1/2; one action remaining
+Authority: project owner
+Reason: previous recovery was consumed by Windows pytest temporary-directory permission
+  failure after a long suspend/resume period (owner-provided context)
+Current action: inspect and repair only pytest's disposable temporary environment;
+  rerun the unchanged full suite with the existing 600-second ceiling
+Implementation: 2/3; diagnosis: 2/2; neither budget reset
+Declared recovery repository write set: docs/F03_TASK.md; README.md; EXECUTION_CONTRACT.md
+```
+
+Entry verified branch `task/f03-generation`, exact HEAD
+`16155a5698de29d95886daac524543bd39a6fd99` and clean tree. Host process enumeration found
+no Python/pytest processes. `%TEMP%\pytest-of-mamid` was an ordinary directory (no reparse
+target), owned by `MSI\CodexSandboxOffline` (SID ending 1005), with protected full-control
+entries for OWNER RIGHTS, SYSTEM and Administrators. Normal host user `MSI\mamid` (SID
+ending 1001) could not read its ACL, enumerate it or remove it: access denied. The sandbox
+owner could inspect and remove only this pytest-owned root using normal permissions,
+after an exact absolute-path/reparse guard. No ACLs or system policy were changed; no
+PersonalStyle profile directory or unrelated application was touched. This establishes
+an account/permission mismatch for the temporary-directory error, not a proven cause of
+the original three boundary-test rejections or the original long elapsed time.
+
+#### Recovery result and exact-model verification (2026-10-07)
+
+The normal user recreated the pytest root, now owned by `MSI\mamid`, and could list it.
+The full unchanged suite passed: **137 passed in 287.47 seconds**, parent wall 287.911
+seconds, exit 0, within the existing 600-second ceiling. The command was
+`.venv\Scripts\python.exe -m pytest -q -o cache_dir=%TEMP%\pytest-of-mamid\.pytest-cache`.
+Only cache location changed, to keep pytest's cache in its disposable directory instead
+of the existing sandbox-owned repository cache; no test/plugin/check was disabled.
+Ruff (`check src tests`), mypy (`src`, eight files), and pip check passed again.
+The feature revision tested is exactly `16155a5698de29d95886daac524543bd39a6fd99`;
+only the declared three status/checkpoint documents changed during this recovery.
+Required CI on that feature revision passed: [run 37697763676](https://github.com/Poken-ninja/personalstyle/actions/runs/37697763676).
+Current checkpoint CI is recorded separately in the draft PR handoff.
+
+After those passes, one real engine-owned `generate_pair` call used only synthetic
+request/example text in a temporary SEC01/F01-protected fixture, the actual reference
+configuration, and the installed provider implementation. No config overrides were used:
+6000 context tokens plus 2000 output tokens allocated `num_ctx=8000`, temperature 0.2,
+generation deadline 60 seconds, preparation invariant 120 seconds. Before preparation,
+Ollama `/api/ps` was empty. Runtime was **0.40.0**, model **qwen3:30b**, full digest
+`ad815644918f0eaab341c12b67837cc6dd4562342cdaf118f83d5d554cb37226`.
+
+| Observation | Evidence |
+|---|---|
+| Preparation | Passed in 45.616595 seconds; one empty-input `/api/generate`, 44.866603 seconds, `done_reason=load` |
+| Prepared identity | Installed and loaded digest matched exactly; loaded context length 8000; VRAM allocation 6,235,587,869 bytes |
+| Generic generation | Failed `GENERATION_RESOURCE_LIMIT`; `/api/chat` spent 59.967737 seconds after pre-call identity checks, within the enforced overall 60-second operation |
+| Personalized generation | Not attempted after generic failure |
+| Model operations | Exactly 2: one preparation and one generic call; no retry/substitution |
+| Fixture database | Bytes and profile file set identical before/after generation; protected boundary verified afterward |
+| Ordinary logs | Zero characters captured at INFO; no raw prompt/example/output leakage observed |
+| Probe duration | 109.719087 seconds through post-failure checks; parent 115.585 seconds, exit 1, below 360-second verification-process ceiling |
+
+No completed generic response was received, so no generation-token count or model-reported
+load/generation duration is claimed. The empty load response also supplied no separate
+model-reported load duration; 44.866603 seconds is observed request wall time.
+
+| Native memory observation | Before preparation | After preparation | After failure |
+|---|---:|---:|---:|
+| Available physical RAM (bytes) | 2,021,552,128 | 1,080,668,160 | 481,947,648 |
+| Memory load (%) | 88 | 93 | 97 |
+| Available pagefile/commit capacity (bytes) | 11,973,541,888 | 1,173,561,344 | 829,407,232 |
+
+Before the probe, GPU total/free VRAM was 8151/7891 MiB, C: free disk was
+101,720,313,856 bytes, and pagefile allocated/current usage was 21472/1961 MiB.
+After failure, GPU free VRAM was 1754 MiB and pagefile allocated/current/peak usage was
+30502/15383/15413 MiB. `/api/ps` still showed the exact loaded 30B digest and context 8000.
+No system policy/configuration or applications were changed. Observed memory/commit
+pressure and pagefile growth accompany the timeout; they do not prove its sole cause.
+
+```text
+OBSERVED: pytest and all static checks passed after the authorized temp-directory repair;
+  exact 30B preparation passed, but normal generic generation reached its 60-second ceiling
+EXPECTED: preparation <=120s and both generic/personalized candidates <=60s, exact identity,
+  no retry/substitution, no mutation and no normal sensitive logs
+FAILURE_CLASS: runtime_resource_limit / GENERATION_RESOURCE_LIMIT
+EVIDENCE: one empty preparation 45.616595s; exact loaded digest/context verified;
+  one generic HTTP operation 59.967737s plus pre-call identity checks, then explicit failure;
+  personalized not called; memory load 97%, available RAM 481947648 bytes at failure
+NEXT ACTION: stop and preserve failed evidence in draft PR #8; owner decision required;
+  no additional inference, automatic timeout increase, model substitution or feature repair
+BUDGET REMAINING: 1 implementation; 0 diagnosis; 0 recovery
+```
+
+No new failing test demonstrated a feature-code defect, so implementation remains **2/3**.
+This is a successful pytest environment repair and failed real generation verification,
+not a complete F03 acceptance pass. The historical failures below remain unchanged.
 
 ### Controlled stop after recovery 1/1
 

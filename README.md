@@ -9,8 +9,10 @@ explicit constraints. The product is not yet complete.
 I01, the GitHub merge gate, SEC01, F01 and F02 are merged and verified for their declared
 scope. Sensitive persistence and protected-store reads are verified on Windows only.
 Application-level storage encryption and cross-platform sensitive storage are not claimed.
-F03 is blocked on local verification: the recovery run cannot access pytest's temporary
-directory, and recovery/diagnosis budgets are exhausted. Its implementation is unverified.
+F03 is blocked on real-model generation: the pytest environment repair succeeded and
+all 137 local tests/static checks passed, but generic generation hit its 60-second deadline.
+Exact-model preparation passed; personalized generation was not attempted. The task
+checkpoint preserves failures and budgets. F03 is not merge-ready.
 The owner separated exact-model preparation (120 seconds, no retry) from
 each generation (60 seconds). Ollama 0.40.0 and exact `qwen3:30b` are installed. The prior
 93.61-second cold diagnostic remains failed historical generation-bound evidence.
