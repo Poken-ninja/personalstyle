@@ -1,42 +1,12 @@
 # PersonalStyle — Builder Contract
 
-## Goal
+## Working context and scope
 
-PersonalStyle is a local-first adaptive writing assistant.
-
-Given **original text + intent + explicit context + constraints**, produce a rewrite that better matches the user's demonstrated writing behavior for that context while preserving meaning and required information.
-
-The product success criterion is:
-
-> With continued use, PersonalStyle should reduce the user's editing effort and increase accept-without-edit behavior versus a generic rewrite baseline without degrading semantic or constraint fidelity.
-
-## Scope rule
-
-Build the smallest end-to-end vertical slice that can satisfy and verify the product requirements.
-
-V1 includes:
-1. add user-owned writing examples;
-2. tag examples by context;
-3. derive inspectable Writing DNA;
-4. deterministically select bounded relevant examples/preferences;
-5. generate a rewrite;
-6. verify hard invariants;
-7. return the candidate;
-8. record accept/edit feedback;
-9. convert edits into evidence-backed preference hypotheses;
-10. compare generic vs personalized vs personalized+learning behavior.
-
-V1 excludes unless an observed engineering problem proves a need:
-- multi-agent systems;
-- vector databases / embedding retrieval;
-- broad RAG;
-- fine-tuning / reinforcement learning;
-- autonomous background learning;
-- model routing;
-- cloud-dependent memory;
-- complex orchestration graphs;
-- unrestricted model tools;
-- production deployment.
+Follow the [default read route](README.md#default-read-route): README, this file and the
+explicitly selected current task contract first; consult deeper sources when needed.
+Build the smallest end-to-end vertical slice that can satisfy and verify the product
+requirements. Product goals, V1 scope and exclusions are owned by
+[EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md#scope), not repeated here.
 
 ## Status truth
 
@@ -85,20 +55,13 @@ Version declarations are written requirements until code/tests enforce them.
 
 ## Multi-surface rule
 
-PersonalStyle targets one authoritative engine with thin surfaces:
-- terminal/CLI;
-- browser extension (current reversible interpretation of "extension");
-- desktop app;
-- iOS app;
-- Android app.
+Surface clients must not fork personalization, verification, retry, or persistence rules.
+They call the authoritative engine/protocol. Surface arrangements and inference-provider
+boundaries live in [ARCHITECTURE.md](ARCHITECTURE.md#multi-surface-architecture) and
+[ADR-002](docs/decisions/ADR-002-versioned-multi-surface-engine.md).
 
-Surface clients must not fork personalization, verification, retry, or persistence rules. They call the authoritative engine/protocol.
-
-Standalone iOS/Android local inference is **not** solved by the desktop Ollama provider. Mobile must use either an explicitly paired companion engine or a separately verified mobile inference provider.
-
-A platform/version is called **supported** only when the selected framework/runtime/provider supports it and release verification covers it. Do not promise unlimited backward OS support.
-
-See `docs/decisions/ADR-002-versioned-multi-surface-engine.md`.
+A platform/version is called **supported** only when the selected framework/runtime/provider
+supports it and release verification covers it. Do not promise unlimited backward OS support.
 
 ## Deterministic ownership
 
@@ -153,6 +116,8 @@ Treat these as **secrets/credentials**:
 - signing/private keys.
 
 Secrets must never be committed to Git, stored in `personalstyle.toml`, written to normal SQLite profile tables, included in prompts, placed in URLs, or emitted in ordinary logs.
+
+Security-sensitive policy stays centralized in the engine/protocol. Clients may enforce additional platform protections but may not weaken engine authorization, validation, verification, or budget rules.
 
 ### Trust boundaries
 
@@ -211,6 +176,12 @@ The browser extension must use least privilege:
 - never execute page-provided code or instructions as harness policy;
 - do not expose engine credentials to page scripts;
 - do not allow arbitrary websites to invoke privileged local-engine mutations.
+
+### Mobile surface boundary
+
+- pairing/client credentials use platform secure credential storage;
+- app lifecycle/background behavior must not leak sensitive drafts/profile state;
+- backups/exports follow the platform's protected-data policy selected for the release.
 
 ### Persistent data
 
@@ -315,36 +286,9 @@ Third-party/reference text is not automatically user-style evidence. Only sample
 
 Name state explicitly; do not use vague "memory."
 
-Durable state may include:
-- user profile;
-- writing examples;
-- context profiles;
-- Writing DNA;
-- preference hypotheses;
-- preference evidence;
-- confidence;
-- learning events;
-- schema/profile versions.
-
-Per-run state may include:
-- request;
-- selected context/examples/preferences;
-- prompt/model version;
-- candidate;
-- verification results;
-- attempt count;
-- terminal state.
-
-Learning pipeline:
-
-```
-USER EDIT
--> observation
--> preference hypothesis
--> evidence accumulation
--> confidence/promotion decision
--> versioned profile update
-```
+State entities/lifetimes and the learning pipeline are described in
+[ARCHITECTURE.md](ARCHITECTURE.md#3-personalization-store) and its
+[feedback adapter](ARCHITECTURE.md#8-feedback-adapter).
 
 A single edit may create an observation or low-confidence hypothesis. It must not silently become an active global preference.
 
@@ -406,20 +350,8 @@ A defective test/check may be corrected only by showing that it conflicts with t
 
 ## Execution loop
 
-Default run:
-
-```
-RECEIVED
--> VALIDATING
--> CONTEXT_READY
--> GENERATING
--> VERIFYING
-   -> SUCCEEDED
-   -> RETRYING -> GENERATING
-   -> FAILED
-   -> ESCALATED
-```
-
+The run state machine is owned by
+[ARCHITECTURE.md](ARCHITECTURE.md#run-state-machine).
 Illegal transitions must be rejected by the harness when implemented.
 
 ### Authoritative budget
@@ -434,76 +366,9 @@ A retry is allowed only after a failure classification and a material change in 
 
 ## Completion definitions
 
-### Run complete
-
-A run is complete only when it has a recorded terminal state:
-
-- `SUCCEEDED`: all hard run invariants passed and a result was returned;
-- `FAILED`: no acceptable candidate exists within the authorized budget or a non-recoverable hard failure occurred;
-- `ESCALATED`: completion requires an external decision/input;
-- `CANCELLED`: the authorized caller stopped the run.
-
-"Generated a draft" is not complete.
-
-### Feature complete
-
-A feature is complete only when:
-1. its acceptance criteria are explicit;
-2. the current artifact passes the required checks;
-3. evidence is recorded for the current revision/environment;
-4. no unresolved blocker contradicts completion;
-5. required handoff/state is current.
-
-Code existence, confidence, TODO comments, or proposed tests do not count.
-
-### V1 implementation complete
-
-V1 implementation is complete when the A/B/C product-test path is runnable end-to-end:
-
-- A: generic rewrite;
-- B: context-personalized rewrite without accumulated learning;
-- C: context-personalized rewrite with accumulated learning;
-
-and the system can collect the required hard-invariant, edit-effort, acceptance, context, latency, and resource evidence on a held-out product-test set.
-
-This does **not** mean PersonalStyle meets the product success criterion.
-
-### Security gate complete
-
-A release security gate is complete only when the applicable security controls in this contract have executable evidence for the current artifact and supported surfaces.
-
-A passed functional test suite does not imply the security gate passed.
-
-### Surface complete
-
-A CLI, extension, desktop, iOS, or Android surface is complete only when:
-1. it reaches the authoritative engine through the defined protocol/library boundary;
-2. it does not duplicate protected personalization/harness logic;
-3. required workflows pass on the declared supported platform/version matrix;
-4. protocol incompatibility, engine-unavailable, permission-denied, and migration-required states have explicit user-visible failure behavior;
-5. its client and protocol versions are recorded in applicable evidence.
-
-A successful build on one developer machine is not surface completion.
-
-### Cross-platform release complete
-
-A cross-platform release is complete only when every surface claimed as supported has current release evidence for every OS/runtime version claimed as supported.
-
-Unsupported or unverified older OS versions must be labeled best-effort or unsupported, not silently counted as complete.
-
-### Product success validated
-
-Before the scored product test, freeze:
-- test set;
-- model/version;
-- prompt version;
-- retrieval policy;
-- metric definitions;
-- success comparison rule.
-
-Product success is validated only if B/C improve the predeclared personalization/user-effort criteria versus the relevant baseline while meeting the hard semantic/constraint requirements.
-
-If they do not, the product requirement is not met. Do not redefine the metric after seeing results to manufacture success.
+Apply [EXECUTION_CONTRACT.md completion definitions](EXECUTION_CONTRACT.md#completion-definitions)
+for run, feature, V1, security gate, surface, cross-platform release and product success.
+Task-specific acceptance/evidence remains in its bounded task contract.
 
 ## Failure definitions
 
@@ -613,6 +478,8 @@ For A/B/C product testing:
 - record failure cases, not only averages;
 - do not change the pass rule after seeing results.
 
+Do not use the same extracted style traits as both the sole generation control and sole quality judge.
+
 ## Merge-conflict discipline
 
 Merge conflicts are treated as engineering state, not clerical cleanup.
@@ -663,7 +530,9 @@ A task may be called merge-ready only when:
 - no unrelated work was lost;
 - handoff evidence references the merged revision.
 
-Repository branch-protection enforcement is currently unverified; these rules are therefore partly advisory until GitHub rules/CI enforce them.
+Current GitHub enforcement status and evidence are recorded in
+[EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md#completed-tasks-and-evidence).
+Semantic scope review remains a builder duty; CI does not replace these merge rules.
 
 ## Change discipline
 

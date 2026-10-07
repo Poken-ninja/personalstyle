@@ -2,7 +2,10 @@
 
 ## Purpose
 
-This file describes the **structural design** of PersonalStyle. Builder behavior, completion rules, failure handling, budgets, verification integrity, and scheduling policy live in `AGENTS.md`.
+This file owns the **structural design** of PersonalStyle. Builder/security rules live in
+[AGENTS.md](AGENTS.md); roadmap, dependencies and completion definitions live in
+[EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md). Structure is not runtime evidence;
+completed task records describe what exists and was verified.
 
 ## Product boundary
 
@@ -96,39 +99,11 @@ Companion mode may transmit over a trusted local connection after explicit pairi
 
 ## Version boundaries
 
-Keep independent version identities:
-
-```text
-core/product version
-protocol version
-config schema
-storage schema
-profile schema
-prompt contract
-client/surface version
-model/provider identity
-```
-
-Protocol compatibility uses same-major + capability negotiation.
-
-Schemas use explicit ordered migrations. Unknown future schema versions fail closed. Older supported state must migrate before writes resume.
-
-A surface never infers compatibility from product version alone.
-
-## Platform support policy
-
-"Supported" is an evidence claim.
-
-A platform/version is supported only when:
-- selected UI/runtime framework supports it;
-- required engine/inference dependencies support it;
-- package/build/install succeeds;
-- platform acceptance tests pass;
-- upgrade/migration behavior from supported prior state passes.
-
-Older versions outside that matrix are best-effort or unsupported.
-
-Do not design around "all historical OS versions." Maintain an explicit release matrix instead.
+The engine, protocol, stored schemas, prompts, clients and model identity are separate
+compatibility surfaces. [AGENTS.md](AGENTS.md#versioning-and-compatibility) owns versioning
+rules; [ADR-002](docs/decisions/ADR-002-versioned-multi-surface-engine.md) defines the
+same-major/capability protocol arrangement. Supported-platform release evidence is defined
+in [EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md#platform-support-evidence).
 
 ## V1 architecture
 
@@ -190,12 +165,7 @@ Maps the explicit request context to a bounded context profile.
 
 It does not perform free-form memory search.
 
-Selection hierarchy:
-1. exact context;
-2. explicitly compatible broader context;
-3. explicitly global evidence.
-
-Unrelated context evidence is excluded.
+Eligibility/context policy is owned by [AGENTS.md](AGENTS.md#context-rules).
 
 ### 3. Personalization store
 
@@ -216,7 +186,11 @@ RunAttempt
 VerificationResult
 ```
 
-Entities that affect future generations must be versioned or otherwise reconstructable.
+Durable profile state includes writing/context profiles, examples, Writing DNA, preference
+hypotheses/evidence/confidence, learning events, and schema/profile versions. Per-run state
+contains the request, selected context/examples/preferences, prompt/model version, candidate,
+verification results, attempt count and terminal state. Entities affecting future generations
+must be versioned or otherwise reconstructable.
 
 ### 4. Example selector
 
@@ -280,16 +254,15 @@ Use deterministic checks for objective rules such as:
 - resource budgets.
 
 #### Semantic layer
-Check meaning preservation and required-information fidelity where deterministic checks are insufficient.
 
-If the generator and semantic verifier use the same model, this is a separate verification pass but **not independent evaluation**.
-
-Independent verification requires a genuinely distinct mechanism.
+A separate verification path handles meaning/required-information fidelity that cannot be
+settled deterministically. [AGENTS.md](AGENTS.md#generation-and-verification) owns invariant
+rules and the distinction between second-pass and independent verification.
 
 #### Style/product-quality layer
-Style similarity is a product-quality signal, not a single hard oracle.
 
-Use several signals and real user behavior so one metric cannot define success by itself.
+Style diagnostics and real user behavior are product-quality signals; evaluation rules
+are owned by [AGENTS.md](AGENTS.md#product-testing-discipline).
 
 ### 8. Feedback adapter
 
@@ -304,13 +277,9 @@ edit
 -> new profile version
 ```
 
-The model may propose a hypothesis, but only deterministic policy writes/promotes durable preference state.
-
-The adapter classifies edits before learning. Style/expression changes may contribute preference evidence; meaning/fact, constraint, and context corrections are routed as generation/verification failure evidence instead of being blindly learned as style.
-
-WritingExample and LearningEvent records must preserve provenance/learning eligibility so held-out or third-party reference text cannot silently enter the style profile.
-
-No hidden background learning runs in V1.
+Deterministic promotion policy owns durable updates; the model may only propose a hypothesis.
+[AGENTS.md](AGENTS.md#personalization-state-rules) owns edit classification/promotion rules,
+and [writing-data provenance](AGENTS.md#writing-data-provenance) governs learning eligibility.
 
 ## Run state machine
 
@@ -330,30 +299,9 @@ Any non-terminal state -> CANCELLED when authorized
 
 The state machine is an execution control mechanism, not an agent-planning graph.
 
-## Budget model
-
-There is one authoritative outer run budget.
-
-Current configuration should bound:
-- generation attempts;
-- total model calls;
-- wall-clock timeout.
-
-Nested model/API retry libraries must not multiply this budget invisibly.
-
-The first generation is attempt 1.
-
 ## Product-test architecture
 
-Product testing is separate from normal user state.
-
-Use held-out cases that are excluded from:
-- example retrieval;
-- Writing DNA derivation;
-- preference evidence;
-- prompt/profile construction.
-
-Compare:
+Held-out product-test writing is separate from personalization inputs. The comparison paths are:
 
 ```text
 A = generic rewrite
@@ -362,24 +310,12 @@ C = B + learned preferences
 D = optional bounded reasoning, only after an engineering need is proven
 ```
 
-Freeze before a scored comparison:
-- held-out cases;
-- model/version;
-- prompt version;
-- retrieval policy;
-- metric definitions;
-- success rule.
-
-Use:
-- hard semantic/constraint validity;
-- context accuracy;
-- stylometric diagnostics;
-- normalized edit effort;
-- accept-without-edit rate;
-- user preference;
-- latency/resource use.
-
-Do not use the same extracted style traits as both the sole generation control and sole quality judge.
+The optional D path remains governed by
+[ADR-001](docs/decisions/ADR-001-single-bounded-reasoning.md).
+[AGENTS.md](AGENTS.md#product-testing-discipline) owns testing discipline;
+[EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md#product-success-validated) owns frozen
+comparison/completion criteria. Run budgets are owned by
+[AGENTS.md](AGENTS.md#authoritative-budget).
 
 ## Security architecture
 
@@ -399,130 +335,23 @@ UNTRUSTED CLIENT / PAGE / USER TEXT / IMPORT / MODEL OUTPUT
 
 Only the engine crosses into canonical state.
 
-### Local and companion transport
+### Transport and surface boundaries
 
-Default:
-- in-process/loopback;
-- companion networking disabled.
-
-When companion mode is enabled:
-- explicit pairing/authentication is required;
-- each client has revocable authentication material;
-- capabilities are scoped;
-- non-loopback traffic is protected against interception;
-- incompatible/downgrade protocol requests fail;
-- mutation requests are protected against accidental replay/duplication;
-- browser-origin access cannot rely on "localhost" as proof of trust.
-
-The engine must not expose an unauthenticated profile/rewrite API to the LAN.
-
-### Surface-specific security
-
-**CLI/Desktop**
-- use OS/user file permissions;
-- secrets come from an appropriate secure source, not project config;
-- local debug output must not expose writing/secrets by default.
-
-**Browser extension**
-- least-privilege permissions;
-- page/DOM content is untrusted;
-- extension credentials are not exposed to page JavaScript;
-- privileged requests go only to the authenticated engine boundary.
-
-**iOS/Android**
-- pairing/client credentials use platform secure credential storage;
-- app lifecycle/background behavior must not leak sensitive drafts/profile state;
-- backups/exports follow the platform's protected-data policy selected for the release.
+The default engine is in-process/loopback, with companion mode disabled. Companion
+connections terminate at the engine's authenticated, capability-scoped protocol boundary;
+browser page content remains outside that boundary. Credential and platform protection
+rules are owned by [AGENTS.md](AGENTS.md#security-contract).
 
 ### Storage
 
-SQLite is the current canonical local-store baseline, but SQLite alone does not establish application-level encryption.
+SQLite is the canonical local-store baseline; schema/profile migrations execute only
+inside the engine's trusted migration path. Storage protection and encryption-claim rules
+are owned by [AGENTS.md](AGENTS.md#persistent-data).
 
-Do not claim encrypted-at-rest storage until a real mechanism and migration/recovery behavior are implemented and verified.
+### Scheduling boundary
 
-Schema/profile migrations execute only inside the engine's trusted migration path.
-
-### Security ownership
-
-Security-sensitive policy stays centralized in the engine/protocol. Clients may enforce additional platform protections but may not weaken engine authorization, validation, verification, or budget rules.
-
-## Engineering failure modes
-
-### Context contamination
-Examples from the wrong context can make personalization worse.
-
-**Control:** explicit context IDs, deterministic filtering, bounded fallback, and no unrelated fill-to-count behavior.
-
-### Preference poisoning
-A factual or semantic correction can be mistaken for a style preference.
-
-**Control:** classify edits before learning; only style/expression evidence may promote style preferences.
-
-### Evaluation leakage
-Held-out examples can accidentally enter retrieval or profile construction.
-
-**Control:** explicit learning eligibility and held-out flags enforced by deterministic selection rules.
-
-### Model behavior mistaken for user style
-Generated text can be internally consistent without actually matching the user's demonstrated behavior.
-
-**Control:** use real user edits/acceptance plus held-out comparisons, not model confidence alone.
-
-### Verification self-confirmation
-A generator can approve its own mistakes.
-
-**Control:** deterministic checks for objective rules and clearly labeled second-pass versus genuinely independent verification.
-
-### Retry amplification
-Client/network/model retries can multiply outer harness retries.
-
-**Control:** one authoritative outer budget and explicit nested retry configuration.
-
-### State corruption
-One edit or failed run can mutate durable profile state incorrectly.
-
-**Control:** versioned writes, promotion gates, and rollback/reconstructable events.
-
-### Overengineering
-A small failure can trigger unnecessary agents, RAG, workflows, or abstractions.
-
-**Control:** WIP=1, bounded task contracts, deferred architecture list, and measurable activation guards.
-
-### Sensitive writing-data exposure
-Personal writing samples can expose private or identifying information.
-
-**Control:** local storage baseline, provenance, no raw prompt/output logging by default, no unauthorized learning sources, authenticated client boundaries, and explicit disclosure of whether at-rest encryption is actually provided.
-
-### Localhost/LAN trust mistake
-A local endpoint can still be reached by untrusted browser/network contexts if exposed carelessly.
-
-**Control:** loopback/in-process by default; authenticated authorized clients; caller/origin validation where relevant; companion networking disabled until paired.
-
-### Credential leakage
-Pairing/provider credentials can leak through config, URLs, logs, page scripts, or build artifacts.
-
-**Control:** platform secure credential storage, no secrets in TOML/Git/prompts/logs, revocation/rotation, release scanning/checks.
-
-### Downgrade or migration bypass
-An older client/schema can accidentally bypass newer security assumptions.
-
-**Control:** protocol negotiation, fail-closed unknown schemas, ordered migrations, no concurrent old/new writers, and compatibility/security regression tests.
-
-## Scheduling architecture
-
-There is no scheduler in core V1.
-
-If scheduled work is later required, scheduling remains outside model control and must have an explicit deterministic schedule contract: trigger, timezone, idempotency, overlap policy, misfire/catch-up policy, timeout, retry ownership, persistence, and failure sink.
-
-### n8n
-
-n8n is intentionally absent from V1.
-
-It becomes a candidate only for external multi-service workflows where its connectors, credential handling, webhooks, human approvals, and operations UI materially reduce implementation complexity.
-
-It is not justified for the interactive rewrite loop or as a generic retry engine.
-
-If n8n is ever adopted, it must be the explicit owner of workflow-level schedule/retry policy rather than stacking its retries around an already retrying PersonalStyle loop.
+Core V1 has no scheduler. Scheduling remains outside model control; any later orchestration
+arrangement is governed by [AGENTS.md](AGENTS.md#scheduling-and-automation).
 
 ## Merge-conflict architecture
 
@@ -536,27 +365,9 @@ The architecture reduces semantic merge conflicts by assigning single ownership:
 
 Planned implementation should keep these boundaries reflected in directory/package ownership.
 
-Rules:
-- no client-specific copy of core personalization rules;
-- one active migration lane;
-- shared protocol/schema changes are high-contention and serialized;
-- generated client/schema artifacts, if introduced, have one canonical source and are regenerated after merge;
-- merge resolution that changes behavior invalidates affected verification evidence.
 
-See `AGENTS.md` for the merge gate and write-set rules.
-
-## Deferred architecture
-
-Do not add until an observed engineering problem identifies a concrete need:
-- vector database;
-- general RAG;
-- multi-agent execution;
-- asynchronous/background personalization;
-- n8n;
-- fine-tuning;
-- reinforcement learning;
-- model routing;
-- distributed workers;
-- cloud state.
-
-A future architecture change needs a recorded problem, simpler alternative, expected measurable improvement, verification plan, and rollback/removal condition.
+Generated client/schema artifacts, if introduced, have one authoritative source.
+[AGENTS.md](AGENTS.md#merge-conflict-discipline) owns collision prevention, regeneration,
+conflict resolution and merge verification. Deferred mechanisms and their activation
+conditions are owned by [EXECUTION_CONTRACT.md](EXECUTION_CONTRACT.md#scope) and
+[AGENTS.md](AGENTS.md#change-discipline).
