@@ -6,11 +6,12 @@
 CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 merged and verified; V1 incomplete
-ACTIVE_PRODUCT_TASK: none
-NEXT_CANDIDATE: F03; not activated
-F03_AND_LATER: not_started
+SELECTED_PRODUCT_TASK: F03
+ACTIVE_PRODUCT_TASK: F03 handoff only; configured-8B local/live verification complete; required CI verdict owned by PR #8
+NEXT_PERMITTED_ACTION: current-head required CI and owner review of draft PR #8 then stop; no feature changes, live call or F04
+F04_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
-CURRENT_VERIFIED_MAIN: e965f6781c9259bb45ab6bed7db0211e3bc9a505
+CURRENT_VERIFIED_MAIN: 8df79125131cce2fc373494a9846cd18bafc8e75
 ```
 
 This document owns product scope, roadmap, dependencies and completion definitions.
@@ -86,7 +87,16 @@ remains governed by [ADR-001](docs/decisions/ADR-001-single-bounded-reasoning.md
 I01 is merged/verified; see the completed-task references above.
 
 ### U2 — initial Ollama model
-Must be selected and recorded before the first model-generation feature activates.
+Resolved by the owner: `F03_CURRENT_DEVELOPMENT_MODEL = ollama / qwen3:8b`, not a permanent
+product requirement. Deployment/user configuration selects the model behind ModelProvider;
+every generation records the exact provider/model actually used. Ordered starter tiers and
+future onboarding belong to [architecture](ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03);
+current reference-model entry evidence is in the [bounded F03 task](docs/F03_TASK.md).
+This supersedes the earlier 30B reference for this machine: preparation passed, but generic
+generation exceeded 60 seconds with severe memory/pagefile pressure. 30B remains a Quality
+option on environments that verify readiness/performance. 8B is installed but its template
+compatibility qualification failed historically; the final attempt now validates exact
+model/template pairs. Its single live acceptance passed and active configuration is 8B.
 
 ### U3 — held-out product-test set and success rule
 Must be frozen before final product-performance testing. Do not choose the pass rule after seeing C results.
@@ -129,7 +139,7 @@ the already verified Windows path.
 | SEC01 | Mechanize Windows local security boundary | I01 | merged / verified |
 | F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | merged / verified (Windows) |
 | F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
-| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | not_started |
+| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | local/live verified; draft PR #8 owns current-head CI/final verdict; [task/evidence](docs/F03_TASK.md) |
 | F04 | Hard verification path and bounded candidate retry | F03 | not_started |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
@@ -146,7 +156,40 @@ explicit owner decision and a fresh bounded task contract.
 
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
-does not auto-activate it. F03 requires U2 model selection and remains unstarted.
+does not auto-activate it. F03's single final-attempt 8B acceptance and 162-test local
+regression passed; required current-head CI is recorded in draft PR #8's handoff and still
+governs final acceptance. Owner review/merge is separate. F04 is not activated.
+
+### S03 desktop model setup acceptance
+
+Specification for later S03, which remains unstarted. S03 includes the Flutter model setup
+workflow in [architecture](ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03) and
+[ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md#model-onboarding-decision), in addition
+to existing desktop workflow, security, packaging and platform release acceptance.
+
+- Offer option 1 `qwen3:8b` (Standard/default and current F03 development target), option 2
+  `qwen3:30b` (Quality, only after environment readiness/performance verification), and option 3
+  `qwen3:235b` (Maximum/high-end optional, unverified unless separately tested).
+  Require explicit choice/confirmation; never silently substitute. A later existing-model
+  path accepts only models satisfying defined provider/runtime/model compatibility validation.
+- Demonstrate the complete choose/inspect/estimate/runtime-check/instructions/recheck/model-check/
+  exact-install-action/identity-recheck/bounded-probe/READY flow on each claimed desktop OS.
+  Instructions must be platform-specific and obtain exactly the selected model.
+- Distinguish shown instructions, engine/provider availability checks and executed inference
+  evidence. Prove missing/stopped Ollama, missing/wrong/incompatible model, setup actions that
+  did not succeed, probe failure and timeout all leave setup not READY with actionable UX.
+- Treat hardware/resource estimates as advisory unless a known hard runtime requirement is
+  violated. Show warnings/alternate tiers for likely unsuitable selections and prove that
+  changing tiers requires user confirmation; no silent fallback or invented hardware cutoff.
+- Keep detection, exact identity, readiness and bounded probe ownership in the engine/provider,
+  with Flutter limited to setup UX. Verify readiness invalidation after runtime/model changes;
+  probes use synthetic text and do not mutate sensitive profile data or bypass budgets.
+- Record platform/runtime/model/probe evidence for every claimed supported starter combination;
+  a bounded probe is inference setup evidence, not security or overall release completion.
+
+Freeze detailed compatibility/probe acceptance in S03's bounded task before implementation.
+F03 continues to prove only its generation/provider seam with the selected 8B development
+evidence; this roadmap addition does not move onboarding into F03 or activate later work.
 
 ## Completion definitions
 

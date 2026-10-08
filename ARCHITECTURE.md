@@ -85,6 +85,75 @@ platform boundary; it does not invalidate Windows evidence already recorded for 
 transmission is not silently required. Cloud inference, sync or remote storage requires a
 separate explicit architecture decision.
 
+### Desktop model onboarding and setup (future S03)
+
+Model choice is explicit deployment/user configuration. The starter options appear in this
+order; the first is the easiest/default onboarding suggestion, not an automatic selection:
+
+| Option | Ollama model | Role |
+|---|---|---|
+| 1 | `qwen3:8b` | Standard / default user tier; current F03 development/acceptance target |
+| 2 | `qwen3:30b` | Quality tier; environment must pass readiness/performance verification |
+| 3 | `qwen3:235b` | Maximum / high-end optional; unverified unless separately tested |
+
+The user must explicitly choose/confirm the model. No silent model substitution is allowed.
+PersonalStyle does not require one fixed model for all users; every generation records the
+exact provider/model identity actually used. The later "use existing compatible Ollama model"
+path requires defined provider/runtime/model compatibility validation; an arbitrary installed
+model is not automatically supported. Starter-tier support also needs executable evidence on
+the declared platform/runtime matrix, not just a tier label.
+
+The future setup flow is:
+
+```text
+Choose model
+-> inspect OS/hardware/resources
+-> explain estimated download/resource requirements
+-> check whether Ollama is installed/running
+-> if missing, show platform-specific setup instructions
+-> recheck Ollama
+-> check whether selected model is installed
+-> if missing, show the exact install/pull action
+-> recheck selected model identity
+-> run a bounded synthetic inference probe
+-> mark setup READY only after the probe succeeds
+```
+
+**Instructions** explain how the user installs/starts Ollama on Windows, macOS or Linux and
+obtains the chosen model (for a starter tier, `ollama pull <exact selected model>`).
+**Mechanism** is the engine/provider checking installed/running runtime, required runtime/API
+capabilities, selected model identity and text-generation/response compatibility itself.
+**Evidence** is that exact selected model completing the bounded synthetic probe. Showing
+instructions, an installed model, a running service or a UI checkbox is not readiness evidence.
+
+OS/hardware/resource estimates are advisory before download unless a hard runtime requirement
+is known. Identify the basis for estimates and known hard requirements. If a tier is likely
+unsuitable, explain why, warn and offer another tier; changing the selection requires explicit
+user confirmation and a new check for that choice. Do not invent fixed RAM/VRAM cutoffs or
+download/start a replacement automatically. Known hard requirements and actual runtime/probe
+failures must not be bypassed by an advisory warning.
+
+Flutter owns choice presentation, guidance and setup UX. The engine/provider owns runtime
+detection, exact selected-model identity, readiness state and bounded probe rules. Rechecking
+after setup actions verifies the actual environment; changed model identity/runtime or a
+failed probe invalidates readiness and requires revalidation. The probe uses synthetic text,
+no real writing/profile mutation, and a deterministic time/output/call ceiling without hidden
+retries (the current F03 runtime ceiling is 60 seconds). Failed/timed-out/incompatible probes
+leave setup not READY and show an actionable failure. READY here means selected-model inference
+setup only, not protected storage, surface/release completion or security support on an OS.
+
+S03 owns this onboarding UI/integration and its platform acceptance; see
+[S03 acceptance](EXECUTION_CONTRACT.md#s03-desktop-model-setup-acceptance) and
+[ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md#model-onboarding-decision).
+The owner superseded the earlier 30B development reference with 8B for this machine.
+30B preparation passed (~45.6s), but production-shaped generic generation exceeded 60s
+with severe memory/pagefile pressure. This evidence is machine-specific, not a general
+30B support prohibition. The [F03 checkpoint](docs/F03_TASK.md) records both 30B history
+and the selected 8B compatibility/qualification outcome; tier selection is not readiness.
+
+F03 owns only its minimal ModelProvider/Ollama generation seam and selected 8B development
+evidence; it does not implement this setup wizard or activate S03.
+
 ## Version boundaries
 
 The engine, protocol, stored schemas, prompts, clients and model identity are separate

@@ -1,3 +1,4 @@
+import re
 import tomllib
 from pathlib import Path
 
@@ -28,13 +29,15 @@ def test_current_configuration_preserved():
 
 
 def test_cli_help_and_startup_without_model(tmp_path, monkeypatch):
+    path = tmp_path / "config.toml"
+    path.write_text(re.sub(r'(?m)^model = .*$', 'model = "TODO"', CONFIG.read_text()))
     monkeypatch.chdir(tmp_path)
     runner = CliRunner()
     assert runner.invoke(app, ["--help"]).exit_code == 0
-    result = runner.invoke(app, ["--config", str(CONFIG)])
+    result = runner.invoke(app, ["--config", str(path)])
     assert result.exit_code == 0, result.output
     assert "model is TODO" in result.output
-    assert list(tmp_path.iterdir()) == []
+    assert list(tmp_path.iterdir()) == [path]
 
 
 @pytest.mark.parametrize("old,new", [
