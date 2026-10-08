@@ -16,8 +16,8 @@ DECLARED_WRITE_SET: README.md; AGENTS.md; ARCHITECTURE.md; EXECUTION_CONTRACT.md
   tests/test_storage.py; tests/test_profile.py (unknown-version cases now use 3);
   tests/test_generation.py; tests/test_verification.py
 ATTEMPTS_USED: 4/5 (historical 3 preserved; owner continuation ceiling 5)
-DIAGNOSIS_USED: 0/2
-RECOVERY_USED: 0/1
+DIAGNOSIS_USED: 2/2 (cancelled-job inspections; historical counters below preserved)
+RECOVERY_USED: 1/1 (owner-authorized same-head CI rerun)
 CHECKPOINT: implementation e72f9d3; final local evidence below; no merge or P01
 ```
 
@@ -296,3 +296,29 @@ are preserved and this clarification supersedes attributing that whole interval 
 Runtime metadata: Python3.14.6; SQLite3.50.4. The first metadata-print shell command
 lost its quoted labels and raised NameError before collecting metadata; a here-string
 corrected the command, with no code/environment modification or verification re-run.
+
+
+## Owner-authorized harness timeout configuration repair
+
+DECLARED_WRITE_SET: .github/workflows/python-harness.yml; docs/F05_F06_TASK.md.
+Authority: explicit owner decision; one harness-only commit, no feature/test modification.
+Classification: HARNESS_TIMEOUT_CONFIGURATION_DEFECT. This supersedes the preliminary
+CI environment classification without rewriting historical observations.
+Both attempts of run37723618402 on7e58f15c8bed6a30d94ef2fc521fac9bfcac9ceb were
+cancelled because the10-minute job ceiling expired during full pytest. Attempt1 reached
+188passed/567.22s; attempt2 reached183passed/556.17s. Neither establishes a feature failure;
+remaining tests and later static steps were incomplete. Those runs are historical only.
+Local final evidence remains220passed/405.29s plus passing Ruff/mypy/pip check.
+
+Repair: raise only the Python harness job timeout10->15minutes. All pytest, Ruff, mypy,
+pip check and whitespace steps remain intact; no assertion, feature, product timeout,
+version, permission or branch-protection change. Fifteen minutes remains an enforced
+GitHub job ceiling. No local full/static rerun is warranted by this workflow/docs delta.
+One new exact-head CI run is authorized. If it passes, correct the stale PR title, verify
+mergeability and stop for owner review; no automatic merge. If it still times out, stop
+for bounded step/runtime or partition diagnosis; never raise the ceiling again automatically.
+
+Counters preserved: feature implementation4/5, diagnosis2/2, recovery1/1. This separately
+owner-authorized, fully specified harness repair is1/1; no new feature attempt or budget reset.
+Current state: locally_verified; new-head required CI pending; draft PR remains unmerged.
+Next action: observe new exact-head CI once; no P01 or Flutter.
