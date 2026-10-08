@@ -352,10 +352,10 @@ success flags cannot authorize writes; receipt lifecycle/transport remains engin
 Owner policy `context_preference_promotion.v1` evaluates the latest three independent,
 non-ambiguous verified style-feedback runs for each exact context and bounded presentation
 feature. Agreement activates; opposition contests; fewer than three remains unpromoted.
-Explicit engine evaluation appends versioned preference states/evidence in the same unmerged
+Explicit engine evaluation appends versioned preference states/evidence in the same
 schema-2 store. Only active exact-context IDs/versions enter later generation as data.
 No global widening, background mutation or second canonical writer is introduced.
-The [current task](docs/F05_F06_TASK.md#owner-continuation-promotion-policy-resolved)
+The [historical task](docs/F05_F06_TASK.md#owner-continuation-promotion-policy-resolved)
 owns the precise policy and verification evidence.
 [AGENTS.md](AGENTS.md#personalization-state-rules) owns edit classification/promotion rules,
 and [writing-data provenance](AGENTS.md#writing-data-provenance) governs learning eligibility.
@@ -420,6 +420,11 @@ The default engine is in-process/loopback, with companion mode disabled. Compani
 connections terminate at the engine's authenticated, capability-scoped protocol boundary;
 browser page content remains outside that boundary. Credential and platform protection
 rules are owned by [AGENTS.md](AGENTS.md#security-contract).
+
+P01 selects a loopback-only JSON HTTP adapter around existing engine entry points,
+with per-session credentials and protocol/capability checks. It does not fork engine
+behavior or grant client store/migration authority. Its active contract is
+[docs/P01_TASK.md](docs/P01_TASK.md); implementation/verification status lives there.
 
 ### Storage
 

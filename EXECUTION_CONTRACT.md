@@ -5,13 +5,13 @@
 ```text
 CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
-IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 / F04 merged and verified; V1 incomplete
-SELECTED_PRODUCT_TASK: F05-F06
-ACTIVE_PRODUCT_TASK: F05-F06 locally verified; draft PR #10 owns final CI/review status
-NEXT_PERMITTED_ACTION: exact-head CI/owner review of draft PR #10; no merge or P01
-P01_AND_SURFACES: not_started
+IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 / F04 / F05 / F06 merged and verified; V1 incomplete
+SELECTED_PRODUCT_TASK: P01
+ACTIVE_PRODUCT_TASK: P01 blocked - LOCAL_REGRESSION_INCOMPLETE; docs/P01_TASK.md
+NEXT_PERMITTED_ACTION: owner review of bounded P01 checkpoint; no Flutter
+SURFACES_AND_SEC02_SEC03: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
-CURRENT_VERIFIED_MAIN: 31e3710ebb4140b02e0c63f420826329ff4ba72f
+CURRENT_VERIFIED_MAIN: 0ffd79f305044e739815e26fd97bd1798085c717
 ```
 
 This document owns product scope, roadmap, dependencies and completion definitions.
@@ -30,6 +30,8 @@ security rules live in [AGENTS.md](AGENTS.md).
 | F02 | Read-derived deterministic exact-context Writing DNA | [F02 task](docs/F02_TASK.md); [PR #5](https://github.com/Poken-ninja/personalstyle/pull/5) |
 | F03 | Exact-model generic/personalized generation; candidates initially unverified | [F03 task](docs/F03_TASK.md); [PR #8](https://github.com/Poken-ninja/personalstyle/pull/8) |
 | F04 | Hard second-pass verification and bounded repair | [F04 task](docs/F04_TASK.md); [PR #9](https://github.com/Poken-ninja/personalstyle/pull/9) |
+
+F05/F06 merge: `0ffd79f305044e739815e26fd97bd1798085c717`; [historical task](docs/F05_F06_TASK.md), [PR #10](https://github.com/Poken-ninja/personalstyle/pull/10).
 
 Completed records are historical evidence for their named revisions/environments, not
 instructions to reactivate tasks or reset budgets. PR records include merge SHAs and
@@ -143,9 +145,9 @@ the already verified Windows path.
 | F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
 | F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | merged / verified; [historical evidence](docs/F03_TASK.md), PR #8 |
 | F04 | Hard verification path and bounded candidate retry | F03 | merged / verified; [historical evidence](docs/F04_TASK.md), PR #9 |
-| F05 | Record accept/edit events and classify edit type | F04 | locally verified / unmerged; [combined task](docs/F05_F06_TASK.md) |
-| F06 | Evidence-backed context preference promotion | F05 | locally verified context_preference_promotion.v1; draft PR #10 / unmerged |
-| P01 | Mechanize versioned engine protocol + authenticated capability handshake | F05 + F06 + SEC01 | not_started |
+| F05 | Record accept/edit events and classify edit type | F04 | merged / verified; [historical task](docs/F05_F06_TASK.md), PR #10 |
+| F06 | Evidence-backed context preference promotion | F05 | merged / verified; PR #10, context_preference_promotion.v1 |
+| P01 | Mechanize versioned engine protocol + authenticated capability handshake | F05 + F06 + SEC01 | blocked on local full regression; [task contract](docs/P01_TASK.md) |
 | SEC02 | Mechanize macOS protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | SEC03 | Mechanize Linux protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
@@ -160,7 +162,7 @@ explicit owner decision and a fresh bounded task contract.
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
 does not auto-activate it. F03 is merged/verified; PR #8 records the exact merge and
-merged-main CI. F04 is merged/verified; the owner selected the combined F05-F06 task. P01 and surfaces remain unstarted.
+merged-main CI. F05/F06 are merged/verified at 0ffd79f305044e739815e26fd97bd1798085c717; P01 is selected but blocked on local full regression. Surfaces remain unstarted.
 
 ### Windows desktop alpha
 
