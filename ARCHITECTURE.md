@@ -349,9 +349,14 @@ The current bounded feedback implementation uses one schema-2 SQLite feedback ta
 existing protected canonical store, with an explicit schema-1 migration. It accepts live
 engine-issued F04 receipts and stores authorized source/context/version provenance. Serialized
 success flags cannot authorize writes; receipt lifecycle/transport remains engine-owned.
-Scoped learning evidence is currently read-derived and unpromoted. No promotion criterion is
-specified, so active preference writes/consumption remain blocked; no derived preference
-storage or second personalization writer has been introduced.
+Owner policy `context_preference_promotion.v1` evaluates the latest three independent,
+non-ambiguous verified style-feedback runs for each exact context and bounded presentation
+feature. Agreement activates; opposition contests; fewer than three remains unpromoted.
+Explicit engine evaluation appends versioned preference states/evidence in the same unmerged
+schema-2 store. Only active exact-context IDs/versions enter later generation as data.
+No global widening, background mutation or second canonical writer is introduced.
+The [current task](docs/F05_F06_TASK.md#owner-continuation-promotion-policy-resolved)
+owns the precise policy and verification evidence.
 [AGENTS.md](AGENTS.md#personalization-state-rules) owns edit classification/promotion rules,
 and [writing-data provenance](AGENTS.md#writing-data-provenance) governs learning eligibility.
 

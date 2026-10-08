@@ -90,6 +90,25 @@ def classify_edit(request: RewriteRequest, accepted: str, event: FeedbackInput) 
     return "mixed_unknown"
 
 
+def presentation_changes(accepted: str, edited: str) -> dict[str, str]:
+    normalized = [s.replace("\r\n", "\n").replace("\r", "\n") for s in (accepted, edited)]
+    measurements = {
+        "paragraph_count": [len(re.split(r"\n[ \t]*\n+", s.strip())) for s in normalized],
+        "line_count": [len(s.splitlines()) for s in normalized],
+        "separator_characters": [sum(c.isspace() for c in s) for s in normalized],
+    }
+    return {feature: "increase" if after > before else "decrease"
+            for feature, (before, after) in measurements.items() if before != after}
+
+
+def _observations(payload: dict[str, Any]) -> dict[str, str]:
+    event = payload["event"]
+    if (event["event_type"] != "edit" or not event["learning_authorized"] or event["held_out"]
+            or payload["classification"] != "style_expression"):
+        return {}
+    return presentation_changes(payload["accepted_text"], event["edited_text"])
+
+
 def _decode(row: tuple[Any, ...]) -> dict[str, Any]:
     try:
         if type(row[3]) is not int or row[3] != 1 or type(row[4]) is not int or row[4] < 1:
@@ -112,6 +131,11 @@ def _decode(row: tuple[Any, ...]) -> dict[str, Any]:
             or payload["source"]["context"] != request.context
             or payload["source"]["candidate_mode"] != event.candidate_mode
             or payload["source"]["verification_status"] != "verified"
+            or payload["source"]["versions"]["profile_schema"] != 1
+            or payload["source"]["versions"]["storage_schema"] != 2
+            or payload["source"]["prompt_contract"] != 1
+            or row[6] != payload["source"]["run_id"] or str(UUID(row[6])) != row[6]
+            or json.loads(row[7]) != _observations(payload)
         ):
             raise ValueError
     except (KeyError, TypeError, ValueError, AttributeError):
@@ -135,7 +159,7 @@ def record_feedback(
         "repair_prompt", "verification_method", "model_calls", "generation_attempts",
     )}
     provenance.update({key: candidate[key] for key in (
-        "selected_examples", "writing_dna_source", "verification_status",
+        "selected_examples", "selected_preferences", "writing_dna_source", "verification_status",
     )})
     provenance["candidate_mode"] = event.candidate_mode
     provenance["hard_check_history"] = result["history"][event.candidate_mode]
@@ -154,8 +178,9 @@ def record_feedback(
         if existing is None:
             connection.execute("UPDATE store_meta SET profile_version=profile_version+1")
             version = connection.execute("SELECT profile_version FROM store_meta").fetchone()[0]
-            connection.execute("INSERT INTO feedback VALUES (?, ?, ?, 1, ?, ?)", (
+            connection.execute("INSERT INTO feedback VALUES (?, ?, ?, 1, ?, ?, ?, ?)", (
                 event.id, request.context, serialized, version, datetime.now(UTC).isoformat(),
+                result["run_id"], json.dumps(_observations(payload), sort_keys=True),
             ))
         stored = connection.execute("SELECT payload FROM feedback WHERE id=?", (event.id,)).fetchone()
         if stored != (serialized,):

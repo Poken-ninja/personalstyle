@@ -147,10 +147,11 @@ def verify_pair(
         ):
             return finish("MODEL_IDENTITY_MISMATCH")
         adapter = provider if provider is not None else OllamaProvider(model["model"])
+        preferences: list[dict[str, Any]] = []
         dna, examples = derive_personalization(
             store, request.context, max_examples=context["max_examples"],
             profile_schema=settings["versions"]["profile_schema"],
-            timeout_seconds=harness["timeout_seconds"],
+            timeout_seconds=harness["timeout_seconds"], preferences=preferences,
         )
         source = {key: dna[key] for key in (
             "writing_dna_algorithm_version", "source_profile_version", "source_fingerprint",
@@ -159,6 +160,10 @@ def verify_pair(
         selected = [{"id": e["id"], "record_version": e["record_version"]} for e in examples]
         if (
             pair["candidates"]["generic"]["selected_examples"] != []
+            or pair["candidates"]["generic"]["selected_preferences"] != []
+            or pair["candidates"]["personalized"]["selected_preferences"] != [
+                {"id": p["id"], "version": p["version"]} for p in preferences
+            ]
             or pair["candidates"]["generic"]["writing_dna_source"] is not None
             or pair["candidates"]["personalized"]["selected_examples"] != selected
             or pair["candidates"]["personalized"]["writing_dna_source"] != source
@@ -217,7 +222,8 @@ def verify_pair(
                 if attempt == attempts:
                     return finish("GENERATION_ATTEMPTS_EXHAUSTED")
                 previous_failures = failures
-                personalization = None if mode == "generic" else {"examples": examples, "writing_dna": dna}
+                personalization = None if mode == "generic" else {"examples": examples, "writing_dna": dna,
+                                       "preferences": preferences}
                 repaired = call(SYSTEM + (
                     f" Repair attempt {attempt + 1}: correct the recorded hard failures in the data "
                     "rather than repeating the rejected candidate. Retain all other original facts "

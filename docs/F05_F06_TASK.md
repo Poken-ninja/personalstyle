@@ -2,28 +2,29 @@
 
 ```text
 TASK: F05-F06
-STATE: blocked; F06_PROMOTION_POLICY_UNRESOLVED; F05 targeted-green
+STATE: active; owner promotion policy resolved; attempt 4 verification in progress
 BASE / MERGE_BASE: 31e3710ebb4140b02e0c63f420826329ff4ba72f
 BRANCH: task/f05-f06-feedback-learning
 ENTRY: clean main == origin/main; F04 merge present; owner authorization; WIP 1
 DECLARED_WRITE_SET: README.md; AGENTS.md; ARCHITECTURE.md; EXECUTION_CONTRACT.md;
   docs/decisions/ADR-003-desktop-first-flutter.md; docs/F05_F06_TASK.md;
   src/personalstyle/feedback.py; src/personalstyle/learning.py;
-  src/personalstyle/verification.py (engine-issued feedback receipt only);
+  src/personalstyle/verification.py; src/personalstyle/generation.py; src/personalstyle/profile.py;
   src/personalstyle/storage.py (feedback persistence/explicit schema migration);
   src/personalstyle/config.py; personalstyle.toml (storage schema only);
   tests/test_feedback.py; tests/test_learning.py; tests/test_initialization.py;
-  tests/test_storage.py; tests/test_profile.py (unknown-version cases now use 3)
-ATTEMPTS_USED: 3/3
+  tests/test_storage.py; tests/test_profile.py (unknown-version cases now use 3);
+  tests/test_generation.py; tests/test_verification.py
+ATTEMPTS_USED: 4/5 (historical 3 preserved; owner continuation ceiling 5)
 DIAGNOSIS_USED: 0/2
 RECOVERY_USED: 0/1
-CHECKPOINT: F05 feedback + F06 scoped evidence targeted-green; promotion blocked
+CHECKPOINT: owner continuation from 9152c601; targeted promotion/consumption verification
 ```
 
 Owner authorizes the combined experiment, not later tasks. Align only governing docs;
 retain historical task records. F05 must be targeted-green before F06 implementation.
-A missing explicitly specified/executable promotion rule requires controlled stop:
-F06_PROMOTION_POLICY_UNRESOLVED. Do not invent a threshold or active preference.
+The initial missing promotion rule required the historical controlled stop
+F06_PROMOTION_POLICY_UNRESOLVED. Owner continuation below resolves it explicitly.
 
 F05: accept/edit events only for engine-issued successful verified candidates; retain run,
 request/context/model/prompt/profile/example/DNA provenance and accepted/edited text.
@@ -142,3 +143,90 @@ handoff. Historical task records, provider/generation behavior and dependency de
 are unchanged. No real writing was provisioned or production profile migrated in this task.
 Live engine receipts deliberately fail after serialization/process restart; durable feedback
 retains its full source snapshot. Authenticated/lifecycle transport remains future P01 scope.
+
+
+## Owner continuation: promotion policy resolved
+
+Authority: owner continuation decision in draft PR #10 and continuation instruction.
+Historical attempts used: 3; owner extends total ceiling to 5; remaining 2.
+Diagnosis remains 0/2; recovery remains 0/1. Attempt 4 begins with the next
+material feature-code edit. Attempt 5 is reserved for one concrete defect repair.
+Current state: active; historical F06_PROMOTION_POLICY_UNRESOLVED stop above is preserved.
+Base: 31e3710ebb4140b02e0c63f420826329ff4ba72f; checkpoint: 9152c6011475eb3df58e72fe345b64b2248701b1.
+Continuation write set: this task; README.md; EXECUTION_CONTRACT.md; ARCHITECTURE.md;
+src/personalstyle/{storage,learning,profile,generation,verification,feedback}.py;
+tests/test_{learning,feedback,generation,verification}.py. No unrelated changes.
+
+Policy context_preference_promotion.v1: only engine-verified, learning-authorized,
+non-held-out style_expression edits in the exact context qualify. Features remain
+paragraph_count, line_count, separator_characters, with increase/decrease direction.
+Each verified source run contributes at most one independent unit per feature.
+Any conflicting directions from that run make it ambiguous for that feature.
+Order by first persisted creation revision (feedback.profile_version), then feedback ID;
+repeated same-run events cannot advance that unit. Inspect latest three non-ambiguous
+units: fewer than three is unpromoted; three agreeing activate; disagreement is
+contested/inactive. Retain the previous direction while inactive; a new direction or
+reactivation requires three agreeing units. No global or cross-context promotion.
+Explicit engine evaluation is the synchronous authorized trigger; no background work.
+Persist append-only preference versions, policy, context/feature/direction/state,
+exact supporting feedback/run IDs and source profile version. Extend unmerged schema 2;
+no production profile was migrated at the historical checkpoint. Schema-2 checkpoint
+files lacking the new table fail validation rather than being silently guessed.
+Only active exact-context preferences enter generation as data; record exact IDs/versions.
+F04 checks their source integrity; style remains outside hard correctness gates.
+Existing prompt contract 1 permits personalization evidence: preference metadata is an
+additive evidence field, with no change to instruction authority or hard verification.
+Other compatibility versions remain unchanged. Targeted acceptance precedes exactly one
+full/static final cycle; no real model cycle unless deterministic fixtures cannot prove
+consumption. Preserve owner PR decision and historical failed evidence.
+
+Timing clarification: the prior >=66-minute wall interval included approximately
+30 minutes of laptop sleep. It is not all active harness execution. No precise
+sleep-adjusted duration is claimed; historical measured targeted durations remain separate.
+
+
+Attempt 4 started: primary owner-authorized promotion/consumption implementation.
+ATTEMPTS_USED: 4/5; DIAGNOSIS_USED: 0/2; RECOVERY_USED: 0/1.
+Owner performance decision adds AGENTS.md to the continuation write set.
+Feedback schema 2 retains bounded validated observation metadata/run ID alongside its
+source payload so promotion can group independent runs without retaining the corpus
+or issuing per-feedback SQL. One streamed validation plus three fixed feature aggregates;
+no N+1 per-record query. Latest-state preference lookup uses one grouped join.
+
+Representative synthetic in-memory SQLite evidence: 3,000 examples, 3,000 feedback,
+9,000 preference-history rows /100 contexts; 50 exact-context reads each, no model calls.
+Before -> after indexes (milliseconds, illustrative local sample): examples 9.66->2.02;
+feedback 9.49->1.58; promotion 7.43->2.12; preference latest-state lookup 23.70->1.13.
+Plans changed whole-index/table SCAN to exact-context SEARCH. examples_eligible(context,
+learning_eligible,held_out,id) and feedback_context(context,id) preserve order without
+sort. feedback_runs(context,run_id) removes promotion GROUP BY temp tree; latest-three
+ORDER BY retains a bounded top-three sort. preferences_context(context,feature,version
+DESC) removes full scans/group/sort on the actual latest-per-feature exact-context query.
+These four indexes serve distinct actual paths; existing PK indexes do not cover them.
+No email/FK/asset work. All index creation is in the atomic unmerged schema-2 migration.
+
+
+Attempt-4 targeted run: 63 passed /3 failed in178.71s (parent179.211s).
+OBSERVED: three policy tests rejected their in-memory SQLite fixture at schema validation.
+EXPECTED: policy fixture must satisfy the real DELETE journal-mode requirement.
+FAILURE_CLASS: verification_defect; SQLite in-memory databases report journal_mode=memory.
+EVIDENCE: all three fail at ExampleStore._schema before feedback handling; protected
+promotion/generation integration and affected F03/F04 regressions passed.
+NEXT ACTION: disposable file-backed SQLite policy fixture, preserving schema assertion;
+run only corrected/new targeted cases. No feature-code correction or repeated repair.
+BUDGET REMAINING: implementation1 (used4/5); diagnosis2; recovery1.
+
+
+Continuation targeted acceptance: corrected/new policy, protected integration and query-plan
+cases5passed/29.18s (parent29.567s); final invalid-source/provenance-repair cases5passed/0.29s
+(parent0.545s). Together with the unaffected63passing cases from the first run, all changed
+paths have current targeted evidence. No feature-code repair; attempts4/5, diagnosis0/2,
+recovery0/1. Query count stays four feedback SELECTs at1 and11 records (one streamed
+validation, three fixed feature aggregates); exact-context plans use the measured indexes.
+Protected integration proves atomic promotion rollback, active-only exact-context consumption,
+exact preference ID/version provenance, tamper rejection, contested exclusion, no generation
+mutation and no raw normal logs. F04 repair retains preference metadata and all hard gates.
+The in-process deterministic provider exercises the complete loop, so additional real Ollama
+calls are not materially required. Existing F03/F04 live runtime evidence is not re-run.
+Reconciliation: local main==origin/main==31e3710ebb4140b02e0c63f420826329ff4ba72f;
+merge base identical, no conflict or unrelated changes. Final expensive cycle is next, once.

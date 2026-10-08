@@ -50,7 +50,8 @@ def fixture(monkeypatch):
         mode: {"text": REQUEST.original, "verification_status": "not_verified",
                "selected_examples": [] if mode == "generic" else [
                    {"id": EXAMPLES[0]["id"], "record_version": 1}],
-               "writing_dna_source": None if mode == "generic" else SOURCE}
+               "selected_preferences": [],
+            "writing_dna_source": None if mode == "generic" else SOURCE}
         for mode in ("generic", "personalized")
     }
     pair = {"context": REQUEST.context, "versions": settings["versions"], "prompt_contract": 1,
@@ -241,3 +242,28 @@ def test_f03_integration_protected_snapshot_no_mutation(tmp_path, caplog):
         result = verify_pair(REQUEST, pair, load_config(CONFIG), store, provider=adapter)
     assert result["state"] == "SUCCEEDED" and result["model_calls"] == 5
     assert store.path.read_bytes() == before and not caplog.text
+
+
+
+def test_preference_provenance_is_preserved_in_hard_repair(fixture, monkeypatch):
+    preference = {"id": str(UUID(int=42)), "version": 2, "context": REQUEST.context,
+                  "feature": "line_count", "direction": "increase",
+                  "policy_version": "context_preference_promotion.v1"}
+
+    def evidence(*args, **kwargs):
+        kwargs["preferences"].append(preference)
+        return SOURCE, EXAMPLES
+
+    monkeypatch.setattr(verification, "derive_personalization", evidence)
+    fixture[1]["candidates"]["personalized"]["selected_preferences"] = [
+        {"id": preference["id"], "version": preference["version"]}]
+    verdict = dict.fromkeys(CHECKS, True)
+    verdict["context_appropriate"] = False
+    result, adapter = run(fixture, [PASS, json.dumps(verdict), REQUEST.original + " Thanks.", PASS])
+    assert result["state"] == "SUCCEEDED" and result["model_calls"] == 7
+    assert result["generation_attempts"]["personalized"] == 2
+    repair = json.loads(adapter.calls[2][1][1]["content"])
+    assert repair["personalization"]["preferences"] == [preference]
+    assert repair["repair"]["failure_codes"] == ["CONTEXT_INAPPROPRIATE"]
+    assert result["candidates"]["personalized"]["selected_preferences"] == [
+        {"id": preference["id"], "version": preference["version"]}]

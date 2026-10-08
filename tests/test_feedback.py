@@ -46,6 +46,7 @@ def receipt(monkeypatch):
                                                "0.40.0", 8000, 1472, 1)),
         "candidates": {mode: {"text": TEXT, "verification_status": "not_verified",
             "selected_examples": [] if mode == "generic" else [{"id": selected[0]["id"], "record_version": 1}],
+            "selected_preferences": [],
             "writing_dna_source": None if mode == "generic" else source}
             for mode in ("generic", "personalized")}}
     value = verify_pair(REQUEST, initial, settings, None, provider=Adapter())

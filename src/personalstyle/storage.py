@@ -1,5 +1,6 @@
 """Bounded engine-owned writing example persistence; no personalization behavior."""
 
+import json
 import re
 import sqlite3
 import time
@@ -8,6 +9,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 from personalstyle.security import (
@@ -31,9 +33,20 @@ SCHEMA = {
     **SCHEMA_V1,
     "examples": SCHEMA_V1["examples"][:-1] +
     ", writer_schema INTEGER NOT NULL DEFAULT 2 CHECK(writer_schema=2))",
+    "preferences": "CREATE TABLE preferences (id TEXT NOT NULL, version INTEGER NOT NULL, "
+    "context TEXT NOT NULL, feature TEXT NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(id, version))",
     "feedback": "CREATE TABLE feedback (id TEXT PRIMARY KEY, context TEXT NOT NULL, payload TEXT NOT NULL, "
-    "record_version INTEGER NOT NULL, profile_version INTEGER NOT NULL, created_at TEXT NOT NULL)",
+    "record_version INTEGER NOT NULL, profile_version INTEGER NOT NULL, created_at TEXT NOT NULL, "
+    "run_id TEXT NOT NULL, observations TEXT NOT NULL)",
 }
+INDEXES = {
+    "examples_eligible": "CREATE INDEX examples_eligible ON examples(context, learning_eligible, held_out, id)",
+    "feedback_context": "CREATE INDEX feedback_context ON feedback(context, id)",
+    "feedback_runs": "CREATE INDEX feedback_runs ON feedback(context, run_id)",
+    "preferences_context": "CREATE UNIQUE INDEX preferences_context ON preferences(context, feature, version DESC)",
+}
+SCHEMA.update(INDEXES)
+
 
 
 class StoreError(ValueError):
@@ -88,7 +101,7 @@ class ExampleStore:
 
     @contextmanager
     def eligible_examples(
-        self, context: str, deadline: float,
+        self, context: str, deadline: float, *, preferences: list[dict[str, Any]] | None = None,
     ) -> Iterator[tuple[int, Iterator[tuple[str, int, str]]]]:
         """Stream one exact-context corpus from a protected, consistent read snapshot."""
         if type(context) is not str or re.fullmatch(r"[a-z][a-z0-9_.-]{0,63}", context) is None:
@@ -107,6 +120,12 @@ class ExampleStore:
             self._schema(connection)
             self._recheck(identity)
             version = connection.execute("SELECT profile_version FROM store_meta").fetchone()[0]
+            if preferences is not None:
+                preferences.extend(
+                    {key: p[key] for key in ("id", "version", "context", "feature",
+                                            "direction", "policy_version")}
+                    for p in self.active_preferences(connection, context)
+                )
             cursor = connection.execute(
                 "SELECT * FROM examples WHERE context=? AND learning_eligible=1 AND held_out=0 "
                 "ORDER BY id COLLATE BINARY", (context,),
@@ -302,6 +321,9 @@ class ExampleStore:
                     "DEFAULT 2 CHECK(writer_schema=2)"
                 )
                 connection.execute(SCHEMA["feedback"])
+                connection.execute(SCHEMA["preferences"])
+                for statement in INDEXES.values():
+                    connection.execute(statement)
                 connection.execute(
                     "UPDATE store_meta SET schema_version=2, profile_version=profile_version+1"
                 )
@@ -324,6 +346,56 @@ class ExampleStore:
                     connection.close()
         with self.feedback_connection():
             pass
+
+    @staticmethod
+    def preference_records(connection: sqlite3.Connection, context: str) -> list[dict[str, Any]]:
+        """Latest version per feature; validate before either evaluation or consumption."""
+        if connection.execute("PRAGMA user_version").fetchone() == (1,):
+            return []
+        records = []
+        for row in connection.execute(
+            "SELECT p.id, p.version, p.feature, p.payload FROM preferences p JOIN "
+            "(SELECT feature, MAX(version) version FROM preferences WHERE context=? GROUP BY feature) latest "
+            "ON p.context=? AND p.feature=latest.feature AND p.version=latest.version ORDER BY p.feature",
+            (context, context),
+        ):
+            try:
+                value = json.loads(row[3])
+                units = value["supporting_units"]
+                if (
+                    value["id"] != row[0] or str(UUID(row[0])) != row[0]
+                    or type(row[1]) is not int or row[1] < 1 or value["version"] != row[1]
+                    or value["context"] != context or value["feature"] != row[2]
+                    or row[2] not in {"paragraph_count", "line_count", "separator_characters"}
+                    or value["policy_version"] != "context_preference_promotion.v1"
+                    or value["state"] not in {"active", "contested", "unpromoted"}
+                    or value["direction"] not in {None, "increase", "decrease"}
+                    or type(value["source_profile_version"]) is not int
+                    or value["source_profile_version"] < 1
+                    or type(units) is not list or len(units) > 3
+                    or any(str(UUID(u["feedback_id"])) != u["feedback_id"]
+                           or str(UUID(u["run_id"])) != u["run_id"]
+                           or u["direction"] not in {"increase", "decrease"} for u in units)
+                    or len({u["run_id"] for u in units}) != len(units)
+                    or value["supporting_feedback_ids"] != [u["feedback_id"] for u in units]
+                    or value["supporting_run_ids"] != [u["run_id"] for u in units]
+                    or (value["state"] == "active" and (
+                        len(units) != 3 or any(u["direction"] != value["direction"] for u in units)))
+                    or (value["state"] == "unpromoted" and len(units) >= 3)
+                    or (value["state"] == "contested" and (
+                        len(units) != 3 or len({u["direction"] for u in units}) != 2))
+                ):
+                    raise ValueError
+            except (ValueError, KeyError, TypeError, AttributeError):
+                raise StoreError("PREFERENCE_SOURCE_INVALID") from None
+            records.append(value)
+        if len(records) > 3 or len({p["feature"] for p in records}) != len(records):
+            raise StoreError("PREFERENCE_SOURCE_INVALID")
+        return records
+
+    @classmethod
+    def active_preferences(cls, connection: sqlite3.Connection, context: str) -> list[dict[str, Any]]:
+        return [p for p in cls.preference_records(connection, context) if p["state"] == "active"]
 
     def get(self, example_id: str) -> dict[str, str | int] | None:
         try:

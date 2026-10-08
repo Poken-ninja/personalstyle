@@ -5,6 +5,7 @@ import re
 import time
 from collections import Counter
 from collections.abc import Iterator
+from typing import Any
 
 from personalstyle.storage import ExampleStore, StoreError
 
@@ -41,7 +42,7 @@ def derive_writing_dna(
 
 def derive_personalization(
     store: ExampleStore, context: str, *, max_examples: int = 5, profile_schema: int = 1,
-    timeout_seconds: int = 60,
+    timeout_seconds: int = 60, preferences: list[dict[str, Any]] | None = None,
 ) -> tuple[dict[str, object], list[dict[str, object]]]:
     """DNA and earliest UUID examples from the same guarded SQLite read snapshot."""
     if type(max_examples) is not int or not 0 < max_examples <= 5:
@@ -52,7 +53,7 @@ def derive_personalization(
         raise ProfileError("PROFILE_RESOURCE_LIMIT")
     deadline = time.monotonic() + timeout_seconds
     selected: list[dict[str, object]] = []
-    with store.eligible_examples(context, deadline) as (version, rows):
+    with store.eligible_examples(context, deadline, preferences=preferences) as (version, rows):
         def capture() -> Iterator[tuple[str, int, str]]:
             for example_id, record_version, text in rows:
                 if len(selected) < max_examples:
