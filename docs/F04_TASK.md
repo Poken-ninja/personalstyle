@@ -4,8 +4,8 @@
 
 ```text
 TASK: F04
-STATE: active
-VERIFICATION_STATUS: not_verified
+STATE: local_verified; required current-head CI verdict owned by draft PR handoff
+VERIFICATION_STATUS: local deterministic/static/live passed; required CI pending
 AUTHORITY: project owner
 BRANCH: task/f04-verification
 BASE / MERGE_BASE: 88895b8a0801aec7eb2f14eae7d2bdfdcf8001d4
@@ -19,7 +19,7 @@ DIAGNOSIS_USED: 0/2
 RECOVERY_USED: 0/1
 PRODUCT / PROTOCOL / CONFIG / STORAGE / PROFILE / PROMPT: 0.1.0 / 1.0 / 1 / 1 / 1 / 1
 MODEL: ollama / qwen3:8b; exact identity/digest retained from F03
-NEXT_PERMITTED_ACTION: attempt 1; targeted F04 tests; final bounded verification; draft PR and stop
+NEXT_PERMITTED_ACTION: required current-head CI; draft PR review; stop; no merge or F05
 ```
 
 Activation/status edits consume no implementation attempt. First material feature edit
@@ -103,3 +103,57 @@ Full pytest: single final run started under the unchanged 600-second parent ceil
 Ruff/mypy/pip check, single live acceptance and current-head CI remain pending.
 CLI --generate now consumes F03 through F04; terminal FAILED exits 1 with no candidate.
 No feature work or repeated live calls while final verification is pending.
+
+## Final local handoff
+
+```text
+TASK: F04
+LOCAL_STATE: verified
+SOURCE_REVISION: fa39fc63a9a1690fd93058c2012c46602a623158
+FINAL_REVISION / REQUIRED_CI: exact committed head and CI evidence owned by draft PR handoff
+BASE / MERGE_BASE: 88895b8a0801aec7eb2f14eae7d2bdfdcf8001d4; current main unchanged
+ACTUAL_WRITE_SET: the six declared files; no config/schema/provider/storage changes
+ATTEMPTS_USED: 1/3
+DIAGNOSIS_USED: 0/2
+RECOVERY_USED: 0/1
+PYTHON / SQLITE_RUNTIME: 3.14.6 / 3.50.4
+OLLAMA / MODEL: 0.40.0 / qwen3:8b
+MODEL_DIGEST: 500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41
+TARGETED: 24 passed in 9.06s; parent 9.532s
+FULL_PYTEST: 186 passed in 427.57s; parent 428.187s <=600s; exactly one final run
+RUFF / MYPY / PIP_CHECK: passed / passed (9 source files) / passed; one final invocation each
+LIVE_ACCEPTANCE: passed; exactly one cycle; 26.803s (parent 27.064s) <=600s
+CURRENT_BLOCKERS: required exact-head CI pending at local handoff
+NEXT_PERMITTED_ACTION: observe CI; owner review draft PR; stop; no merge or F05
+```
+
+AC1/AC2: 24 targeted cases cover each semantic gate, required literals/numbers/calendar,
+structural bounds, malformed/duplicate verdict keys, changed repair instructions, exact
+identity/context/source, shared eight-call exhaustion, attempt 3 with changed failure,
+identical/repeated failure, provider errors and CLI terminal rejection. No partial success.
+AC3: real protected F03-to-F04 integration plus existing 162 tests; actual live database
+bytes/file set unchanged, protected directory reverified and ordinary INFO log capture zero.
+All versions remain 0.1.0 / 1.0 / 1 / 1 / 1 / 1; DNA writing_dna.v1. New additive verification
+and repair prompt IDs are hard_verification.v1 / hard_repair.v1; F03 rewrite prompt unchanged.
+
+AC4/AC5: one synthetic exact-8B cycle used the production 6000-context/2000-output policy,
+num_ctx=8000 and existing deadlines. Preparation 7.7228s <=120; initial generic/personalized
+1.0241s /0.8597s <=60; generic comparison 2.0847s <=60; repair 1.4942s <=60; personalized
+comparison 2.0257s <=60. Exactly six operations, no retry/substitution outside recorded repair.
+Generic attempt 1 passed all gates. A deliberately invalid personalized fixture was rejected
+for REQUIRED_INFORMATION_MISSING and USER_CONSTRAINT_FAILED; repair attempt 2 passed all
+gates. Generic/personalized accepted statuses verified; final state SUCCEEDED. A separate
+no-repair validation of the already-generated fixture returned FAILED /
+GENERATION_ATTEMPTS_EXHAUSTED at attempt 1 with no candidates and zero additional model
+operations. This is part of the one acceptance cycle, not another generation/probe.
+
+Context work.email; selected synthetic example 00000000-0000-0000-0000-000000000fa4, record
+version 1; DNA source profile version 2 / profile schema 1 / fingerprint
+ea27a74d741132bc70df472474ea82fc038968328763f517a35e16ba28693aba. Raw writing/output omitted.
+Metadata-only environment artifact: %TEMP%/personalstyle-f04-live-evidence.json. The
+committed source revision was live-tested; final handoff changes only documentation.
+
+AC6: this handoff records source, versions, counters and the one preserved fixture failure;
+the draft PR records the exact final SHA/current CI verdict. No implementation failure or
+recovery occurred. Same-model second-pass judgments remain fallible; no independent-fidelity,
+personalization-quality, V1, desktop or cross-platform security claim. F05 remains unstarted.

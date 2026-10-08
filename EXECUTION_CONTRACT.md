@@ -7,8 +7,8 @@ CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 merged and verified; V1 incomplete
 SELECTED_PRODUCT_TASK: F04
-ACTIVE_PRODUCT_TASK: F04 active; bounded hard verification and repair
-NEXT_PERMITTED_ACTION: execute docs/F04_TASK.md; draft PR and stop; no merge or F05
+ACTIVE_PRODUCT_TASK: F04 handoff; local/static/live verified; current-head CI owned by draft PR
+NEXT_PERMITTED_ACTION: observe required CI; owner review draft PR; stop; no merge or F05
 F05_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 CURRENT_VERIFIED_MAIN: 88895b8a0801aec7eb2f14eae7d2bdfdcf8001d4
@@ -141,7 +141,7 @@ the already verified Windows path.
 | F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | merged / verified (Windows) |
 | F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
 | F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | merged / verified; [historical evidence](docs/F03_TASK.md), PR #8 |
-| F04 | Hard verification path and bounded candidate retry | F03 | active; [task](docs/F04_TASK.md) |
+| F04 | Hard verification path and bounded candidate retry | F03 | local verified; draft PR owns CI verdict; [task](docs/F04_TASK.md) |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
 | P01 | Mechanize versioned engine protocol + authenticated capability handshake | F04 + SEC01 | not_started |

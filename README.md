@@ -13,7 +13,9 @@ F03 is merged and verified on `88895b8a0801aec7eb2f14eae7d2bdfdcf8001d4` with
 exact `ollama / qwen3:8b`; [PR #8](https://github.com/Poken-ninja/personalstyle/pull/8)
 records local/live acceptance and green merged-main CI. Its
 [historical task record](docs/F03_TASK.md) preserves all failures and budgets.
-F04 is active: engine-owned hard verification and bounded repair. Read the
+F04 is implemented and locally verified: engine-owned hard second-pass verification and
+bounded repair; 186 tests and one synthetic exact-8B acceptance cycle passed. The draft
+PR handoff owns the exact committed-head CI verdict. Read the
 [current F04 contract](docs/F04_TASK.md). F05 and later remain unstarted.
 Generation quality and PersonalStyle V1 completion are not claimed. Model tiers and future
 desktop onboarding remain defined in [architecture](ARCHITECTURE.md).
