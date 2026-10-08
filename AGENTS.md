@@ -562,3 +562,32 @@ Default WIP is one implementation task.
 Do not start adjacent refactors or speculative infrastructure while the active task is unverified.
 
 When blocked, leave an honest checkpoint containing current task, evidence, failure, budget used, blocker, and next permitted action.
+
+## Lean bounded task workflow
+
+Normal implementation: minimum context -> one bounded behavior -> targeted tests -> checkpoint.
+Read README + AGENTS + the selected task first; consult deeper sections only when needed.
+Final task verification: full regression once -> static checks once -> one real acceptance
+run when materially required -> required CI once -> compact evidence. Do not rerun unchanged
+passing checks for ceremony. A compound task may share branch/contract/PR/budgets only when
+explicitly selected by the owner; preserve phase dependency guards and persistent counters.
+
+Target normal implementation turns around 3?8 minutes where practical. The 10?15 minute
+threshold is advisory: checkpoint long work rather than expand scope. Documents do not
+enforce wall-clock limits; only executed mechanisms establish bounded runtime evidence.
+After the same implementation failure twice, stop repetitive repair and enter bounded diagnosis.
+A missing promotion policy is an owner decision boundary, never permission to invent a threshold.
+
+
+## Measured performance
+
+When changing persistent queries, relationships, bulk fetches or raster assets, avoid
+accidental N+1 SQL/remote access and index material lookup/filter/join/order paths.
+Prevent query explosions, unnecessary scans/sorts and record-count-dependent latency.
+Use targeted query-count/EXPLAIN evidence or bounded benchmarks; review rejects calls
+inside result loops unless justified. Streaming one query is permitted. Add only
+indexes justified by the actual path, preserving security, ordering and bounded memory.
+For S03-WIN/UI raster assets, compare size/quality/client support before choosing WebP/AVIF;
+keep vectors and necessary fallbacks. No current asset conversion is required.
+Fix the specific evidenced hot path before completion, without speculative indexes or
+blanket transcoding. Record query-plan/count/benchmark or asset-size evidence as applicable.

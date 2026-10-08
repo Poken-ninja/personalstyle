@@ -154,6 +154,16 @@ and the selected 8B compatibility/qualification outcome; tier selection is not r
 F03 owns only its minimal ModelProvider/Ollama generation seam and selected 8B development
 evidence; it does not implement this setup wizard or activate S03.
 
+### Staged desktop delivery
+
+F04 -> owner-selected combined F05+F06 feedback-learning slice -> P01 -> Windows desktop
+alpha -> SEC02/macOS + SEC03/Linux -> cross-platform desktop V1. The Windows alpha is
+a distinct milestone using the same Flutter shell/authoritative engine and existing SEC01
+Windows protection; it can precede other OS boundaries. macOS/Linux remain unsupported for
+sensitive persistence until SEC02/SEC03 pass. Final S03 still requires all three platforms;
+Windows alpha does not claim cross-platform release completion. Detailed dependencies and
+acceptance belong to the [roadmap](EXECUTION_CONTRACT.md#windows-desktop-alpha).
+
 ## Version boundaries
 
 The engine, protocol, stored schemas, prompts, clients and model identity are separate
@@ -335,6 +345,18 @@ edit
 ```
 
 Deterministic promotion policy owns durable updates; the model may only propose a hypothesis.
+The current bounded feedback implementation uses one schema-2 SQLite feedback table in the
+existing protected canonical store, with an explicit schema-1 migration. It accepts live
+engine-issued F04 receipts and stores authorized source/context/version provenance. Serialized
+success flags cannot authorize writes; receipt lifecycle/transport remains engine-owned.
+Owner policy `context_preference_promotion.v1` evaluates the latest three independent,
+non-ambiguous verified style-feedback runs for each exact context and bounded presentation
+feature. Agreement activates; opposition contests; fewer than three remains unpromoted.
+Explicit engine evaluation appends versioned preference states/evidence in the same unmerged
+schema-2 store. Only active exact-context IDs/versions enter later generation as data.
+No global widening, background mutation or second canonical writer is introduced.
+The [current task](docs/F05_F06_TASK.md#owner-continuation-promotion-policy-resolved)
+owns the precise policy and verification evidence.
 [AGENTS.md](AGENTS.md#personalization-state-rules) owns edit classification/promotion rules,
 and [writing-data provenance](AGENTS.md#writing-data-provenance) governs learning eligibility.
 

@@ -89,7 +89,7 @@ This decision changes delivery scope and architecture documentation only. It doe
 change an implemented wire contract, configuration shape, storage schema, profile schema,
 prompt contract or Python package behavior.
 
-Therefore no current version bump is required:
+Therefore that documentation-only decision required no version bump (historical values):
 
 - product/core: 0.1.0;
 - protocol: 1.0;
@@ -101,12 +101,23 @@ Therefore no current version bump is required:
 When a Flutter client package exists, it owns a separate client/surface version. A future
 protocol or schema change must be versioned when that actual compatibility surface changes.
 
+Current implementation versions remain owned by configuration/task evidence. The combined
+feedback task introduces storage schema 2 through an explicit migration; that implementation
+change is separate from this ADR?s documentation-only desktop decision.
+
 ## Roadmap consequence
 
 Core tasks F03-F06 remain conceptually unchanged. F03 should introduce only the smallest
 ModelProvider seam needed to keep Ollama outside core product rules.
 Its development evidence uses the selected 8B target; the setup wizard belongs to
 [S03 roadmap acceptance](../../EXECUTION_CONTRACT.md#s03-desktop-model-setup-acceptance).
+
+Owner-approved delivery refinement: F04 -> one bounded F05+F06 feedback-learning slice ->
+P01 -> distinct Windows desktop alpha -> SEC02/macOS + SEC03/Linux -> cross-platform
+desktop V1. The first usable Windows UI does not wait for other OS security mechanisms.
+Windows alpha retains SEC01 protection and the shared Flutter/engine ownership rules; it
+does not claim macOS/Linux sensitive-storage support. Final S03 cross-platform acceptance
+is preserved. These are roadmap decisions, not implementation of any surface.
 
 Before cross-platform desktop release:
 

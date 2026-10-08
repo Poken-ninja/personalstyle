@@ -67,14 +67,16 @@ def generate_pair(
     if not 3 <= harness["max_total_model_calls"] <= 8:
         raise GenerationError("MODEL_CALL_BUDGET_EXHAUSTED")
     adapter = provider if provider is not None else OllamaProvider(model["model"])
+    preferences: list[dict[str, Any]] = []
     dna, examples = derive_personalization(
         store, request.context, max_examples=context["max_examples"],
         profile_schema=settings["versions"]["profile_schema"],
-        timeout_seconds=harness["timeout_seconds"],
+        timeout_seconds=harness["timeout_seconds"], preferences=preferences,
     )
     payloads = [
         {"request": asdict(request), "personalization": None},
-        {"request": asdict(request), "personalization": {"examples": examples, "writing_dna": dna}},
+        {"request": asdict(request), "personalization": {"examples": examples, "writing_dna": dna,
+                                       "preferences": preferences}},
     ]
     messages = [[
         {"role": "system", "content": SYSTEM},
@@ -104,6 +106,9 @@ def generate_pair(
             "input_token_upper_bound": size + prepared.framing_bytes,
             "selected_examples": [] if mode == "generic" else [
                 {"id": e["id"], "record_version": e["record_version"]} for e in examples
+            ],
+            "selected_preferences": [] if mode == "generic" else [
+                {"id": p["id"], "version": p["version"]} for p in preferences
             ],
             "writing_dna_source": None if mode == "generic" else {
                 key: dna[key] for key in ("writing_dna_algorithm_version", "source_profile_version",
