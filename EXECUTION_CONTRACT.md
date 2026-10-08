@@ -5,13 +5,13 @@
 ```text
 CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
-IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 / F04 / F05 / F06 merged and verified; V1 incomplete
-SELECTED_PRODUCT_TASK: P01
-ACTIVE_PRODUCT_TASK: P01 blocked - LOCAL_REGRESSION_INCOMPLETE; docs/P01_TASK.md
-NEXT_PERMITTED_ACTION: owner review of bounded P01 checkpoint; no Flutter
-SURFACES_AND_SEC02_SEC03: not_started
+IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 / F04 / F05 / F06 / P01 merged and verified; V1 incomplete
+SELECTED_PRODUCT_TASK: S03-WIN-ALPHA
+ACTIVE_PRODUCT_TASK: S03-WIN-ALPHA active; Phase A locally passing; docs/S03_WIN_ALPHA_TASK.md
+NEXT_PERMITTED_ACTION: review Phase A draft PR; Phase B requires separate owner activation
+SURFACE_STATUS: Windows Phase A locally passing; later phases and SEC02/SEC03 not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
-CURRENT_VERIFIED_MAIN: 0ffd79f305044e739815e26fd97bd1798085c717
+CURRENT_VERIFIED_MAIN: b811eb1147afe3e2010d69324eb822ed60a0f12a
 ```
 
 This document owns product scope, roadmap, dependencies and completion definitions.
@@ -30,8 +30,14 @@ security rules live in [AGENTS.md](AGENTS.md).
 | F02 | Read-derived deterministic exact-context Writing DNA | [F02 task](docs/F02_TASK.md); [PR #5](https://github.com/Poken-ninja/personalstyle/pull/5) |
 | F03 | Exact-model generic/personalized generation; candidates initially unverified | [F03 task](docs/F03_TASK.md); [PR #8](https://github.com/Poken-ninja/personalstyle/pull/8) |
 | F04 | Hard second-pass verification and bounded repair | [F04 task](docs/F04_TASK.md); [PR #9](https://github.com/Poken-ninja/personalstyle/pull/9) |
+| P01 | Authenticated versioned loopback engine boundary | [Historical task](docs/P01_TASK.md); [PR #11](https://github.com/Poken-ninja/personalstyle/pull/11) owns recovery/final merge evidence |
 
 F05/F06 merge: `0ffd79f305044e739815e26fd97bd1798085c717`; [historical task](docs/F05_F06_TASK.md), [PR #10](https://github.com/Poken-ninja/personalstyle/pull/10).
+P01 merge: `b811eb1147afe3e2010d69324eb822ed60a0f12a`; exact-head and merged-main CI green,
+246-test local recovery and real authenticated transport acceptance passed. PR #11 preserves
+the historical 600s timeout/210 outcomes/two failure markers, owner-authorized 900s recovery,
+246 passed447.00s locally and246 passed649.47s on exact-head CI. The historical blocked
+task checkpoint remains intact; its final status is superseded by that merged PR evidence.
 
 Completed records are historical evidence for their named revisions/environments, not
 instructions to reactivate tasks or reset budgets. PR records include merge SHAs and
@@ -147,12 +153,12 @@ the already verified Windows path.
 | F04 | Hard verification path and bounded candidate retry | F03 | merged / verified; [historical evidence](docs/F04_TASK.md), PR #9 |
 | F05 | Record accept/edit events and classify edit type | F04 | merged / verified; [historical task](docs/F05_F06_TASK.md), PR #10 |
 | F06 | Evidence-backed context preference promotion | F05 | merged / verified; PR #10, context_preference_promotion.v1 |
-| P01 | Mechanize versioned engine protocol + authenticated capability handshake | F05 + F06 + SEC01 | blocked on local full regression; [task contract](docs/P01_TASK.md) |
+| P01 | Mechanize versioned engine protocol + authenticated capability handshake | F05 + F06 + SEC01 | merged / verified; PR #11 |
 | SEC02 | Mechanize macOS protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | SEC03 | Mechanize Linux protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
 | S01 | Terminal/CLI acceptance surface | F06 | not_started |
-| S03-WIN-ALPHA | Windows Flutter desktop alpha | P01 + F05 + F06 + SEC01 | not_started |
+| S03-WIN-ALPHA | Windows Flutter desktop alpha | P01 + F05 + F06 + SEC01 | active - Phase A locally passing; [task](docs/S03_WIN_ALPHA_TASK.md); later phases unstarted |
 | S03 | Flutter desktop app + Windows/macOS/Linux release acceptance | S03-WIN-ALPHA + SEC02 + SEC03 + U6 | not_started |
 
 Deferred backlog, not V1 blockers: S02 browser-extension adapter, S04 iOS/Android companion
@@ -162,7 +168,9 @@ explicit owner decision and a fresh bounded task contract.
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
 does not auto-activate it. F03 is merged/verified; PR #8 records the exact merge and
-merged-main CI. F05/F06 are merged/verified at 0ffd79f305044e739815e26fd97bd1798085c717; P01 is selected but blocked on local full regression. Surfaces remain unstarted.
+merged-main CI. P01 is merged/verified at b811eb1147afe3e2010d69324eb822ed60a0f12a.
+The owner selected S03-WIN-ALPHA Phase A; its Windows build/client/lifecycle gates pass locally.
+Other surfaces remain unstarted.
 
 ### Windows desktop alpha
 
@@ -173,7 +181,8 @@ It must verify Windows core workflows, authenticated engine ownership, selected-
 and SEC01-protected persistence on the declared Windows environment. It is not cross-platform
 V1 or E01 product-performance completion. SEC02 and SEC03 remain required before claiming
 macOS/Linux sensitive storage or final S03 Windows/macOS/Linux release acceptance.
-The same Flutter shell and engine boundary apply; no UI/protocol/platform work is activated here.
+The same Flutter shell and engine boundary apply. The selected Phase A is bounded by
+[its current task](docs/S03_WIN_ALPHA_TASK.md); model onboarding and later phases remain unstarted.
 
 ### S03 desktop model setup acceptance
 
