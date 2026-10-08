@@ -15,11 +15,11 @@ records local/live acceptance and green merged-main CI. Its
 [historical task record](docs/F03_TASK.md) preserves all failures and budgets.
 F04 is merged and verified on `31e3710ebb4140b02e0c63f420826329ff4ba72f`;
 [PR #9](https://github.com/Poken-ninja/personalstyle/pull/9) records exact-head and merged-main CI.
-The owner-selected combined F05-F06 task is locally verified under
-`context_preference_promotion.v1`; draft [PR #10](https://github.com/Poken-ninja/personalstyle/pull/10)
-owns final exact-head CI and review status. It remains unmerged. Read the
-[current contract](docs/F05_F06_TASK.md); F05 precedes F06 within one bounded branch.
-P01 and desktop implementation remain unstarted. Delivery proceeds through a Windows
+F05/F06 are merged and verified at `0ffd79f305044e739815e26fd97bd1798085c717`;
+[PR #10](https://github.com/Poken-ninja/personalstyle/pull/10) and its
+[historical task record](docs/F05_F06_TASK.md) retain execution evidence.
+P01 is active: read [docs/P01_TASK.md](docs/P01_TASK.md). Desktop and SEC02/SEC03 remain
+unstarted. Delivery proceeds through a Windows
 desktop alpha before macOS/Linux protected storage and final cross-platform desktop V1;
 see the [roadmap](EXECUTION_CONTRACT.md#windows-desktop-alpha).
 Generation quality and PersonalStyle V1 completion are not claimed. Model tiers and future
