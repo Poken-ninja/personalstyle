@@ -32,6 +32,27 @@ CALENDAR = re.compile(
 NUMBERS = re.compile(r"(?<!\w)[+-]?\d+(?:[.,:/-]\d+)*(?:%)?(?!\w)")
 
 
+class _VerifiedPair(dict[str, Any]):
+    """In-process engine receipt; serialized flags have no feedback-write authority."""
+
+    _source: str
+
+    def __init__(self) -> None:
+        raise TypeError("ENGINE_RECEIPT_REQUIRED")
+
+    def __repr__(self) -> str:
+        return "VerifiedPair(SUCCEEDED)"
+
+
+def verified_source(pair: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(pair, _VerifiedPair) or type(pair) is not _VerifiedPair:
+        raise GenerationError("VERIFIED_SOURCE_INVALID")
+    source: dict[str, Any] = json.loads(pair._source)
+    if source["result"] != pair:
+        raise GenerationError("VERIFIED_SOURCE_INVALID")
+    return source
+
+
 def deterministic_failures(request: RewriteRequest, text: str) -> list[str]:
     """Literal bounds are conservative; semantic equivalence is checked separately."""
     request.validate()
@@ -89,6 +110,11 @@ def verify_pair(
         result["failure_code"] = code
         if code is None:
             result.update(state="SUCCEEDED", verification_status="verified", candidates=accepted)
+            issued = dict.__new__(_VerifiedPair)
+            dict.__init__(issued, result)
+            issued._source = json.dumps({"result": result, "request": asdict(request)},
+                                      sort_keys=True, ensure_ascii=False)
+            return issued
         return result
 
     try:

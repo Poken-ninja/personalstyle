@@ -7,7 +7,7 @@ environment = "local"
 [versions]
 protocol = "1.0"
 config_schema = 1
-storage_schema = 1
+storage_schema = 2
 profile_schema = 1
 prompt_contract = 1
 compatibility_policy = "same-major-capability-negotiated"

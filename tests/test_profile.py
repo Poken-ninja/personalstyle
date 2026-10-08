@@ -178,7 +178,7 @@ def test_invalid_source_or_version_never_returns_profile(store, damage, code):
         elif damage == "record-version":
             connection.execute("UPDATE examples SET record_version=2")
         elif damage == "schema":
-            connection.execute("PRAGMA user_version=2")
+            connection.execute("PRAGMA user_version=3")
         elif damage == "metadata":
             connection.execute("UPDATE store_meta SET profile_version='bad'")
         else:

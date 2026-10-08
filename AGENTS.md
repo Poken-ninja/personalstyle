@@ -562,3 +562,18 @@ Default WIP is one implementation task.
 Do not start adjacent refactors or speculative infrastructure while the active task is unverified.
 
 When blocked, leave an honest checkpoint containing current task, evidence, failure, budget used, blocker, and next permitted action.
+
+## Lean bounded task workflow
+
+Normal implementation: minimum context -> one bounded behavior -> targeted tests -> checkpoint.
+Read README + AGENTS + the selected task first; consult deeper sections only when needed.
+Final task verification: full regression once -> static checks once -> one real acceptance
+run when materially required -> required CI once -> compact evidence. Do not rerun unchanged
+passing checks for ceremony. A compound task may share branch/contract/PR/budgets only when
+explicitly selected by the owner; preserve phase dependency guards and persistent counters.
+
+Target normal implementation turns around 3?8 minutes where practical. The 10?15 minute
+threshold is advisory: checkpoint long work rather than expand scope. Documents do not
+enforce wall-clock limits; only executed mechanisms establish bounded runtime evidence.
+After the same implementation failure twice, stop repetitive repair and enter bounded diagnosis.
+A missing promotion policy is an owner decision boundary, never permission to invent a threshold.

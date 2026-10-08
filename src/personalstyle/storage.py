@@ -19,13 +19,20 @@ from personalstyle.security import (
 
 MAX_TEXT_BYTES = 64 * 1024
 APPLICATION_ID = 0x50535459
-SCHEMA = {
+SCHEMA_V1 = {
     "store_meta": "CREATE TABLE store_meta (schema_version INTEGER NOT NULL, "
     "profile_version INTEGER NOT NULL)",
     "examples": "CREATE TABLE examples (id TEXT PRIMARY KEY, text TEXT NOT NULL, "
     "context TEXT NOT NULL, supplier TEXT NOT NULL, authorizer TEXT NOT NULL, "
     "source_kind TEXT NOT NULL, learning_eligible INTEGER NOT NULL, held_out INTEGER NOT NULL, "
     "record_version INTEGER NOT NULL, created_at TEXT NOT NULL)",
+}
+SCHEMA = {
+    **SCHEMA_V1,
+    "examples": SCHEMA_V1["examples"][:-1] +
+    ", writer_schema INTEGER NOT NULL DEFAULT 2 CHECK(writer_schema=2))",
+    "feedback": "CREATE TABLE feedback (id TEXT PRIMARY KEY, context TEXT NOT NULL, payload TEXT NOT NULL, "
+    "record_version INTEGER NOT NULL, profile_version INTEGER NOT NULL, created_at TEXT NOT NULL)",
 }
 
 
@@ -175,20 +182,21 @@ class ExampleStore:
 
     @staticmethod
     def _schema(connection: sqlite3.Connection) -> None:
+        version = connection.execute("PRAGMA user_version").fetchone()[0]
         if (
             connection.execute("PRAGMA application_id").fetchone() != (APPLICATION_ID,)
-            or connection.execute("PRAGMA user_version").fetchone() != (1,)
+            or version not in (1, 2)
             or connection.execute("PRAGMA journal_mode").fetchone() != ("delete",)
         ):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT")
         objects = connection.execute(
             "SELECT name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
         ).fetchall()
-        if dict(objects) != SCHEMA:
+        if dict(objects) != (SCHEMA_V1 if version == 1 else SCHEMA):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT")
         metadata = connection.execute("SELECT schema_version, profile_version FROM store_meta").fetchall()
         if (
-            len(metadata) != 1 or metadata[0][0] != 1
+            len(metadata) != 1 or metadata[0][0] != version
             or type(metadata[0][1]) is not int or metadata[0][1] < 1
         ):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT")
@@ -210,16 +218,20 @@ class ExampleStore:
             if new:
                 for statement in SCHEMA.values():
                     connection.execute(statement)
-                connection.execute("INSERT INTO store_meta VALUES (1, 1)")
+                connection.execute("INSERT INTO store_meta VALUES (2, 1)")
                 connection.execute(f"PRAGMA application_id={APPLICATION_ID}")
-                connection.execute("PRAGMA user_version=1")
+                connection.execute("PRAGMA user_version=2")
+            else:
+                self._schema(connection)  # Revalidate after acquiring the write lock.
+                if connection.execute("PRAGMA user_version").fetchone() != (2,):
+                    raise StoreError("STORAGE_MIGRATION_REQUIRED")
             row = connection.execute("SELECT * FROM examples WHERE id=?", (example.id,)).fetchone()
             if row is not None and tuple(row[:8]) != example.payload():
                 raise StoreError("IDEMPOTENCY_CONFLICT")
             if row is None:
                 timestamp = datetime.now(UTC).isoformat()
                 connection.execute(
-                    "INSERT INTO examples VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)",
+                    "INSERT INTO examples VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 2)",
                     (*example.payload(), timestamp),
                 )
                 connection.execute("UPDATE store_meta SET profile_version=profile_version+1")
@@ -246,6 +258,72 @@ class ExampleStore:
         if result is None or tuple(result.values())[:8] != example.payload():
             raise StoreError("PERSISTENCE_VERIFICATION_FAILED")
         return result
+
+    @contextmanager
+    def feedback_connection(self, *, write: bool = False) -> Iterator[sqlite3.Connection]:
+        """Reuse the existing canonical boundary for feedback, not a second store."""
+        connection = None
+        try:
+            identity = self._boundary()
+            connection = self._connect(readonly=not write)
+            connection.execute("BEGIN IMMEDIATE" if write else "BEGIN")
+            self._schema(connection)
+            if connection.execute("PRAGMA user_version").fetchone() != (2,):
+                raise StoreError("STORAGE_MIGRATION_REQUIRED")
+            self._recheck(identity)
+            yield connection
+            self._recheck(identity)
+            connection.execute("COMMIT")
+        except SecurityError:
+            raise StoreError("STORAGE_BOUNDARY_INVALID") from None
+        except (OSError, sqlite3.Error):
+            raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT") from None
+        finally:
+            if connection is not None:
+                try:
+                    if connection.in_transaction:
+                        connection.execute("ROLLBACK")
+                except sqlite3.Error:
+                    raise StoreError("TRANSACTION_FAILED") from None
+                finally:
+                    connection.close()
+
+    def migrate_feedback_schema(self) -> None:
+        """Explicit guarded 1->2 migration; no normal write migrates implicitly."""
+        connection = None
+        try:
+            identity = self._boundary()
+            connection = self._connect()
+            connection.execute("BEGIN IMMEDIATE")
+            self._schema(connection)
+            if connection.execute("PRAGMA user_version").fetchone() == (1,):
+                connection.execute(
+                    "ALTER TABLE examples ADD COLUMN writer_schema INTEGER NOT NULL "
+                    "DEFAULT 2 CHECK(writer_schema=2)"
+                )
+                connection.execute(SCHEMA["feedback"])
+                connection.execute(
+                    "UPDATE store_meta SET schema_version=2, profile_version=profile_version+1"
+                )
+                connection.execute("PRAGMA user_version=2")
+            self._schema(connection)
+            self._recheck(identity)
+            connection.execute("COMMIT")
+        except SecurityError:
+            raise StoreError("STORAGE_BOUNDARY_INVALID") from None
+        except (OSError, sqlite3.Error):
+            raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT") from None
+        finally:
+            if connection is not None:
+                try:
+                    if connection.in_transaction:
+                        connection.execute("ROLLBACK")
+                except sqlite3.Error:
+                    raise StoreError("TRANSACTION_FAILED") from None
+                finally:
+                    connection.close()
+        with self.feedback_connection():
+            pass
 
     def get(self, example_id: str) -> dict[str, str | int] | None:
         try:
