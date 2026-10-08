@@ -13,8 +13,9 @@ from personalstyle.profile import derive_writing_dna
 from personalstyle.provider import GenerationError
 from personalstyle.security import SecurityError, log_event, prepare_private_directory
 from personalstyle.storage import MAX_TEXT_BYTES, ExampleInput, ExampleStore, StoreError
+from personalstyle.verification import verify_pair
 
-app = typer.Typer(help="PersonalStyle engineering tools; generated candidates are unverified.")
+app = typer.Typer(help="PersonalStyle engineering tools with hard second-pass verification.")
 
 
 @app.command()
@@ -31,7 +32,7 @@ def check(
         str | None, typer.Option(help="Inspect derived Writing DNA for one exact context")
     ] = None,
     generate: Annotated[
-        Path | None, typer.Option(help="Explicitly generate/inspect an unverified pair from JSON")
+        Path | None, typer.Option(help="Explicitly generate and hard-verify a pair from JSON")
     ] = None,
 ) -> None:
     """Validate configuration without an LLM or storage writes."""
@@ -55,10 +56,14 @@ def check(
                     ):
                         raise GenerationError("INVALID_REQUEST")
                     request["constraints"] = tuple(request["constraints"])
-                    result = generate_pair(RewriteRequest(**request), settings, store)
+                    rewrite = RewriteRequest(**request)
+                    pair = generate_pair(rewrite, settings, store)
+                    result = verify_pair(rewrite, pair, settings, store)
                 except (OSError, UnicodeError, json.JSONDecodeError, TypeError):
                     raise GenerationError("INVALID_REQUEST") from None
                 typer.echo(json.dumps(result, ensure_ascii=False))
+                if result["state"] != "SUCCEEDED":
+                    raise typer.Exit(code=1)
             elif writing_dna is not None:
                 snapshot = derive_writing_dna(
                     store, writing_dna, profile_schema=settings["versions"]["profile_schema"],

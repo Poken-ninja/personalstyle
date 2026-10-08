@@ -5,13 +5,13 @@
 ```text
 CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
-IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 merged and verified; V1 incomplete
-SELECTED_PRODUCT_TASK: F03
-ACTIVE_PRODUCT_TASK: F03 handoff only; configured-8B local/live verification complete; required CI verdict owned by PR #8
-NEXT_PERMITTED_ACTION: current-head required CI and owner review of draft PR #8 then stop; no feature changes, live call or F04
-F04_AND_LATER: not_started
+IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 merged and verified; V1 incomplete
+SELECTED_PRODUCT_TASK: F04
+ACTIVE_PRODUCT_TASK: F04 handoff; local/static/live verified; current-head CI owned by draft PR
+NEXT_PERMITTED_ACTION: observe required CI; owner review draft PR; stop; no merge or F05
+F05_AND_LATER: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
-CURRENT_VERIFIED_MAIN: 8df79125131cce2fc373494a9846cd18bafc8e75
+CURRENT_VERIFIED_MAIN: 88895b8a0801aec7eb2f14eae7d2bdfdcf8001d4
 ```
 
 This document owns product scope, roadmap, dependencies and completion definitions.
@@ -28,11 +28,12 @@ security rules live in [AGENTS.md](AGENTS.md).
 | SEC01 | Declared Windows local protection boundary | [SEC01 handoff](docs/SEC01_HANDOFF.md); [PR #3](https://github.com/Poken-ninja/personalstyle/pull/3) |
 | F01 | Authorized writing persistence through the Windows protected boundary | [F01 task](docs/F01_TASK.md); [PR #4](https://github.com/Poken-ninja/personalstyle/pull/4) |
 | F02 | Read-derived deterministic exact-context Writing DNA | [F02 task](docs/F02_TASK.md); [PR #5](https://github.com/Poken-ninja/personalstyle/pull/5) |
+| F03 | Exact-model generic/personalized generation; candidates initially unverified | [F03 task](docs/F03_TASK.md); [PR #8](https://github.com/Poken-ninja/personalstyle/pull/8) |
 
 Completed records are historical evidence for their named revisions/environments, not
 instructions to reactivate tasks or reset budgets. PR records include merge SHAs and
 merged-main CI evidence. No cross-platform sensitive storage, application-level storage
-encryption, generation or PersonalStyle V1/product success is claimed.
+encryption or PersonalStyle V1/product success is claimed.
 The [pre-cleanup contract snapshot](docs/history/EXECUTION_CONTRACT_PRE_CLEANUP.md)
 preserves historical initial states and the full I01/SEC01 execution specifications.
 
@@ -139,8 +140,8 @@ the already verified Windows path.
 | SEC01 | Mechanize Windows local security boundary | I01 | merged / verified |
 | F01 | Persist user-authorized writing examples + explicit context metadata | I01 + SEC01 | merged / verified (Windows) |
 | F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
-| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | local/live verified; draft PR #8 owns current-head CI/final verdict; [task/evidence](docs/F03_TASK.md) |
-| F04 | Hard verification path and bounded candidate retry | F03 | not_started |
+| F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | merged / verified; [historical evidence](docs/F03_TASK.md), PR #8 |
+| F04 | Hard verification path and bounded candidate retry | F03 | local verified; draft PR owns CI verdict; [task](docs/F04_TASK.md) |
 | F05 | Record accept/edit events and classify edit type | F04 | not_started |
 | F06 | Evidence-backed context preference promotion | F05 | not_started |
 | P01 | Mechanize versioned engine protocol + authenticated capability handshake | F04 + SEC01 | not_started |
@@ -156,9 +157,8 @@ explicit owner decision and a fresh bounded task contract.
 
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
-does not auto-activate it. F03's single final-attempt 8B acceptance and 162-test local
-regression passed; required current-head CI is recorded in draft PR #8's handoff and still
-governs final acceptance. Owner review/merge is separate. F04 is not activated.
+does not auto-activate it. F03 is merged/verified; PR #8 records the exact merge and
+merged-main CI. The owner explicitly selected F04; F05 and later are not activated.
 
 ### S03 desktop model setup acceptance
 
