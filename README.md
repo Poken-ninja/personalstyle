@@ -9,27 +9,14 @@ explicit constraints. The product is not yet complete.
 I01, the GitHub merge gate, SEC01, F01 and F02 are merged and verified for their declared
 scope. Sensitive persistence and protected-store reads are verified on Windows only.
 Application-level storage encryption and cross-platform sensitive storage are not claimed.
-F03 is implemented and verified locally with exact `ollama / qwen3:8b` synthetic live
-acceptance and 162 passing regression tests; 8B is now the reference configuration.
-Exact model/template validation still rejects unknown or changed pairs. The final
-committed-head CI verdict is recorded in [draft PR #8](https://github.com/Poken-ninja/personalstyle/pull/8),
-and is required for a F03 pass. The task checkpoint preserves failures and budgets.
-F04 is unstarted; owner review/merge and explicit selection are still required.
-The owner separated exact-model preparation (120 seconds, no retry) from
-each generation (60 seconds). Ollama 0.40.0 and exact `qwen3:8b`/`qwen3:30b` are installed. The prior
-93.61-second cold diagnostic remains failed historical generation-bound evidence.
-Feature implementation and current verification are tracked in the F03 checkpoint.
-On this Windows machine, 30B preparation passed in 45.6 seconds, but generic generation
-exceeded 60 seconds with severe memory/pagefile pressure; 30B is not currently verified here.
-Owner-selected tiers are `qwen3:8b` (option 1, Standard/default and current F03 acceptance target),
-`qwen3:30b` (Quality, requiring environment-specific readiness/performance verification),
-and `qwen3:235b` (Maximum/high-end optional, unverified unless separately tested).
-Model choice is deployment/user configuration
-behind ModelProvider, not one fixed product requirement; each run records its actual identity.
-Users explicitly choose; no silent substitution. The future
-[desktop onboarding flow](ARCHITECTURE.md#desktop-model-onboarding-and-setup-future-s03) belongs
-to S03 and is not implemented.
-Read the [F03 task and checkpoint](docs/F03_TASK.md). F04 and later remain unstarted.
+F03 is merged and verified on `88895b8a0801aec7eb2f14eae7d2bdfdcf8001d4` with
+exact `ollama / qwen3:8b`; [PR #8](https://github.com/Poken-ninja/personalstyle/pull/8)
+records local/live acceptance and green merged-main CI. Its
+[historical task record](docs/F03_TASK.md) preserves all failures and budgets.
+F04 is active: engine-owned hard verification and bounded repair. Read the
+[current F04 contract](docs/F04_TASK.md). F05 and later remain unstarted.
+Generation quality and PersonalStyle V1 completion are not claimed. Model tiers and future
+desktop onboarding remain defined in [architecture](ARCHITECTURE.md).
 See [current status and evidence](EXECUTION_CONTRACT.md#completed-tasks-and-evidence).
 
 ## Default read route
