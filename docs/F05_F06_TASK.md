@@ -2,7 +2,7 @@
 
 ```text
 TASK: F05-F06
-STATE: active; owner promotion policy resolved; attempt 4 verification in progress
+STATE: locally_verified; draft PR #10 final exact-head CI/review authoritative
 BASE / MERGE_BASE: 31e3710ebb4140b02e0c63f420826329ff4ba72f
 BRANCH: task/f05-f06-feedback-learning
 ENTRY: clean main == origin/main; F04 merge present; owner authorization; WIP 1
@@ -18,7 +18,7 @@ DECLARED_WRITE_SET: README.md; AGENTS.md; ARCHITECTURE.md; EXECUTION_CONTRACT.md
 ATTEMPTS_USED: 4/5 (historical 3 preserved; owner continuation ceiling 5)
 DIAGNOSIS_USED: 0/2
 RECOVERY_USED: 0/1
-CHECKPOINT: owner continuation from 9152c601; targeted promotion/consumption verification
+CHECKPOINT: implementation e72f9d3; final local evidence below; no merge or P01
 ```
 
 Owner authorizes the combined experiment, not later tasks. Align only governing docs;
@@ -230,3 +230,69 @@ The in-process deterministic provider exercises the complete loop, so additional
 calls are not materially required. Existing F03/F04 live runtime evidence is not re-run.
 Reconciliation: local main==origin/main==31e3710ebb4140b02e0c63f420826329ff4ba72f;
 merge base identical, no conflict or unrelated changes. Final expensive cycle is next, once.
+
+
+Final cycle on implementation e72f9d3aa05090a476d37c967c474300ed62dd95:
+full pytest220passed/405.29s (parent405.708s); mypy11sourcefiles passed/0.671s;
+pip check passed/2.015s. Ruff initial check failed I001 (1.392s).
+OBSERVED: extra blank line between imports and fixture assignments in test_learning.py.
+EXPECTED: Ruff import-block formatting; no assertion or behavior change.
+FAILURE_CLASS: verification_defect (fixture formatting only).
+NEXT ACTION: remove that one blank line and re-run only the failed Ruff check.
+BUDGET REMAINING: implementation1 (4/5 used), diagnosis2, recovery1.
+The historical alias defects are removed; historical failed CI is retained, not re-run.
+Passing full/static evidence is not invalidated by this nonsemantic blank-line correction.
+
+
+## Continuation final local handoff
+
+```text
+TASK / STATE: F05-F06 / locally_verified; unmerged draft PR #10
+VERIFIED_IMPLEMENTATION_REVISION: e72f9d3aa05090a476d37c967c474300ed62dd95
+PUBLISHED_HEAD / CI: exact SHA and run recorded in draft PR #10 final handoff
+BASE / MERGE_BASE: 31e3710ebb4140b02e0c63f420826329ff4ba72f (unchanged)
+PRODUCT / PROTOCOL / CONFIG / STORAGE / PROFILE / PROMPT: 0.1.0 /1.0 /1 /2 /1 /1
+POLICY: context_preference_promotion.v1
+ATTEMPTS_USED: 4/5; owner extended historical ceiling3 to5; no reset
+DIAGNOSIS_USED: 0/2
+RECOVERY_USED: 0/1
+TARGETED_RUNS: 6 cumulative; 3 historical +3 continuation
+FINAL_FULL_REGRESSION_RUNS: 1; 220passed/405.29s
+FINAL_STATIC_CYCLES: 1; Ruff passed after one formatting-only failed-check re-run;
+  mypy11sourcefiles passed; pip check passed; unchanged passing checks not repeated
+REAL_MODEL_CYCLES: 0; deterministic provider integration proves changed behavior
+FINAL_EXPENSIVE_LOCAL_INTERVAL: approximately7min (full suite parent405.708s)
+CONTINUATION_IMPLEMENTATION_INTERVAL: first clock03:17Z to source commit03:28:20Z,
+  approximately11min including targeted runs; not a precise active-time benchmark
+OWNER_INTERVENTION: promotion policy/budget extension and measured performance decision
+SCOPE_VIOLATIONS: none observed
+BLOCKERS: none local; required exact-head CI/review status belongs to PR #10
+NEXT_PERMITTED_ACTION: review draft PR #10 and its exact-head CI; no automatic merge/P01
+```
+
+Ruff corrected check passed. Final handoff delta from the verified implementation is
+status/evidence documentation plus one nonsemantic blank-line correction in the test import
+block; feature behavior/configuration/tests' assertions are unchanged. No passing expensive
+check was repeated. Python/SQLite runtime evidence is recorded with the PR handoff.
+
+Acceptance: two supports do not activate; three agreeing verified source runs activate;
+same-run repetitions do not multiply support; per-feature conflicting runs are excluded;
+opposition contests without flipping; three later agreeing runs reactivate. Exact-context
+isolation and held-out/ineligible/non-style/accept exclusions pass. Active preferences enter
+personalized prompts only, with exact version provenance and unchanged example/DNA evidence.
+F04 source checks reject modified preference provenance; hard repair retains preference data
+without making style a hard gate. Invalid/unauthorized/incompatible source metadata fails
+closed. Protected promotion rollback and explicit schema-1 migration rollback remain green.
+All4 measured indexes are included in schema2; no schema3, lifetime quota, N+1 per-record
+lookup, alternate provider, background learning, P01, Flutter or asset conversion.
+Sensitive source writing never appears in the derived preference result or ordinary logs.
+No quality improvement, global preference, cross-platform storage or V1 completion is claimed.
+
+Historical checkpoint CI37720942635:210tests passed, Ruff failed on import formatting/aliases;
+not final evidence. Historical >=66-minute wall interval included owner-reported ~30-minute
+laptop sleep; actual active duration remains uninstrumented. Historical observations above
+are preserved and this clarification supersedes attributing that whole interval to work.
+
+Runtime metadata: Python3.14.6; SQLite3.50.4. The first metadata-print shell command
+lost its quoted labels and raised NameError before collecting metadata; a here-string
+corrected the command, with no code/environment modification or verification re-run.

@@ -7,8 +7,8 @@ CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 / F04 merged and verified; V1 incomplete
 SELECTED_PRODUCT_TASK: F05-F06
-ACTIVE_PRODUCT_TASK: F05-F06 active; owner promotion policy resolved; verification in progress
-NEXT_PERMITTED_ACTION: finish bounded promotion/consumption verification; draft PR; no merge or P01
+ACTIVE_PRODUCT_TASK: F05-F06 locally verified; draft PR #10 owns final CI/review status
+NEXT_PERMITTED_ACTION: exact-head CI/owner review of draft PR #10; no merge or P01
 P01_AND_SURFACES: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 CURRENT_VERIFIED_MAIN: 31e3710ebb4140b02e0c63f420826329ff4ba72f
@@ -143,8 +143,8 @@ the already verified Windows path.
 | F02 | Derive inspectable Writing DNA/context profile | F01 | merged / verified (Windows protected store) |
 | F03 | Generic + personalized generation using metadata retrieval | F02 + U2 | merged / verified; [historical evidence](docs/F03_TASK.md), PR #8 |
 | F04 | Hard verification path and bounded candidate retry | F03 | merged / verified; [historical evidence](docs/F04_TASK.md), PR #9 |
-| F05 | Record accept/edit events and classify edit type | F04 | implemented / targeted-green; [combined task](docs/F05_F06_TASK.md) active |
-| F06 | Evidence-backed context preference promotion | F05 | owner policy context_preference_promotion.v1; bounded implementation active |
+| F05 | Record accept/edit events and classify edit type | F04 | locally verified / unmerged; [combined task](docs/F05_F06_TASK.md) |
+| F06 | Evidence-backed context preference promotion | F05 | locally verified context_preference_promotion.v1; draft PR #10 / unmerged |
 | P01 | Mechanize versioned engine protocol + authenticated capability handshake | F05 + F06 + SEC01 | not_started |
 | SEC02 | Mechanize macOS protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | SEC03 | Mechanize Linux protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |

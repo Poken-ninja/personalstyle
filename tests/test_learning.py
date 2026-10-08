@@ -15,7 +15,6 @@ from personalstyle.provider import Candidate
 from personalstyle.storage import ExampleInput, StoreError
 from personalstyle.verification import CHECKS, verified_source, verify_pair
 
-
 receipt = test_feedback.receipt
 store = test_feedback.store
 

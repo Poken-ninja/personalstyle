@@ -15,8 +15,9 @@ records local/live acceptance and green merged-main CI. Its
 [historical task record](docs/F03_TASK.md) preserves all failures and budgets.
 F04 is merged and verified on `31e3710ebb4140b02e0c63f420826329ff4ba72f`;
 [PR #9](https://github.com/Poken-ninja/personalstyle/pull/9) records exact-head and merged-main CI.
-The owner-selected combined F05-F06 task is active under the resolved owner policy
-`context_preference_promotion.v1`; promotion/consumption verification is in progress. Read the
+The owner-selected combined F05-F06 task is locally verified under
+`context_preference_promotion.v1`; draft [PR #10](https://github.com/Poken-ninja/personalstyle/pull/10)
+owns final exact-head CI and review status. It remains unmerged. Read the
 [current contract](docs/F05_F06_TASK.md); F05 precedes F06 within one bounded branch.
 P01 and desktop implementation remain unstarted. Delivery proceeds through a Windows
 desktop alpha before macOS/Linux protected storage and final cross-platform desktop V1;
