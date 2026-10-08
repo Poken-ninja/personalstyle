@@ -126,6 +126,16 @@ def test_invalid_json_is_bounded_before_dispatch(boundary, raw):
     assert not session.calls
 
 
+def test_invalid_constraint_rejected_before_dispatch(boundary):
+    server, session, token = boundary
+    status, body = request(server, token, envelope("rewrite", {
+        "original": TEXT, "intent": "Make concise", "context": "work.email",
+        "constraints": ["max_words:0"],
+    }))
+    assert status == 400 and body["error"]["code"] == "REQUEST_MALFORMED"
+    assert not session.calls
+
+
 def test_header_and_input_bounds_and_sanitized_errors(boundary, caplog, capsys):
     server, session, token = boundary
     assert request(server, token, headers={"X-Padding": "x" * 8200})[0] == 413
@@ -160,7 +170,7 @@ def test_duplicate_headers_rejected(boundary, duplicate):
 
 
 def test_absolute_ingress_timeout_does_not_invoke_engine(boundary):
-    server, session, token = boundary
+    server, session, _token = boundary
     session.settings = copy.deepcopy(session.settings)
     session.settings["harness"]["timeout_seconds"] = 1
     with socket.create_connection(server.server_address, timeout=3) as connection:

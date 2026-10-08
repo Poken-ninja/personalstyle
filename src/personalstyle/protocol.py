@@ -8,10 +8,11 @@ import socket
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from importlib.metadata import version
+from io import BufferedIOBase
 from pathlib import Path, PureWindowsPath
 from threading import Timer
 from time import monotonic
-from typing import Any, BinaryIO, cast
+from typing import Any, cast
 from uuid import UUID
 
 from personalstyle.config import load_config
@@ -20,24 +21,26 @@ from personalstyle.generation import MAX_REQUEST_BYTES, RewriteRequest, generate
 from personalstyle.learning import evaluate_context_preferences
 from personalstyle.provider import GenerationError, ModelProvider
 from personalstyle.storage import ExampleInput, ExampleStore, StoreError
-from personalstyle.verification import verify_pair
+from personalstyle.verification import deterministic_failures, verify_pair
 
 PROTOCOL_VERSION = "1.0"
 CAPABILITIES = ("handshake", "rewrite", "example.write", "feedback.write", "preference.evaluate")
 MAX_BODY_BYTES = MAX_REQUEST_BYTES + 4096
 MAX_HEADER_BYTES = 8192
-ENGINE_CODES = frozenset("""
-INVALID_REQUEST INVALID_EXAMPLE INVALID_FEEDBACK IDEMPOTENCY_CONFLICT VERIFIED_SOURCE_INVALID
-FEEDBACK_SOURCE_INVALID PREFERENCE_SOURCE_INVALID STORAGE_BOUNDARY_INVALID STORAGE_MIGRATION_REQUIRED
-DATABASE_UNAVAILABLE_OR_CORRUPT TRANSACTION_FAILED PERSISTENCE_VERIFICATION_FAILED
-NO_ELIGIBLE_EXAMPLES PROFILE_RESOURCE_LIMIT PROFILE_SOURCE_INVALID PROFILE_VERSION_INCOMPATIBLE
-MODEL_CALL_BUDGET_EXHAUSTED MODEL_IDENTITY_MISMATCH MODEL_UNAVAILABLE MODEL_INCOMPATIBLE
-MODEL_PREPARATION_TIMEOUT MODEL_RUNTIME_UNAVAILABLE MODEL_RESPONSE_INVALID GENERATION_RESOURCE_LIMIT
-PERSONALIZATION_CONTEXT_LIMIT PERSONALIZATION_SOURCE_CHANGED VERIFIER_RESPONSE_INVALID
-GENERATION_ATTEMPTS_EXHAUSTED VERIFICATION_REPEATED_FAILURE IDENTICAL_REPAIR
-CONTEXT_INAPPROPRIATE MEANING_CHANGED REQUIRED_FACTS_CHANGED REQUIRED_INFORMATION_MISSING
-STRUCTURAL_CONSTRAINT_FAILED USER_CONSTRAINT_FAILED VERIFICATION_INPUT_INVALID
-""".split())
+ENGINE_CODES = frozenset({
+    "INVALID_REQUEST", "INVALID_EXAMPLE", "INVALID_FEEDBACK", "IDEMPOTENCY_CONFLICT",
+    "VERIFIED_SOURCE_INVALID", "FEEDBACK_SOURCE_INVALID", "PREFERENCE_SOURCE_INVALID",
+    "STORAGE_BOUNDARY_INVALID", "STORAGE_MIGRATION_REQUIRED", "DATABASE_UNAVAILABLE_OR_CORRUPT",
+    "TRANSACTION_FAILED", "PERSISTENCE_VERIFICATION_FAILED", "NO_ELIGIBLE_EXAMPLES",
+    "PROFILE_RESOURCE_LIMIT", "PROFILE_SOURCE_INVALID", "PROFILE_VERSION_INCOMPATIBLE",
+    "MODEL_CALL_BUDGET_EXHAUSTED", "MODEL_IDENTITY_MISMATCH", "MODEL_UNAVAILABLE", "MODEL_INCOMPATIBLE",
+    "MODEL_PREPARATION_TIMEOUT", "MODEL_RUNTIME_UNAVAILABLE", "MODEL_RESPONSE_INVALID",
+    "GENERATION_RESOURCE_LIMIT", "PERSONALIZATION_CONTEXT_LIMIT", "PERSONALIZATION_SOURCE_CHANGED",
+    "VERIFIER_RESPONSE_INVALID", "GENERATION_ATTEMPTS_EXHAUSTED", "VERIFICATION_REPEATED_FAILURE",
+    "IDENTICAL_REPAIR", "CONTEXT_INAPPROPRIATE", "MEANING_CHANGED", "REQUIRED_FACTS_CHANGED",
+    "REQUIRED_INFORMATION_MISSING", "STRUCTURAL_CONSTRAINT_FAILED", "USER_CONSTRAINT_FAILED",
+    "VERIFICATION_INPUT_INVALID",
+})
 
 
 class ProtocolError(ValueError):
@@ -101,6 +104,7 @@ def _validate(envelope: Any) -> tuple[str, Any]:
                 raise ProtocolError("REQUEST_MALFORMED")
             rewrite = RewriteRequest(**{**data, "constraints": tuple(data["constraints"])})
             rewrite.validate()
+            deterministic_failures(rewrite, rewrite.original)
             return capability, rewrite
         if capability == "example.write":
             example = ExampleInput(**data)
@@ -158,7 +162,7 @@ class EngineSession:
 
 
 class _HeaderBudget:
-    def __init__(self, stream: BinaryIO):
+    def __init__(self, stream: BufferedIOBase):
         self.stream, self.remaining = stream, MAX_HEADER_BYTES
 
     def readline(self, size: int = -1) -> bytes:
@@ -190,7 +194,7 @@ class _Handler(BaseHTTPRequestHandler):
     def setup(self) -> None:
         super().setup()
         self.request_version = "HTTP/1.0"
-        self.rfile = cast(BinaryIO, _HeaderBudget(self.rfile))
+        self.rfile = cast(BufferedIOBase, _HeaderBudget(self.rfile))
         seconds = min(60, self.server.session.settings["harness"]["timeout_seconds"])
         self._deadline = monotonic() + seconds
         self.connection.settimeout(seconds)
@@ -269,8 +273,8 @@ class _Handler(BaseHTTPRequestHandler):
             if error.engine_code is not None:
                 value["engine_code"] = error.engine_code
             self._reply(error.status, {"ok": False, "error": value})
-        except Exception:
-            self._reply(500, {"ok": False, "error": {"code": "ENGINE_OPERATION_FAILED"}})
+        except Exception as error:
+            raise ProtocolError("ENGINE_OPERATION_FAILED", 500) from error
 
 
 def main() -> None:
@@ -293,13 +297,16 @@ def main() -> None:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
-    except Exception:
-        print(json.dumps({"error": {"code": "ENGINE_OPERATION_FAILED"}}), file=sys.stderr)
-        raise SystemExit(1) from None
+    except Exception as error:
+        raise ProtocolError("ENGINE_OPERATION_FAILED", 500) from error
     finally:
         if server is not None:
             server.server_close()
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except ProtocolError:
+        print(json.dumps({"error": {"code": "ENGINE_OPERATION_FAILED"}}), file=sys.stderr)
+        raise SystemExit(1) from None

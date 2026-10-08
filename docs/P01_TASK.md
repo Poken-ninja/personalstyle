@@ -2,17 +2,17 @@
 
 ```text
 TASK: P01
-STATE: active
+STATE: blocked - LOCAL_REGRESSION_INCOMPLETE
 BASE / MERGE_BASE: 0ffd79f305044e739815e26fd97bd1798085c717
 BRANCH: task/p01-engine-protocol
 ENTRY: main==origin/main at expected merge; tree clean; PR10 merged; no open implementation PR/worktree
 DECLARED_WRITE_SET: README.md; EXECUTION_CONTRACT.md; ARCHITECTURE.md; docs/P01_TASK.md;
   src/personalstyle/protocol.py; tests/test_protocol.py; scripts/p01_transport_acceptance.py
-ATTEMPTS_USED: 1/2
-DIAGNOSIS_USED: 0/2
+ATTEMPTS_USED: 2/2
+DIAGNOSIS_USED: 2/2
 RECOVERY_USED: 0/1
 VERSIONS product/protocol/config/storage/profile/prompt: 0.1.0 /1.0 /1 /2 /1 /1
-CHECKPOINT: attempt1 targeted acceptance green; final regression/static/process evidence next
+CHECKPOINT: targeted/static/real transport passed; local full regression incomplete; draft PR/CI next
 ```
 
 Owner selects P01 only. Standard-library HTTP, fixed127.0.0.1, foreground process;
@@ -90,3 +90,66 @@ Rejected rewrite returns only fixed failure metadata, never an unverified succes
 Adapter review: no SQL/remote calls inside returned-item loops; one session/store object,
 one bounded live receipt, no corpus/history serialization. No existing engine/config/tests altered.
 Final minor-version/error whitelist completion receives directly affected checks before final suite.
+
+## Final-cycle failure and bounded correction
+
+Directly affected final checks: 2 passed0.31s. Source revision:
+3af1f9432ff95a382b168f37226b25812edb7506. Link targets/whitespace passed; base remained0ffd79f.
+OBSERVED: sole full local pytest invocation exceeded600s after210 reported outcomes,
+including two failure markers; parent terminated pytest before its traceback summary.
+EXPECTED: complete configured regression within declared local600s ceiling.
+FAILURE_CLASS: environment/runtime verification failure; root cause unresolved, not a pass.
+EVIDENCE: subprocess.TimeoutExpired600s; no completed full result. Isolated apparent
+failed checks (profile exact-context isolation and protocol Origin rejection) passed2/2 in37.77s.
+Diagnosis1: OS memory snapshot16GB total/about2.2GB available, pages/sec0 at snapshot;
+no recent sleep/resume event retrieved. A tool timing gap is insufficient to claim suspend
+or paging caused the failure. No applications/settings/ACLs changed; no recovery consumed.
+NEXT ACTION: preserve failed full run; no automatic timeout increase or full-suite repeat.
+
+Separate ingress review exposed concrete defect: max_words:0 passed pure RewriteRequest
+validation and reached dispatch. New targeted test observedHTTP200 instead of400 (0.14s).
+FAILURE_CLASS: implementation_defect (recognized constraint syntax validation too late).
+Attempt2 reuses existing F04 deterministic_failures before dispatch, no duplicated policy.
+One initial sandbox invocation failed before test setup (host temp ACL); rerun as host user
+exposed the defect. No host temp/store permissions were modified.
+BUDGET REMAINING: implementation0; diagnosis1; recovery1.
+
+Attempt2 targeted acceptance: 26 passed74.99s. Final pip check passed.
+Initial static failures: Ruff SIM905 (constant representation), RUF059 (unused fixture token),
+BLE001 (broad exception sanitizers); mypy BinaryIO vs BufferedIOBase annotation mismatch.
+Representation/fixture/type corrections do not alter product behavior or consume attempt3.
+BLE001 repeated after fixed-error rethrow without chaining: stopped repetition, diagnosis2
+read installed rule and checked two synthetic snippets (no production writes/engine calls).
+Explicit chained fixed-error translation passes; outer boundary alone serializes fixed codes,
+never exception text/chain. No lint suppression, logging of exceptions or weakened check.
+Only directly affected checks rerun; unchanged pip result retained. Diagnosis exhausted2/2.
+
+## Durable handoff
+
+Corrected source is the final PR head of task/p01-engine-protocol; PR records its full SHA
+and exact-head CI run/result. Historical3af1f94 remains the first implementation/full failure
+revision. No completed passing local regression is claimed for either revision.
+
+- Targeted acceptance:26 passed74.99s; after annotation/error-routing-only static correction,
+  directly affected sanitization/deadline checks2 passed1.31s. Nine targeted invocations total,
+  including fixture failure, diagnosis and deliberately red defect test; one full invocation.
+- Ruff: initial four findings, then two BLE001 findings; final changed-file check passed.
+  Other files passed initial whole-scope check and remain unchanged. No suppressions.
+- Mypy: initial two new-file annotations; corrected-file check passed. Other source unchanged.
+- Pip check: passed once; no broken requirements.
+- One real child-process HTTP acceptance passed12.02s: credential via stdin, authenticated
+  handshake, protected synthetic example.write, same-UUID retry, exact read-back, credential
+  absent from DB/stdout/stderr, process stopped. No Ollama calls or user profile data.
+- Changed-path measurements (observations, not targets): handshake0.0093s; first write5.4645s.
+  Adapter has no SQL/per-item remote loops; successful rewrite fixture uses exactly5 model
+  calls; failed identical repair4, preserving max8calls/max3attempts/120s preparation/60s generation.
+- Python3.14.6; SQLite3.50.4. Product0.1.0/protocol1.0/config1/storage2/profile1/prompt1 unchanged.
+- Seven declared files only; no source/config/schema/behavior changes in existing engine modules.
+
+BLOCKER: sole local full regression timed out600s with two unsummarized failure markers.
+Isolated apparent failures passed, so root cause remains unresolved; no timeout increase,
+suite splitting/skipping, assertion weakening or false pass. Remote CI cannot erase that result.
+ATTEMPTS_USED:2/2; DIAGNOSIS_USED:2/2; RECOVERY_USED:0/1.
+Next permitted action: owner review of blocked checkpoint and authorize/identify an environment
+recovery/verification continuation. No further material repair or diagnosis without extension.
+Do not merge or activate Flutter/SEC02/SEC03. Final exact-head CI status belongs to the PR.

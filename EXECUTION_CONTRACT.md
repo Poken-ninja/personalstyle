@@ -7,8 +7,8 @@ CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 / F04 / F05 / F06 merged and verified; V1 incomplete
 SELECTED_PRODUCT_TASK: P01
-ACTIVE_PRODUCT_TASK: P01 active; docs/P01_TASK.md
-NEXT_PERMITTED_ACTION: bounded P01 implementation/verification; no Flutter
+ACTIVE_PRODUCT_TASK: P01 blocked - LOCAL_REGRESSION_INCOMPLETE; docs/P01_TASK.md
+NEXT_PERMITTED_ACTION: owner review of bounded P01 checkpoint; no Flutter
 SURFACES_AND_SEC02_SEC03: not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
 CURRENT_VERIFIED_MAIN: 0ffd79f305044e739815e26fd97bd1798085c717
@@ -147,7 +147,7 @@ the already verified Windows path.
 | F04 | Hard verification path and bounded candidate retry | F03 | merged / verified; [historical evidence](docs/F04_TASK.md), PR #9 |
 | F05 | Record accept/edit events and classify edit type | F04 | merged / verified; [historical task](docs/F05_F06_TASK.md), PR #10 |
 | F06 | Evidence-backed context preference promotion | F05 | merged / verified; PR #10, context_preference_promotion.v1 |
-| P01 | Mechanize versioned engine protocol + authenticated capability handshake | F05 + F06 + SEC01 | active; [task contract](docs/P01_TASK.md) |
+| P01 | Mechanize versioned engine protocol + authenticated capability handshake | F05 + F06 + SEC01 | blocked on local full regression; [task contract](docs/P01_TASK.md) |
 | SEC02 | Mechanize macOS protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | SEC03 | Mechanize Linux protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
@@ -162,7 +162,7 @@ explicit owner decision and a fresh bounded task contract.
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
 does not auto-activate it. F03 is merged/verified; PR #8 records the exact merge and
-merged-main CI. F05/F06 are merged/verified at 0ffd79f305044e739815e26fd97bd1798085c717; P01 is selected and active. Surfaces remain unstarted.
+merged-main CI. F05/F06 are merged/verified at 0ffd79f305044e739815e26fd97bd1798085c717; P01 is selected but blocked on local full regression. Surfaces remain unstarted.
 
 ### Windows desktop alpha
 
