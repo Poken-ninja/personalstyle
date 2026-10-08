@@ -189,7 +189,7 @@ def test_unavailable_or_incompatible_store_has_no_mutation(store, damage):
             if damage == "malformed-metadata":
                 connection.execute("UPDATE store_meta SET profile_version=?", ("invalid",))
             else:
-                connection.execute("PRAGMA user_version=3" if damage == "future-version"
+                connection.execute("PRAGMA user_version=4" if damage == "future-version"
                                    else "CREATE TABLE unexpected (value TEXT)")
     before = store.path.read_bytes()
     with pytest.raises(StoreError, match="DATABASE_UNAVAILABLE_OR_CORRUPT"):

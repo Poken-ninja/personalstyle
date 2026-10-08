@@ -203,3 +203,35 @@ TEMPLATE_8B = "\n{{- $lastUserIdx := -1 -}}\n{{- range $idx, $msg := .Messages -
 TEMPLATE = '{{- $lastUserIdx := -1 -}}\n{{- range $idx, $msg := .Messages -}}\n{{- if eq $msg.Role "user" }}{{ $lastUserIdx = $idx }}{{ end -}}\n{{- end }}\n{{- if or .System .Tools }}<|im_start|>system\n{{ if .System }}{{ .System }}\n\n{{ end }}\n{{- if .Tools }}# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n<tools>\n{{- range .Tools }}\n{"type": "function", "function": {{ .Function }}}\n{{- end }}\n</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n<tool_call>\n{"name": <function-name>, "arguments": <args-json-object>}\n</tool_call>\n{{- end -}}\n<|im_end|>\n{{ end }}\n{{- range $i, $_ := .Messages }}\n{{- $last := eq (len (slice $.Messages $i)) 1 -}}\n{{- if eq .Role "user" }}<|im_start|>user\n{{ .Content }}<|im_end|>\n{{ else if eq .Role "assistant" }}<|im_start|>assistant\n{{ if (and $.IsThinkSet (and .Thinking (or $last (gt $i $lastUserIdx)))) -}}\n<think>{{ .Thinking }}</think>\n{{ end -}}\n{{ if .Content }}{{ .Content }}{{ end }}\n{{- if .ToolCalls }}\n{{- range .ToolCalls }}\n<tool_call>\n{"name": "{{ .Function.Name }}", "arguments": {{ .Function.Arguments }}}\n</tool_call>\n{{- end }}\n{{- end }}{{ if not $last }}<|im_end|>\n{{ end }}\n{{- else if eq .Role "tool" }}<|im_start|>user\n<tool_response>\n{{ .Content }}\n</tool_response><|im_end|>\n{{ end }}\n{{- if and (ne .Role "assistant") $last }}<|im_start|>assistant\n<think>\n{{ end }}\n{{- end }}'
 
 TEMPLATES = {"qwen3:30b": TEMPLATE, "qwen3:8b": TEMPLATE_8B}
+
+
+def test_long_document_deadline_is_explicit_without_changing_short_text(adapter):
+    value, calls, _ = adapter
+    prepared = value.prepare(8000)
+    messages = [{"role": "user", "content": "PRIVATE_SYNTHETIC"}]
+    with pytest.raises(GenerationError, match="^INVALID_REQUEST$"):
+        value.generate(prepared, messages, timeout_seconds=61, max_tokens=2000, temperature=0.2)
+    with pytest.raises(GenerationError, match="^INVALID_REQUEST$"):
+        value.generate_document(prepared, messages, timeout_seconds=121, max_tokens=2000, temperature=0.2)
+    calls.clear()
+    assert value.generate_document(prepared, messages, timeout_seconds=120,
+                                   max_tokens=2000, temperature=0.2).text == "PRIVATE_CANDIDATE"
+    assert [path for path, _ in calls].count("/api/chat") == 1
+    assert [path for path, _ in calls].count("/api/tags") == 2
+    assert [path for path, _ in calls].count("/api/ps") == 2
+
+
+def test_structured_format_is_document_only_and_one_call(adapter):
+    value, calls, _ = adapter
+    prepared = value.prepare(8000)
+    messages = [{"role": "user", "content": "PRIVATE_SYNTHETIC"}]
+    schema = {"type": "object", "properties": {"units": {"type": "array"}}}
+    calls.clear()
+    value.generate_document(prepared, messages, timeout_seconds=120, max_tokens=2000,
+                            temperature=0.2, response_schema=schema)
+    bodies = [body for path, body in calls if path == "/api/chat"]
+    assert len(bodies) == 1 and bodies[0]["format"] == schema
+    calls.clear()
+    value.generate(prepared, messages, timeout_seconds=60, max_tokens=2000, temperature=0.2)
+    bodies = [body for path, body in calls if path == "/api/chat"]
+    assert len(bodies) == 1 and "format" not in bodies[0]

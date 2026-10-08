@@ -170,6 +170,7 @@ def test_explicit_atomic_migration_preserves_data_and_rejects_old_writer(tmp_pat
             record_feedback(store, receipt, event())
         assert store.get(str(UUID(int=90)))["text"] == "Synthetic"
         store.migrate_feedback_schema()
+        store.migrate_document_schema()
         assert store.get(str(UUID(int=90)))["text"] == "Synthetic"
         with pytest.raises(sqlite3.Error):
             old.execute("INSERT INTO examples VALUES (?, 'old', 'work.email', 'owner', "

@@ -70,7 +70,7 @@ def load_config(path: Path) -> dict[str, Any]:
                 raise ConfigError(f"Expected nonempty value for {section}.{field}")
     versions = config["versions"]
     for field in ("config_schema", "storage_schema", "profile_schema", "prompt_contract"):
-        if versions[field] != (2 if field == "storage_schema" else 1):
+        if versions[field] != (3 if field == "storage_schema" else 1):
             raise ConfigError(f"Unsupported {field}; explicit compatible migration is required")
     if not re.fullmatch(r"1\.(0|[1-9][0-9]*)", versions["protocol"]):
         raise ConfigError("Unsupported protocol major or malformed protocol version")

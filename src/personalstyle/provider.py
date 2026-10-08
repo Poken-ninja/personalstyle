@@ -60,6 +60,10 @@ class OllamaProvider:
             raise GenerationError("MODEL_UNAVAILABLE")
         self.model = model
 
+    def identity(self) -> str:
+        """Bounded metadata-only identity check; does not prepare or generate content."""
+        return self._identity(time.monotonic() + 5)
+
     @staticmethod
     def _json(path: str, deadline: float, body: dict[str, Any] | None = None) -> dict[str, Any]:
         remaining = deadline - time.monotonic()
@@ -183,9 +187,27 @@ class OllamaProvider:
         self, prepared: PreparedModel, messages: list[dict[str, str]], *,
         timeout_seconds: int, max_tokens: int, temperature: float,
     ) -> Candidate:
+        return self._generate(prepared, messages, timeout_seconds=timeout_seconds,
+                              max_tokens=max_tokens, temperature=temperature, operation_ceiling=60)
+
+    def generate_document(
+        self, prepared: PreparedModel, messages: list[dict[str, str]], *,
+        timeout_seconds: int, max_tokens: int, temperature: float,
+        response_schema: dict[str, Any] | None = None,
+    ) -> Candidate:
+        """Explicit long-document operation; callers also enforce the document deadline."""
+        return self._generate(prepared, messages, timeout_seconds=timeout_seconds,
+                              max_tokens=max_tokens, temperature=temperature, operation_ceiling=120,
+                              response_schema=response_schema)
+
+    def _generate(
+        self, prepared: PreparedModel, messages: list[dict[str, str]], *,
+        timeout_seconds: int, max_tokens: int, temperature: float, operation_ceiling: int,
+        response_schema: dict[str, Any] | None = None,
+    ) -> Candidate:
         if (
             prepared.model != self.model or prepared.provider != "ollama"
-            or type(timeout_seconds) is not int or not 0 < timeout_seconds <= 60
+            or type(timeout_seconds) is not int or not 0 < timeout_seconds <= operation_ceiling
             or type(max_tokens) is not int or not 0 < max_tokens <= 2000
             or type(temperature) is not float or not 0 <= temperature <= 2
         ):
@@ -194,13 +216,16 @@ class OllamaProvider:
         deadline = start + timeout_seconds
         self._identity(deadline, prepared.digest)
         self._identity(deadline, prepared.digest, loaded=True, context_tokens=prepared.context_tokens)
-        result = self._json("/api/chat", deadline, {
+        body: dict[str, Any] = {
             "model": self.model, "messages": messages, "stream": False, "think": False,
             "keep_alive": "5m", "options": {
                 "num_ctx": prepared.context_tokens, "num_predict": max_tokens,
                 "temperature": temperature,
             },
-        })
+        }
+        if response_schema is not None:
+            body["format"] = response_schema
+        result = self._json("/api/chat", deadline, body)
         message = result.get("message")
         text = message.get("content") if isinstance(message, dict) else None
         prompt_tokens, output_tokens = result.get("prompt_eval_count"), result.get("eval_count")

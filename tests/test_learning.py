@@ -100,8 +100,8 @@ def memory_store(tmp_path):
     for sql in SCHEMA.values():
         value.connection.execute(sql)
     value.connection.execute(f"PRAGMA application_id={APPLICATION_ID}")
-    value.connection.execute("PRAGMA user_version=2")
-    value.connection.execute("INSERT INTO store_meta VALUES (2,1)")
+    value.connection.execute("PRAGMA user_version=3")
+    value.connection.execute("INSERT INTO store_meta VALUES (3,1)")
     value.connection.commit()
     yield value
     value.connection.close()
