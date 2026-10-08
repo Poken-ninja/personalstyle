@@ -18,9 +18,12 @@ F04 is merged and verified on `31e3710ebb4140b02e0c63f420826329ff4ba72f`;
 F05/F06 are merged and verified at `0ffd79f305044e739815e26fd97bd1798085c717`;
 [PR #10](https://github.com/Poken-ninja/personalstyle/pull/10) and its
 [historical task record](docs/F05_F06_TASK.md) retain execution evidence.
-P01 is blocked on incomplete full local regression; targeted/static/real transport passed.
-Read [docs/P01_TASK.md](docs/P01_TASK.md). Desktop and SEC02/SEC03 remain
-unstarted. Delivery proceeds through a Windows
+P01 is merged/verified at `b811eb1147afe3e2010d69324eb822ed60a0f12a`;
+[PR #11](https://github.com/Poken-ninja/personalstyle/pull/11) preserves CI, local recovery
+and real transport evidence, including the historical failed 600-second run.
+S03-WIN-ALPHA remains active; Phase A Windows foundation is locally passing.
+Read [docs/S03_WIN_ALPHA_TASK.md](docs/S03_WIN_ALPHA_TASK.md).
+SEC02/SEC03 remain unstarted. Delivery proceeds through a Windows
 desktop alpha before macOS/Linux protected storage and final cross-platform desktop V1;
 see the [roadmap](EXECUTION_CONTRACT.md#windows-desktop-alpha).
 Generation quality and PersonalStyle V1 completion are not claimed. Model tiers and future
