@@ -4,6 +4,7 @@ import copy
 import json
 import sqlite3
 import subprocess
+import sys
 from pathlib import Path
 from uuid import UUID
 
@@ -340,7 +341,7 @@ def test_protected_document_progress_and_dependencies_in_fresh_process(schema2):
     script = ("import json,sys; from pathlib import Path; from personalstyle.storage import ExampleStore; "
               "from personalstyle.document import inspect_document; "
               "print(json.dumps(inspect_document(ExampleStore(Path(sys.argv[1])),sys.argv[2])))")
-    child = subprocess.run([str(Path('.venv/Scripts/python.exe').absolute()), "-c", script,
+    child = subprocess.run([sys.executable, "-c", script,
                             str(schema2.path), str(UUID(int=99))], capture_output=True,
                            text=True, timeout=30, check=True)
     persisted = json.loads(child.stdout)
@@ -419,7 +420,7 @@ def test_checkpoint_atomic_cas_restart_and_query_plan(schema2):
         assert connection.execute("SELECT profile_version FROM store_meta").fetchone() == (17,)
     script = ("import json,sys; from pathlib import Path; from personalstyle.storage import ExampleStore; "
               "print(json.dumps(ExampleStore(Path(sys.argv[1])).document_checkpoint(sys.argv[2])))")
-    result = subprocess.run([str(Path('.venv/Scripts/python.exe').absolute()), "-c", script,
+    result = subprocess.run([sys.executable, "-c", script,
                              str(schema2.path), manifest["id"]], capture_output=True, text=True,
                             timeout=30, check=True)
     assert json.loads(result.stdout) == [manifest, [segment]]

@@ -1503,3 +1503,21 @@ instrumented and definitive full runs both passed. No prior failure was rewritte
 STATE: locally passing; draft PR handoff for task/f07-long-document, exact-head CI pending.
 F08 is the next planned task, not activated. S03 PhaseB is not_started. Overall Windows
 alpha remains incomplete. Do not merge automatically.
+
+## PR #13 CI portability correction
+
+Exact-head CI for `76c9fc779ce399fe037869ef1747625b715a8d00` reported 292 passed and two
+failed smoke tests: `test_protected_document_progress_and_dependencies_in_fresh_process` and
+`test_checkpoint_atomic_cas_restart_and_query_plan`. Both failed before child startup because
+the tests hard-coded `.venv/Scripts/python.exe`, which is absent on the GitHub runner. This is
+a test portability defect; it does not indicate an F07 production or schema failure.
+
+The bounded correction uses `sys.executable` for both child launches, preserving a fresh
+Python process and persisted-state reopen using the active test interpreter. A repository
+search found no other `.venv/Scripts/python.exe` references in `tests/` or `scripts/`.
+The two affected tests passed (`2 passed` in 38.19s); Ruff passed for
+`tests/test_document.py`; `git diff --check` passed. Pytest emitted a cache-path warning
+(`WinError 183`) after the tests passed. No other matching hard-coded interpreter path was
+found in tests/scripts. Previously recorded local regression and real-provider evidence above
+remains unchanged. No full suite, live model acceptance, production behavior, schema, or P01
+transport change was made.
