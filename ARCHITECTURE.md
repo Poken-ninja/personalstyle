@@ -74,6 +74,10 @@ Browser extension, iOS and Android are deferred surfaces. ADR-002 preserves the 
 thin-client/protocol constraints if they are activated later; they are not V1 release
 blockers. ADR-003 owns the current desktop scope and Flutter shell decision.
 
+A future web client is owner-approved as another thin surface. Its deployment and transport
+model remain unresolved. F07 selects neither local-web nor hosted-cloud architecture and
+does not change P01's current browser-Origin rejection or enable any new network exposure.
+
 Current protected persistence/read evidence is Windows-only. macOS and Linux may not be
 called supported for sensitive PersonalStyle workflows until platform-appropriate storage
 ownership/permission mechanisms and executable evidence exist. That future work extends the
@@ -163,6 +167,11 @@ Windows protection; it can precede other OS boundaries. macOS/Linux remain unsup
 sensitive persistence until SEC02/SEC03 pass. Final S03 still requires all three platforms;
 Windows alpha does not claim cross-platform release completion. Detailed dependencies and
 acceptance belong to the [roadmap](EXECUTION_CONTRACT.md#windows-desktop-alpha).
+
+Within Windows alpha, the owner selected Phase A foundation -> F07 long-document reliability
+-> F08 document import/export -> Phase B model setup/readiness -> final alpha acceptance.
+Phase A is merged; the overall alpha is incomplete. Later phases require their own activation.
+F08's initial formats are owned by the roadmap; no parser/exporter is introduced by F07.
 
 ## Version boundaries
 
@@ -258,6 +267,14 @@ hypotheses/evidence/confidence, learning events, and schema/profile versions. Pe
 contains the request, selected context/examples/preferences, prompt/model version, candidate,
 verification results, attempt count and terminal state. Entities affecting future generations
 must be versioned or otherwise reconstructable.
+
+At F07 activation, implemented schema2 contains store metadata, examples, feedback and
+preferences. The logical Run/RunAttempt/VerificationResult entities above do not establish
+durable run checkpoints: current generation/verification results and P01's latest receipt
+are in process memory. Reliable document/segment resume requires a new engine-owned durable
+state contract. [F07's entry assessment](docs/F07_TASK.md#required-state-change-decision)
+records the historical guard and subsequent explicit owner authorization for the minimal
+protected document/segment schema 2->3 migration. Execution evidence remains task-owned.
 
 ### 4. Example selector
 

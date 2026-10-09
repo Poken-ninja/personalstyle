@@ -6,12 +6,12 @@
 CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
 IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 / F04 / F05 / F06 / P01 merged and verified; V1 incomplete
-SELECTED_PRODUCT_TASK: S03-WIN-ALPHA
-ACTIVE_PRODUCT_TASK: S03-WIN-ALPHA active; Phase A locally passing; docs/S03_WIN_ALPHA_TASK.md
-NEXT_PERMITTED_ACTION: review Phase A draft PR; Phase B requires separate owner activation
-SURFACE_STATUS: Windows Phase A locally passing; later phases and SEC02/SEC03 not_started
+SELECTED_PRODUCT_TASK: F07
+ACTIVE_PRODUCT_TASK: F07 locally passing; draft PR awaits exact-head CI; docs/F07_TASK.md
+NEXT_PERMITTED_ACTION: observe required exact-head CI; do not merge or activate F08 automatically
+SURFACE_STATUS: Windows Phase A merged; overall alpha incomplete; Phase B and SEC02/SEC03 not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
-CURRENT_VERIFIED_MAIN: b811eb1147afe3e2010d69324eb822ed60a0f12a
+CURRENT_VERIFIED_MAIN: 96afb4691dfb141601f3239b3d93f203294347d4
 ```
 
 This document owns product scope, roadmap, dependencies and completion definitions.
@@ -31,6 +31,7 @@ security rules live in [AGENTS.md](AGENTS.md).
 | F03 | Exact-model generic/personalized generation; candidates initially unverified | [F03 task](docs/F03_TASK.md); [PR #8](https://github.com/Poken-ninja/personalstyle/pull/8) |
 | F04 | Hard second-pass verification and bounded repair | [F04 task](docs/F04_TASK.md); [PR #9](https://github.com/Poken-ninja/personalstyle/pull/9) |
 | P01 | Authenticated versioned loopback engine boundary | [Historical task](docs/P01_TASK.md); [PR #11](https://github.com/Poken-ninja/personalstyle/pull/11) owns recovery/final merge evidence |
+| S03-WIN-ALPHA Phase A | Windows Flutter foundation and real authenticated engine lifecycle | [Historical task](docs/S03_WIN_ALPHA_TASK.md); [PR #12](https://github.com/Poken-ninja/personalstyle/pull/12) |
 
 F05/F06 merge: `0ffd79f305044e739815e26fd97bd1798085c717`; [historical task](docs/F05_F06_TASK.md), [PR #10](https://github.com/Poken-ninja/personalstyle/pull/10).
 P01 merge: `b811eb1147afe3e2010d69324eb822ed60a0f12a`; exact-head and merged-main CI green,
@@ -38,6 +39,11 @@ P01 merge: `b811eb1147afe3e2010d69324eb822ed60a0f12a`; exact-head and merged-mai
 the historical 600s timeout/210 outcomes/two failure markers, owner-authorized 900s recovery,
 246 passed447.00s locally and246 passed649.47s on exact-head CI. The historical blocked
 task checkpoint remains intact; its final status is superseded by that merged PR evidence.
+Phase A merge: `96afb4691dfb141601f3239b3d93f203294347d4`; source head
+`09ca6a0f2a7af251e77874b9f97832c1ad04e9f1`, exact-head CI37760293989 SUCCESS.
+Historical local evidence: Flutter analyze clean,22 Flutter tests passed, Windows build passed,
+real P01 lifecycle/handshake passed2.673s. Its recorded failures/counters remain unchanged.
+Phase A completion does not complete Windows alpha or activate model onboarding.
 
 Completed records are historical evidence for their named revisions/environments, not
 instructions to reactivate tasks or reset budgets. PR records include merge SHAs and
@@ -81,6 +87,13 @@ Browser extension, iOS and Android are deferred and are not V1 release blockers.
 arrangements are owned by [ARCHITECTURE.md](ARCHITECTURE.md),
 [ADR-002](docs/decisions/ADR-002-versioned-multi-surface-engine.md), and
 [ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md).
+
+Owner-approved additions: F07 bounded/resumable long-document reliability and later F08
+document import/export precede Windows model onboarding. F08 initial import formats are
+`.txt`, `.md`, `.docx`, text-based `.pdf`; initial export formats are `.docx`, `.pdf`, `.md`,
+`.txt`. Parsing/export/OCR are not activated by F07. A future thin web client is approved
+as a surface; deployment/transport is unresolved and requires a separate decision.
+No local-web versus hosted-cloud architecture is selected here.
 
 Excluded until observed engineering need: multi-agent systems, vector databases/embedding
 retrieval, broad/general RAG, fine-tuning/reinforcement learning, autonomous or scheduled
@@ -154,11 +167,15 @@ the already verified Windows path.
 | F05 | Record accept/edit events and classify edit type | F04 | merged / verified; [historical task](docs/F05_F06_TASK.md), PR #10 |
 | F06 | Evidence-backed context preference promotion | F05 | merged / verified; PR #10, context_preference_promotion.v1 |
 | P01 | Mechanize versioned engine protocol + authenticated capability handshake | F05 + F06 + SEC01 | merged / verified; PR #11 |
+| S03-WIN-ALPHA-A | Windows Flutter foundation and engine connection | P01 | merged / verified; PR #12 at96afb4691dfb141601f3239b3d93f203294347d4 |
+| F07 | Long-document bounded rewrite and recovery | S03-WIN-ALPHA-A + F04 + SEC01 | locally passing; 294-test regressions, static checks and v3 real2,000/5,000 passed; draft PR awaits CI; [task](docs/F07_TASK.md) |
+| F08 | Document import/export in the declared initial formats | F07 | not_started |
+| S03-WIN-ALPHA-B | Windows model setup/readiness | F08 | not_started; separate owner activation required |
 | SEC02 | Mechanize macOS protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | SEC03 | Mechanize Linux protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
 | S01 | Terminal/CLI acceptance surface | F06 | not_started |
-| S03-WIN-ALPHA | Windows Flutter desktop alpha | P01 + F05 + F06 + SEC01 | active - Phase A locally passing; [task](docs/S03_WIN_ALPHA_TASK.md); later phases unstarted |
+| S03-WIN-ALPHA | Final Windows Flutter desktop-alpha acceptance | Phase A + F07 + F08 + Phase B + SEC01 | incomplete; Phase A merged; later phases unstarted |
 | S03 | Flutter desktop app + Windows/macOS/Linux release acceptance | S03-WIN-ALPHA + SEC02 + SEC03 + U6 | not_started |
 
 Deferred backlog, not V1 blockers: S02 browser-extension adapter, S04 iOS/Android companion
@@ -169,20 +186,29 @@ Do not fully design later tasks until dependencies and evidence sharpen. A next 
 requires explicit owner selection and a bounded task contract; completing a dependency
 does not auto-activate it. F03 is merged/verified; PR #8 records the exact merge and
 merged-main CI. P01 is merged/verified at b811eb1147afe3e2010d69324eb822ed60a0f12a.
-The owner selected S03-WIN-ALPHA Phase A; its Windows build/client/lifecycle gates pass locally.
+Phase A is merged; F07 is locally passing with owner-authorized protected document/segment
+state and schema2->3 migration. Both live long-document acceptances, the instrumented and
+definitive294-test regressions, and required local static checks passed. The P01 bounded
+transport repair passed its targeted stress tests. Historical storage-failure cause remains
+unknown and all failures/counters remain recorded. The draft PR awaits exact-head CI.
+F08 remains the next roadmap item, not_started until explicit activation. Phase B remains
+not_started; overall Windows alpha remains incomplete.
 Other surfaces remain unstarted.
 
 ### Windows desktop alpha
 
 Owner-approved delivery order: F04 -> combined F05+F06 feedback-learning slice -> P01 ->
-Windows desktop alpha -> SEC02/macOS + SEC03/Linux -> cross-platform desktop V1.
+S03-WIN-ALPHA Phase A -> F07 long-document reliability -> F08 document import/export ->
+S03 Phase B model setup/readiness -> final Windows alpha acceptance -> SEC02/macOS +
+SEC03/Linux -> cross-platform desktop V1.
 S03-WIN-ALPHA is a distinct usable Windows UI milestone; it does not wait for macOS/Linux.
 It must verify Windows core workflows, authenticated engine ownership, selected-model setup
 and SEC01-protected persistence on the declared Windows environment. It is not cross-platform
 V1 or E01 product-performance completion. SEC02 and SEC03 remain required before claiming
 macOS/Linux sensitive storage or final S03 Windows/macOS/Linux release acceptance.
-The same Flutter shell and engine boundary apply. The selected Phase A is bounded by
-[its current task](docs/S03_WIN_ALPHA_TASK.md); model onboarding and later phases remain unstarted.
+The same Flutter shell and engine boundary apply. Phase A evidence remains in
+[its historical task](docs/S03_WIN_ALPHA_TASK.md). F07 is bounded by
+[its current task](docs/F07_TASK.md); F08 and model onboarding remain unstarted.
 
 ### S03 desktop model setup acceptance
 

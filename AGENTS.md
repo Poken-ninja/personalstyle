@@ -68,6 +68,10 @@ inference-provider boundaries live in
 [ADR-002](docs/decisions/ADR-002-versioned-multi-surface-engine.md), and
 [ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md).
 
+A future web client is owner-approved as a thin surface. Its deployment/transport model
+requires a separate decision; approval does not authorize changing current origin/authentication
+controls or selecting local-web versus hosted-cloud architecture.
+
 A platform/version is called **supported** only when the selected framework/runtime/provider
 supports it and release verification covers it. Current Windows security evidence does not
 establish macOS/Linux sensitive-storage support. Do not promise unlimited backward OS support.

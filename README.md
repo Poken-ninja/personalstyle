@@ -21,8 +21,15 @@ F05/F06 are merged and verified at `0ffd79f305044e739815e26fd97bd1798085c717`;
 P01 is merged/verified at `b811eb1147afe3e2010d69324eb822ed60a0f12a`;
 [PR #11](https://github.com/Poken-ninja/personalstyle/pull/11) preserves CI, local recovery
 and real transport evidence, including the historical failed 600-second run.
-S03-WIN-ALPHA remains active; Phase A Windows foundation is locally passing.
-Read [docs/S03_WIN_ALPHA_TASK.md](docs/S03_WIN_ALPHA_TASK.md).
+S03-WIN-ALPHA Phase A is merged at `96afb4691dfb141601f3239b3d93f203294347d4`;
+[PR #12](https://github.com/Poken-ninja/personalstyle/pull/12) and its
+[historical task](docs/S03_WIN_ALPHA_TASK.md) preserve local and exact-head CI evidence.
+The Windows alpha remains incomplete; Phase B is not started.
+F07 is locally passing on the bounded task branch: real2,000/5,000-word qwen3:8b acceptance,
+294-test instrumented and uninstrumented regressions, Ruff, mypy, pip check and whitespace
+verification passed. The draft PR awaits exact-head CI. Historical transport/storage failures,
+diagnoses, counters and checkpoints remain in [docs/F07_TASK.md](docs/F07_TASK.md).
+F08 is next in the roadmap but remains not_started and requires explicit activation.
 SEC02/SEC03 remain unstarted. Delivery proceeds through a Windows
 desktop alpha before macOS/Linux protected storage and final cross-platform desktop V1;
 see the [roadmap](EXECUTION_CONTRACT.md#windows-desktop-alpha).
@@ -56,3 +63,5 @@ release blockers. See [architecture](ARCHITECTURE.md#multi-surface-architecture)
 [ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md), and the
 [completion definitions](EXECUTION_CONTRACT.md#completion-definitions). Security rules
 remain in [AGENTS.md](AGENTS.md#security-contract).
+
+A future web client is owner-approved; its deployment/transport model is unresolved.

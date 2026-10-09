@@ -27,6 +27,7 @@ PROTOCOL_VERSION = "1.0"
 CAPABILITIES = ("handshake", "rewrite", "example.write", "feedback.write", "preference.evaluate")
 MAX_BODY_BYTES = MAX_REQUEST_BYTES + 4096
 MAX_HEADER_BYTES = 8192
+CLOSE_GRACE_SECONDS = 0.1
 ENGINE_CODES = frozenset({
     "INVALID_REQUEST", "INVALID_EXAMPLE", "INVALID_FEEDBACK", "IDEMPOTENCY_CONFLICT",
     "VERIFIED_SOURCE_INVALID", "FEEDBACK_SOURCE_INVALID", "PREFERENCE_SOURCE_INVALID",
@@ -185,6 +186,25 @@ class EngineServer(HTTPServer):
 
     def handle_error(self, request: Any, client_address: Any) -> None:
         pass  # Never let socket/server diagnostics expose a request or exception contents.
+
+    def shutdown_request(self, request: socket.socket | tuple[bytes, socket.socket]) -> None:
+        # finish() has flushed the response. Closing immediately with unread input can
+        # abort that response on Windows. Send EOF first, then discard only bounded data.
+        connection = cast(socket.socket, request)  # HTTPServer is TCP, not a datagram server.
+        try:
+            connection.shutdown(socket.SHUT_WR)
+            deadline = monotonic() + CLOSE_GRACE_SECONDS
+            remaining = MAX_BODY_BYTES
+            while remaining and (seconds := deadline - monotonic()) > 0:
+                connection.settimeout(seconds)
+                chunk = connection.recv(min(8192, remaining))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+        except OSError:
+            pass
+        finally:
+            self.close_request(request)
 
 
 class _Handler(BaseHTTPRequestHandler):

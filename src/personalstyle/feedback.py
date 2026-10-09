@@ -132,7 +132,7 @@ def _decode(row: tuple[Any, ...]) -> dict[str, Any]:
             or payload["source"]["candidate_mode"] != event.candidate_mode
             or payload["source"]["verification_status"] != "verified"
             or payload["source"]["versions"]["profile_schema"] != 1
-            or payload["source"]["versions"]["storage_schema"] != 2
+            or payload["source"]["versions"]["storage_schema"] not in (2, 3)
             or payload["source"]["prompt_contract"] != 1
             or row[6] != payload["source"]["run_id"] or str(UUID(row[6])) != row[6]
             or json.loads(row[7]) != _observations(payload)

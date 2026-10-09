@@ -29,7 +29,7 @@ SCHEMA_V1 = {
     "source_kind TEXT NOT NULL, learning_eligible INTEGER NOT NULL, held_out INTEGER NOT NULL, "
     "record_version INTEGER NOT NULL, created_at TEXT NOT NULL)",
 }
-SCHEMA = {
+SCHEMA_V2 = {
     **SCHEMA_V1,
     "examples": SCHEMA_V1["examples"][:-1] +
     ", writer_schema INTEGER NOT NULL DEFAULT 2 CHECK(writer_schema=2))",
@@ -45,7 +45,14 @@ INDEXES = {
     "feedback_runs": "CREATE INDEX feedback_runs ON feedback(context, run_id)",
     "preferences_context": "CREATE UNIQUE INDEX preferences_context ON preferences(context, feature, version DESC)",
 }
-SCHEMA.update(INDEXES)
+SCHEMA_V2.update(INDEXES)
+DOCUMENT_SCHEMA = {
+    "documents": "CREATE TABLE documents (id TEXT PRIMARY KEY, revision INTEGER NOT NULL, payload TEXT NOT NULL)",
+    "document_segments": "CREATE TABLE document_segments (document_id TEXT NOT NULL, id TEXT NOT NULL, "
+    "ordinal INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(document_id, id))",
+    "document_order": "CREATE UNIQUE INDEX document_order ON document_segments(document_id, ordinal)",
+}
+SCHEMA = {**SCHEMA_V2, **DOCUMENT_SCHEMA}
 
 
 
@@ -204,14 +211,14 @@ class ExampleStore:
         version = connection.execute("PRAGMA user_version").fetchone()[0]
         if (
             connection.execute("PRAGMA application_id").fetchone() != (APPLICATION_ID,)
-            or version not in (1, 2)
+            or version not in (1, 2, 3)
             or connection.execute("PRAGMA journal_mode").fetchone() != ("delete",)
         ):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT")
         objects = connection.execute(
             "SELECT name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%'"
         ).fetchall()
-        if dict(objects) != (SCHEMA_V1 if version == 1 else SCHEMA):
+        if dict(objects) != ({1: SCHEMA_V1, 2: SCHEMA_V2, 3: SCHEMA}[version]):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT")
         metadata = connection.execute("SELECT schema_version, profile_version FROM store_meta").fetchall()
         if (
@@ -237,12 +244,12 @@ class ExampleStore:
             if new:
                 for statement in SCHEMA.values():
                     connection.execute(statement)
-                connection.execute("INSERT INTO store_meta VALUES (2, 1)")
+                connection.execute("INSERT INTO store_meta VALUES (3, 1)")
                 connection.execute(f"PRAGMA application_id={APPLICATION_ID}")
-                connection.execute("PRAGMA user_version=2")
+                connection.execute("PRAGMA user_version=3")
             else:
                 self._schema(connection)  # Revalidate after acquiring the write lock.
-                if connection.execute("PRAGMA user_version").fetchone() != (2,):
+                if connection.execute("PRAGMA user_version").fetchone() != (3,):
                     raise StoreError("STORAGE_MIGRATION_REQUIRED")
             row = connection.execute("SELECT * FROM examples WHERE id=?", (example.id,)).fetchone()
             if row is not None and tuple(row[:8]) != example.payload():
@@ -287,7 +294,7 @@ class ExampleStore:
             connection = self._connect(readonly=not write)
             connection.execute("BEGIN IMMEDIATE" if write else "BEGIN")
             self._schema(connection)
-            if connection.execute("PRAGMA user_version").fetchone() != (2,):
+            if connection.execute("PRAGMA user_version").fetchone()[0] not in ((3,) if write else (2, 3)):
                 raise StoreError("STORAGE_MIGRATION_REQUIRED")
             self._recheck(identity)
             yield connection
@@ -346,6 +353,104 @@ class ExampleStore:
                     connection.close()
         with self.feedback_connection():
             pass
+
+    def migrate_document_schema(self) -> None:
+        """Explicit atomic 2->3; canonical learning data/profile versions are unchanged."""
+        connection: sqlite3.Connection | None
+        with self.feedback_connection() as connection:
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+        if version == 3:
+            return
+        # feedback_connection cannot be used for old-schema mutation; use its same guards.
+        connection = None
+        try:
+            identity = self._boundary()
+            connection = self._connect()
+            connection.execute("BEGIN IMMEDIATE")
+            self._schema(connection)
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+            if version == 2:
+                for statement in DOCUMENT_SCHEMA.values():
+                    connection.execute(statement)
+                connection.execute("UPDATE store_meta SET schema_version=3")
+                connection.execute("PRAGMA user_version=3")
+            elif version != 3:
+                raise StoreError("STORAGE_MIGRATION_REQUIRED")
+            self._schema(connection)
+            self._recheck(identity)
+            connection.execute("COMMIT")
+        except SecurityError:
+            raise StoreError("STORAGE_BOUNDARY_INVALID") from None
+        except (OSError, sqlite3.Error):
+            raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT") from None
+        finally:
+            if connection is not None:
+                if connection.in_transaction:
+                    connection.rollback()
+                connection.close()
+        with self.feedback_connection():
+            pass
+
+    def document_checkpoint(self, document_id: str) -> tuple[dict[str, Any], list[dict[str, Any]]] | None:
+        """One ordered streamed lookup, not a query per returned segment."""
+        try:
+            with self.feedback_connection() as connection:
+                if connection.execute("PRAGMA user_version").fetchone() != (3,):
+                    raise StoreError("STORAGE_MIGRATION_REQUIRED")
+                row = connection.execute(
+                    "SELECT revision, payload FROM documents WHERE id=?", (document_id,),
+                ).fetchone()
+                if row is None:
+                    return None
+                manifest = json.loads(row[1])
+                segments = [json.loads(r[0]) for r in connection.execute(
+                    "SELECT payload FROM document_segments WHERE document_id=? ORDER BY ordinal LIMIT 129",
+                    (document_id,),
+                )]
+                if (len(segments) > 128 or manifest["revision"] != row[0]
+                        or manifest["id"] != document_id):
+                    raise ValueError
+                return manifest, segments
+        except (ValueError, TypeError, KeyError):
+            raise StoreError("DOCUMENT_CHECKPOINT_INVALID") from None
+
+    def save_document_checkpoint(
+        self, manifest: dict[str, Any], segments: list[dict[str, Any]], *, expected_revision: int,
+        replace: bool = False,
+    ) -> None:
+        """CAS revision plus atomic manifest/changed-segment state; no profile mutation."""
+        encoded = json.dumps(manifest, ensure_ascii=False, sort_keys=True)
+        rows = [(manifest["id"], s["id"], s["ordinal"],
+                 json.dumps(s, ensure_ascii=False, sort_keys=True)) for s in segments]
+        if (len(encoded.encode()) > 120 * 1024 or len(rows) > 128
+                or any(len(r[3].encode()) > 120 * 1024 for r in rows)
+                or manifest["revision"] != expected_revision + 1):
+            raise StoreError("DOCUMENT_RESOURCE_LIMIT")
+        with self.feedback_connection(write=True) as connection:
+            current = connection.execute(
+                "SELECT revision FROM documents WHERE id=?", (manifest["id"],),
+            ).fetchone()
+            if (current[0] if current else 0) != expected_revision:
+                raise StoreError("DOCUMENT_CHECKPOINT_CONFLICT")
+            connection.execute(
+                "INSERT INTO documents VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET "
+                "revision=excluded.revision, payload=excluded.payload",
+                (manifest["id"], manifest["revision"], encoded),
+            )
+            if replace:
+                connection.execute("DELETE FROM document_segments WHERE document_id=?", (manifest["id"],))
+            connection.executemany(
+                "INSERT INTO document_segments VALUES (?, ?, ?, ?) ON CONFLICT(document_id, id) "
+                "DO UPDATE SET ordinal=excluded.ordinal, payload=excluded.payload", rows,
+            )
+            if connection.execute("SELECT payload FROM documents WHERE id=?", (manifest["id"],)).fetchone() != (encoded,):
+                raise StoreError("PERSISTENCE_VERIFICATION_FAILED")
+            stored_rows = {r[0]: r[1:] for r in connection.execute(
+                "SELECT id, ordinal, payload FROM document_segments WHERE document_id=? LIMIT 129",
+                (manifest["id"],),
+            )}
+            if len(stored_rows) > 128 or any(stored_rows.get(row[1]) != row[2:] for row in rows):
+                raise StoreError("PERSISTENCE_VERIFICATION_FAILED")
 
     @staticmethod
     def preference_records(connection: sqlite3.Connection, context: str) -> list[dict[str, Any]]:
