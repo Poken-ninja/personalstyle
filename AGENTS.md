@@ -284,6 +284,8 @@ Context is explicit and bounded.
 5. Respect configured example and context-token limits.
 6. Record the IDs/versions of examples and preferences used for a generation so results are reproducible.
 7. Held-out product-test writing must never be eligible for retrieval, Writing DNA calculation, or preference learning during the test that uses it.
+8. Until V01 establishes an explicit consent/compatibility policy and negative tests, shared baseline trait inheritance is disabled; never feed casual examples into academic or professional generation merely because they belong to the same user.
+9. Source draft text, rubrics, generated text and external references are not automatically user-authentic learning sources; provenance and authorization must be enforceable at ingestion and selection. The accepted product boundary is [ADR-004](docs/decisions/ADR-004-voice-and-constraint-humanization.md).
 
 ### Writing-data provenance
 
@@ -329,11 +331,15 @@ Generation must not mutate durable personalization state.
 A candidate cannot succeed if it materially:
 - changes the user's intended meaning;
 - loses or changes required names, dates, numbers, requests, or facts;
-- violates an explicit constraint;
-- uses a disallowed/wrong context;
+- violates an explicit constraint or supported confirmed rubric/requirement criterion;
+- uses a disallowed/wrong context or unauthorized style evidence;
 - exceeds a hard structural limit.
 
 Use deterministic checks for objective invariants where possible.
+Unverified or subjective rubric criteria must be surfaced as `needs_review`/`not_established`,
+not silently assigned PASS; do not invent sources/facts to satisfy a requirement.
+Em dashes, emojis and formatting patterns alone do not prove AI authorship; do not
+implement a global blacklist or detector-evasion pass as a proxy for authentic voice.
 
 Semantic preservation that cannot be settled deterministically requires a separate verification path. If the same model that generated the text also evaluates it, call that **self/second-pass verification**, not independent verification.
 
@@ -399,7 +405,10 @@ Examples:
 - personalized output does not outperform the simpler baseline;
 - feedback does not reduce later editing effort;
 - style gains occur only by harming fidelity;
-- learned preferences leak into unrelated contexts.
+- learned preferences leak into unrelated contexts;
+- humanization removes authentic user style merely to suppress alleged AI "tells";
+- rubric criteria are falsely reported passing or fabricated claims/citations are introduced;
+- user-owned, model-generated and held-out source provenance becomes indistinguishable.
 
 Personalization failure can occur even when the software is implemented correctly.
 
@@ -489,7 +498,9 @@ For A/B/C product testing:
 - pin model/prompt/retrieval versions for a comparison;
 - test contexts separately;
 - record failure cases, not only averages;
-- do not change the pass rule after seeing results.
+- do not change the pass rule after seeing results;
+- evaluate authentic voice using held-out, genuinely user-authored samples and human judgments rather than AI-detector scores;
+- test academic style fidelity and rubric requirements together, including negative cases for unsupported or ambiguous criteria.
 
 Do not use the same extracted style traits as both the sole generation control and sole quality judge.
 

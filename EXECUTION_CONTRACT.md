@@ -4,20 +4,22 @@
 
 ```text
 CONTRACT_ID: PS-V1-001
-CONTRACT_STATUS: contract_ready
-IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 / F04 / F05 / F06 / P01 merged and verified; V1 incomplete
-SELECTED_PRODUCT_TASK: F07
-ACTIVE_PRODUCT_TASK: F07 locally passing; draft PR awaits exact-head CI; docs/F07_TASK.md
-NEXT_PERMITTED_ACTION: observe required exact-head CI; do not merge or activate F08 automatically
+CONTRACT_STATUS: contract_ready; new product direction specified, not implemented
+IMPLEMENTATION_STATUS: I01 / SEC01 / F01-F07 / P01 merged in their declared scope; V1 incomplete
+SELECTED_PRODUCT_TASK: none
+ACTIVE_PRODUCT_TASK: none
+NEXT_PERMITTED_ACTION: owner selects bounded task; F08 is next existing roadmap candidate; UX01 may remain design-only
 SURFACE_STATUS: Windows Phase A merged; overall alpha incomplete; Phase B and SEC02/SEC03 not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
-CURRENT_VERIFIED_MAIN: 96afb4691dfb141601f3239b3d93f203294347d4
+CURRENT_OBSERVED_MAIN: 4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a
+F07_EXACT_HEAD_CI: run 37865805821 success at 0e4114f0d6fbda03676f49d1ef13ee004ce14773
 ```
 
 This document owns product scope, roadmap, dependencies and completion definitions.
 Status and specifications are not execution evidence. Task-specific scope, acceptance,
 budgets and evidence live in the selected bounded task contract; stable builder and
-security rules live in [AGENTS.md](AGENTS.md).
+security rules live in [AGENTS.md](AGENTS.md). The accepted new product direction and
+version-impact policy are owned by [ADR-004](docs/decisions/ADR-004-voice-and-constraint-humanization.md).
 
 ## Completed tasks and evidence
 
@@ -32,6 +34,7 @@ security rules live in [AGENTS.md](AGENTS.md).
 | F04 | Hard second-pass verification and bounded repair | [F04 task](docs/F04_TASK.md); [PR #9](https://github.com/Poken-ninja/personalstyle/pull/9) |
 | P01 | Authenticated versioned loopback engine boundary | [Historical task](docs/P01_TASK.md); [PR #11](https://github.com/Poken-ninja/personalstyle/pull/11) owns recovery/final merge evidence |
 | S03-WIN-ALPHA Phase A | Windows Flutter foundation and real authenticated engine lifecycle | [Historical task](docs/S03_WIN_ALPHA_TASK.md); [PR #12](https://github.com/Poken-ninja/personalstyle/pull/12) |
+| F07 | Bounded, resumable 2k/5k-word long-document rewriting on the scoped Windows environment | [Historical task](docs/F07_TASK.md); [PR #13](https://github.com/Poken-ninja/personalstyle/pull/13), merged `4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a`; exact-head CI run `37865805821` SUCCESS |
 
 F05/F06 merge: `0ffd79f305044e739815e26fd97bd1798085c717`; [historical task](docs/F05_F06_TASK.md), [PR #10](https://github.com/Poken-ninja/personalstyle/pull/10).
 P01 merge: `b811eb1147afe3e2010d69324eb822ed60a0f12a`; exact-head and merged-main CI green,
@@ -44,6 +47,11 @@ Phase A merge: `96afb4691dfb141601f3239b3d93f203294347d4`; source head
 Historical local evidence: Flutter analyze clean,22 Flutter tests passed, Windows build passed,
 real P01 lifecycle/handshake passed2.673s. Its recorded failures/counters remain unchanged.
 Phase A completion does not complete Windows alpha or activate model onboarding.
+F07 PR #13 merged at `4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a`. Its exact-head
+CI passed on `0e4114f0d6fbda03676f49d1ef13ee004ce14773`; local real-provider,
+regression and static evidence and historical failures remain revision-scoped in F07's
+task record. Merge and exact-head CI do not by themselves establish overall Windows-alpha
+or product-quality completion.
 
 Completed records are historical evidence for their named revisions/environments, not
 instructions to reactivate tasks or reset budgets. PR records include merge SHAs and
@@ -54,17 +62,19 @@ preserves historical initial states and the full I01/SEC01 execution specificati
 
 ## Objective
 
-Build the smallest local-first PersonalStyle vertical slice that can demonstrate in normal engineering tests that context-specific personalization reduces user editing effort or increases accept-without-edit behavior versus a generic rewrite baseline while preserving meaning, required information, and explicit constraints.
+Build a local-first humanizer that rewrites user-supplied, often AI-generated drafts to resemble the **user's authentic writing voice for the explicitly chosen context**, while preserving meaning, required information, confirmed academic rubric or professional requirements and security/consent boundaries. Establish product quality with held-out writers and a generic rewrite baseline, not AI-detector scores.
 
 ### Product goal and success criterion
 
-PersonalStyle is a local-first adaptive writing assistant.
+PersonalStyle is a local-first **personalized AI-draft humanizer**, not primarily a generic editor or AI-detector bypass tool.
 
-Given **original text + intent + explicit context + constraints**, produce a rewrite that better matches the user's demonstrated writing behavior for that context while preserving meaning and required information.
+Given **draft text + humanize intent + explicit context + user-authorized writing evidence + confirmed constraints/requirements**, produce a rewrite that better resembles the user's own writing *in that context* without degrading meaning, factual content, citations or applicable hard requirements.
 
 The product success criterion is:
 
-> With continued use, PersonalStyle should reduce the user's editing effort and increase accept-without-edit behavior versus a generic rewrite baseline without degrading semantic or constraint fidelity.
+> On a frozen held-out evaluation, personalized humanization should improve authentic-voice resemblance and reduce editing effort or increase accept-without-edit behavior versus a declared generic baseline, while all hard fidelity, context-isolation, consent and supported rubric checks remain valid.
+
+No numerical threshold, best-in-market claim, AI-detector bypass guarantee or measured voice-fidelity advantage is established yet. Freeze pass rules, samples and evaluation methods before scoring. [ADR-004](docs/decisions/ADR-004-voice-and-constraint-humanization.md) owns the accepted behavior and unresolved controls.
 
 ## Scope
 
@@ -79,7 +89,9 @@ Core V1:
 - return the candidate;
 - accept/edit feedback;
 - classified edit observations and evidence-backed preference hypotheses/promotion;
-- A/B/C product-performance testing.
+- A/B/C product-performance testing;
+- **accepted new V1 product target, not implemented:** optional original-answer voice onboarding, locally persisted context-scoped user voice, honest generic/provisional fallback, optional evidence-backed shared traits only after explicit policy/consent, and generalized requirements/rubric checking with an academic presentation;
+- **secondary refinements:** shorten, clarify and polish; they do not replace the main Humanize in My Voice action.
 
 Current V1 release target after the authoritative core works is one Flutter desktop app on
 Windows, macOS and Linux. The terminal/CLI remains an engineering and acceptance surface.
@@ -88,7 +100,7 @@ arrangements are owned by [ARCHITECTURE.md](ARCHITECTURE.md),
 [ADR-002](docs/decisions/ADR-002-versioned-multi-surface-engine.md), and
 [ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md).
 
-Owner-approved additions: F07 bounded/resumable long-document reliability and later F08
+Owner-approved additions: F07 bounded/resumable long-document reliability (now merged) and later F08
 document import/export precede Windows model onboarding. F08 initial import formats are
 `.txt`, `.md`, `.docx`, text-based `.pdf`; initial export formats are `.docx`, `.pdf`, `.md`,
 `.txt`. Parsing/export/OCR are not activated by F07. A future thin web client is approved
@@ -154,6 +166,32 @@ ownership/permission mechanisms and negative/positive executable evidence must e
 This does not invalidate the existing Windows evidence and does not block core F03 work on
 the already verified Windows path.
 
+### U9 — shared baseline voice and context inheritance
+Default to exact-context-only evidence. Define consent, compatibility, provenance, trait
+eligibility, conflict behavior and revocation before implementing baseline sharing; never
+import casual examples automatically into academic or professional rewriting.
+
+### U10 — voice-discovery evidence and lifecycle
+Three short situational writing answers are a proposed UX default, not an adequacy threshold.
+Freeze question types, source/provenance rules, sample sufficiency, local retention and
+inspect/delete/learning-consent behavior before V01/V02 execution.
+
+### U11 — requirements/rubric semantics
+Define parseable criterion types, rubric/constraint precedence, explicit user confirmation,
+source-citation verification boundaries, unknown/review-required status and misuse cases.
+Start with pasted text; F08 determines compatible file-import surface capability.
+
+### U12 — learning diagnostics, versions and held-out benchmark
+Determine which style features can actually be learned, how false classifications are
+contained, and how writing resemblance and rubric fidelity are evaluated on held-out
+writers. Freeze quality thresholds, model/prompt/evaluator versions and competitor comparison
+protocol *before* scoring. No punctuation/emoji blacklist or AI-detector score gate.
+
+### U13 — release sequencing and acceptance freeze
+F08 remains the next existing alpha dependency, not automatically activated. New V/R
+capabilities are V1 product-target gates but not retroactive blockers for the previously
+approved Windows alpha; owner must select and contract each task before code changes.
+
 ## Task plan
 
 | ID | Task | Depends on | Current state |
@@ -168,15 +206,21 @@ the already verified Windows path.
 | F06 | Evidence-backed context preference promotion | F05 | merged / verified; PR #10, context_preference_promotion.v1 |
 | P01 | Mechanize versioned engine protocol + authenticated capability handshake | F05 + F06 + SEC01 | merged / verified; PR #11 |
 | S03-WIN-ALPHA-A | Windows Flutter foundation and engine connection | P01 | merged / verified; PR #12 at96afb4691dfb141601f3239b3d93f203294347d4 |
-| F07 | Long-document bounded rewrite and recovery | S03-WIN-ALPHA-A + F04 + SEC01 | locally passing; 294-test regressions, static checks and v3 real2,000/5,000 passed; draft PR awaits CI; [task](docs/F07_TASK.md) |
+| F07 | Long-document bounded rewrite and recovery | S03-WIN-ALPHA-A + F04 + SEC01 | merged; [task](docs/F07_TASK.md), PR #13, exact-head CI passed |
 | F08 | Document import/export in the declared initial formats | F07 | not_started |
 | S03-WIN-ALPHA-B | Windows model setup/readiness | F08 | not_started; separate owner activation required |
 | SEC02 | Mechanize macOS protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | SEC03 | Mechanize Linux protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
-| E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
+| V01 | Voice evidence/provenance, context eligibility, optional shared-trait policy | F02 + F06; U9/U10 | not_started; requires owner task activation |
+| V02 | Optional contextual voice discovery + local profile management through authoritative engine | V01 + P01 | not_started; requires owner task activation |
+| V03 | User-voice humanization, safe generic-pattern diagnostics and qualified edit learning | V02 + F04; U12 | not_started; requires owner task activation |
+| R01 | General requirements/rubric parsing, confirmation and criterion verification | F04; F08 for supported document imports; U11 | not_started; requires owner task activation |
+| V04 | Integrated context + voice + rubric acceptance and benchmark | V03 + R01; U3/U12 | not_started; requires owner task activation |
+| UX01 | Design-only Figma flows for voice setup, contexts, humanization and rubric statuses | ADR-004 | design exploration; not implementation evidence |
+| E01 | Frozen A/B/C product-performance test with voice/rubric evaluation | F06 + V04 + U3 + U12 | not_started |
 | S01 | Terminal/CLI acceptance surface | F06 | not_started |
 | S03-WIN-ALPHA | Final Windows Flutter desktop-alpha acceptance | Phase A + F07 + F08 + Phase B + SEC01 | incomplete; Phase A merged; later phases unstarted |
-| S03 | Flutter desktop app + Windows/macOS/Linux release acceptance | S03-WIN-ALPHA + SEC02 + SEC03 + U6 | not_started |
+| S03 | Flutter desktop app + Windows/macOS/Linux release acceptance for expanded V1 target | S03-WIN-ALPHA + SEC02 + SEC03 + V04 + U6 | not_started |
 
 Deferred backlog, not V1 blockers: S02 browser-extension adapter, S04 iOS/Android companion
 client, and S05 standalone mobile inference. Reactivating any deferred surface requires an
@@ -184,23 +228,27 @@ explicit owner decision and a fresh bounded task contract.
 
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
 requires explicit owner selection and a bounded task contract; completing a dependency
-does not auto-activate it. F03 is merged/verified; PR #8 records the exact merge and
-merged-main CI. P01 is merged/verified at b811eb1147afe3e2010d69324eb822ed60a0f12a.
-Phase A is merged; F07 is locally passing with owner-authorized protected document/segment
-state and schema2->3 migration. Both live long-document acceptances, the instrumented and
-definitive294-test regressions, and required local static checks passed. The P01 bounded
-transport repair passed its targeted stress tests. Historical storage-failure cause remains
-unknown and all failures/counters remain recorded. The draft PR awaits exact-head CI.
-F08 remains the next roadmap item, not_started until explicit activation. Phase B remains
-not_started; overall Windows alpha remains incomplete.
-Other surfaces remain unstarted.
+does not auto-activate it. All I01 through F07 slices and S03 Phase A are merged in their
+declared scope. F07's task ledger preserves historical retry/failure budgets; do not reset
+it or reinterpret its checkpoints as current active work. At the observed main revision
+`4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a`, F08 remains the next existing
+Windows-alpha dependency, not_started. Phase B remains not_started; Windows alpha and
+cross-platform V1 remain incomplete. New voice/rubric task IDs are bounded future
+capabilities, not implicit authorization or implementation.
+
+**Scheduling boundary:** finish the existing F08 -> Phase B -> final Windows-alpha
+acceptance lane before claiming that milestone complete. V01/V02/V03 and R01/V04
+are separately activated, ordered by dependencies, and required for the *expanded V1
+product-target* and product-quality claims. The owner can explicitly reprioritize with
+an updated task contract and dependency impact review; no doc change auto-activates work.
 
 ### Windows desktop alpha
 
-Owner-approved delivery order: F04 -> combined F05+F06 feedback-learning slice -> P01 ->
-S03-WIN-ALPHA Phase A -> F07 long-document reliability -> F08 document import/export ->
-S03 Phase B model setup/readiness -> final Windows alpha acceptance -> SEC02/macOS +
-SEC03/Linux -> cross-platform desktop V1.
+Owner-approved Windows-alpha order: F04 -> combined F05+F06 feedback-learning slice -> P01 ->
+S03-WIN-ALPHA Phase A -> F07 long-document reliability (merged) -> F08 document import/export ->
+S03 Phase B model setup/readiness -> final Windows alpha acceptance. The new V01-V04/R01
+voice and rubric work is a separately selected expanded-V1 product lane; final cross-platform
+V1 requires those product capabilities plus SEC02/macOS and SEC03/Linux evidence.
 S03-WIN-ALPHA is a distinct usable Windows UI milestone; it does not wait for macOS/Linux.
 It must verify Windows core workflows, authenticated engine ownership, selected-model setup
 and SEC01-protected persistence on the declared Windows environment. It is not cross-platform
@@ -208,7 +256,7 @@ V1 or E01 product-performance completion. SEC02 and SEC03 remain required before
 macOS/Linux sensitive storage or final S03 Windows/macOS/Linux release acceptance.
 The same Flutter shell and engine boundary apply. Phase A evidence remains in
 [its historical task](docs/S03_WIN_ALPHA_TASK.md). F07 is bounded by
-[its current task](docs/F07_TASK.md); F08 and model onboarding remain unstarted.
+[its historical task](docs/F07_TASK.md); F08 and model onboarding remain unstarted.
 
 ### S03 desktop model setup acceptance
 
@@ -265,6 +313,15 @@ A feature is complete only when:
 
 Code existence, confidence, TODO comments, or proposed tests do not count.
 
+### Voice + requirements feature complete (new V1 product target)
+
+For each activated V/R task, acceptance must map to revision-specific evidence: source
+provenance and consent, context-isolation negative cases, protected store persistence and
+migration/restart behavior (when applicable), verified source/meaning fidelity, honest
+criterion-level rubric status, bounded failure paths, protocol/client compatibility and
+required exact-head CI. User-facing Figma screens alone or claimed AI-detector evasion do
+not count. See [ADR-004](docs/decisions/ADR-004-voice-and-constraint-humanization.md#definition-of-done--failures).
+
 ### V1 implementation complete
 
 V1 implementation is complete when the A/B/C product-test path is runnable end-to-end:
@@ -273,7 +330,10 @@ V1 implementation is complete when the A/B/C product-test path is runnable end-t
 - B: context-personalized rewrite without accumulated learning;
 - C: context-personalized rewrite with accumulated learning;
 
-and the system can collect the required hard-invariant, edit-effort, acceptance, context, latency, and resource evidence on a held-out product-test set.
+and the system can collect hard-invariant, edit-effort, acceptance, context, latency and
+resource evidence on a held-out product-test set. For the expanded product target,
+V01-V04/R01 must also be verified, including user-authentic voice evidence, explicit
+context isolation, academic rubric status and guarded learning.
 
 This does **not** mean PersonalStyle meets the product success criterion.
 
@@ -325,12 +385,16 @@ Before the scored product test, freeze:
 - metric definitions;
 - success comparison rule.
 
-Product success is validated only if B/C improve the predeclared personalization/user-effort criteria versus the relevant baseline while meeting the hard semantic/constraint requirements.
+Product success is validated only if B/C improve the predeclared authentic-voice and
+user-effort criteria versus the relevant baseline while meeting hard semantic/factual,
+consent, cross-context isolation and supported rubric/requirement criteria. Subjective
+rubric items and unverified source truth must be reported as requiring human review.
 
 If they do not, the product requirement is not met. Do not redefine the metric after seeing results to manufacture success.
 
 ### Product-test evidence signals
 
-Evidence includes hard semantic/constraint validity, context accuracy, stylometric
-diagnostics, normalized edit effort, accept-without-edit rate, user preference, latency
-and resource use. Testing discipline remains in [AGENTS.md](AGENTS.md#product-testing-discipline).
+Evidence includes hard semantic/constraint/rubric validity, context accuracy and leakage
+negative tests, authentic-voice similarity using held-out user-authored samples and
+human review, stylometric diagnostics, normalized edit effort, accept-without-edit rate,
+user preference, latency and resource use. Testing discipline remains in [AGENTS.md](AGENTS.md#product-testing-discipline).
