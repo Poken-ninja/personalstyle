@@ -66,6 +66,59 @@ requirements-confirmation screens still need design work. Never claim a missing 
 Each slice needs its own bounded task contract. If it needs a new engine capability, create a
 separate dependency task instead of simulating that behavior in Flutter.
 
+## Context, voice and refinement controls
+
+The Academic workspace in the existing Figma file already proposes three friendly selectors:
+**Writing context**, **Use my writing voice**, and **Optional refinement**. Keep these as
+dropdowns; users should not enter engine context IDs, voice names or structured constraint
+syntax. The primary action remains Humanize in My Voice.
+
+- Selecting Academic, Professional or Everyday selects only that exact context. Default the
+  voice selector to that context's own profile when eligible evidence exists. Offer an explicit
+  generic mode; never borrow another context's examples or preferences.
+- When the selected context has no eligible examples, say so and offer “Add writing for this
+  context” or “Continue with generic writing.” Do not call generic output personalized.
+- This fallback is a product requirement, not current behavior: `generate_pair` derives
+  personalization before generating either candidate, so it currently fails with
+  `NO_ELIGIBLE_EXAMPLES` when the selected context is empty. A bounded engine task must add a
+  generic-only execution path before the UI offers that fallback. P01 also has no read-only
+  context/profile inspection capability, so the UI cannot currently show per-context readiness
+  or a Writing DNA summary before generation.
+- Keep optional refinements predefined and user-controlled. Start with “Humanize only,” then
+  offer a small set such as simpler wording, more concise, or more formal/conversational. A
+  complexity choice describes the user's desired output, not their knowledge or expertise.
+  Never infer that a user knows or does not know a subject.
+- Make “preserve exact terms” a clear requirement when users select terms to protect. The
+  existing verifier can enforce exact `required_literal` values; Flutter can present readable
+  term chips/fields and translate them to that engine syntax. Do not claim that the engine
+  automatically identifies every technical term. General technicality/style refinements remain
+  quality requests, not hard verification guarantees.
+
+## Inspecting and adjusting a voice profile
+
+Users should be able to inspect context-scoped evidence and the derived Writing DNA without
+seeing raw SQLite or needing a confidence score. The current DNA contains structural measures
+such as sample count, sentence/paragraph counts, sentence-length statistics and punctuation
+counts; it does not establish semantic traits such as “direct,” “advanced,” or “expert.” Present
+only measurements or summaries the engine actually returns, with source context and profile
+version.
+
+Do not let users edit derived measurements in place. Separate observed evidence from explicit
+user preferences: a user may choose desired wording complexity or terminology handling, while
+the engine retains its reproducible derived snapshot. Persisted preference editing requires an
+engine-owned, context-scoped, versioned capability and explicit acceptance tests before Flutter
+exposes it. “Use simpler wording” must never imply the user lacks expertise.
+
+## Contexts with incomplete voice evidence
+
+Profiles are independent per context. If a user has Academic evidence but no Professional or
+Everyday evidence, those latter contexts remain unavailable for personalized mode. The UI may
+offer the authoritative generic path with an honest label, or guide the user to add genuine
+writing for that exact context. It must not synthesize a missing voice, silently switch context,
+or treat an AI draft, rubric or synthetic fixture as personal evidence. A read-only engine
+readiness capability is needed to show these states before a rewrite; do not misuse
+`preference.evaluate`, which is a state-changing operation.
+
 ## Current checkpoint
 
 F08 has a local incomplete checkpoint on `task/f08-document-import-export` at
