@@ -9,6 +9,7 @@ WIP: 1
 IMPLEMENTATION: 1/1 used; primary UI error/recovery implementation complete
 DIAGNOSIS: 0/1 used
 RECOVERY: 0 used
+CI_PARTITION_REPAIR: 1/1 owner-authorized harness-only correction; exact-head CI pending
 ```
 
 ## Objective
@@ -102,4 +103,26 @@ or consent requires a separate task decision. Preserve all F08 work and evidence
 UX-A completes only when focused tests, analysis and Windows build pass and the interface shows
 specific safe categories without false claims about the unresolved F08 example write. This does
 not complete F08, Windows alpha, voice onboarding, requirements/rubric support or PersonalStyle
-V1. No merge or PR is authorized by this contract.
+V1. Owner-authorized draft PR #16 is open; merge approval remains separate.
+
+## CI ceiling diagnosis and partition correction — 2026-10-15
+
+PR #16 head `aea0cc01b06517b3f5fbbadb69d79ac745cb645a` exact-head run `38757120149` was
+cancelled at the existing Windows job ceiling of 15 minutes. The full `python -m pytest -q`
+step reported `108 passed in 890.96s` before `KeyboardInterrupt`; no assertion failure was
+reported, and all later quality steps were skipped. The previous successful full harness run
+`37865805821` completed in about 10m34s. Python source and tests were unchanged in PR #16.
+Logs do not establish a particular in-flight test; the demonstrated issue is aggregate runtime
+variance against the full-suite job ceiling, not a proven test defect. The timeout was not
+increased.
+
+Owner authorized one CI-only partition correction; this does not consume or reset the UX-A
+feature implementation counter. The workflow now runs all Python test modules in four
+deterministic Windows shards, each still bounded by 15 minutes, and executes startup/static
+checks in a separate job. A required aggregator preserves the existing `Python harness checks`
+status name and fails unless every shard and quality job succeeds. `scripts/run_pytest_shard.py`
+checks that discovered `test_*.py` modules are assigned exactly once before executing a shard.
+Local evidence: coverage check passed for all 11 test modules; shard collection counts were
+68 + 71 + 66 + 89 = 294, matching the complete suite; Ruff and `git diff --check` passed.
+The full tests were not rerun locally. New exact-head GitHub CI is the verification gate for
+the partition and all tests; do not call it passed until that run is green.
