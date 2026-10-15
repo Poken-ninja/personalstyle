@@ -116,20 +116,29 @@ Future<void> rewrite(WidgetTester tester) async {
 void main() {
   test('operation failure status preserves the safe error category', () {
     expect(
-      operationFailureStatus(EngineFailure.protectedStorage),
+      statusForFailure(EngineFailure.protectedStorage),
       'PROTECTED_STORAGE_ERROR',
     );
     expect(
-      operationFailureStatus(EngineFailure.modelUnavailable),
+      statusForFailure(EngineFailure.modelUnavailable),
       'MODEL_UNAVAILABLE',
     );
     expect(
-      operationFailureStatus(EngineFailure.verificationRejected),
+      statusForFailure(EngineFailure.verificationRejected),
       'VERIFICATION_REJECTED',
     );
     expect(
-      operationFailureStatus(EngineFailure.operation),
+      statusForFailure(EngineFailure.operation),
       'ENGINE_OPERATION_FAILED',
+    );
+    expect(statusForFailure(EngineFailure.invalidRequest), 'INVALID_INPUT');
+    expect(
+      statusForFailure(EngineFailure.noEligibleExamples),
+      'NO_ELIGIBLE_VOICE_EVIDENCE',
+    );
+    expect(
+      statusForFailure(EngineFailure.documentOperation),
+      'DOCUMENT_OPERATION_FAILED',
     );
   });
 
@@ -359,7 +368,10 @@ void main() {
     expect(find.textContaining('unexpected ACL rule count'), findsOneWidget);
     expect(find.byKey(const Key('pendingNotice')), findsOneWidget);
     expect(find.textContaining('same request ID'), findsOneWidget);
-    expect(find.text('Retry example save (same ID)'), findsOneWidget);
+    expect(
+      find.text('Retry writing example save with same ID'),
+      findsOneWidget,
+    );
     expect(
       tester
           .widget<FilledButton>(find.widgetWithText(FilledButton, 'Rewrite'))
@@ -394,12 +406,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('ENGINE_UNAVAILABLE'), findsOneWidget);
-    expect(find.textContaining('pending example save'), findsOneWidget);
+    expect(find.text('Unconfirmed writing example save'), findsOneWidget);
     expect(
       tester.widget<Text>(find.byKey(const Key('pendingNotice'))).data,
       contains('status is unknown'),
     );
-    expect(find.text('Retry example save (same ID)'), findsNothing);
+    expect(find.text('Retry writing example save with same ID'), findsNothing);
   });
 
   testWidgets('engine exit invalidates result and session UI', (tester) async {
@@ -446,11 +458,32 @@ void main() {
       expect(fake.calls, hasLength(2));
       final originalMutation = fake.calls.last;
       fake.operationFailure = null;
-      await tester.ensureVisible(find.text('Retry feedback (same ID)'));
-      await tester.tap(find.text('Retry feedback (same ID)'));
+      await tester.ensureVisible(
+        find.text('Retry feedback submission with same ID'),
+      );
+      await tester.tap(find.text('Retry feedback submission with same ID'));
       await tester.pumpAndSettle();
       expect(fake.calls.last, originalMutation);
       expect(fake.calls, hasLength(3));
     },
   );
+
+  testWidgets('definite mutation rejection clears pending state', (
+    tester,
+  ) async {
+    final fake = WireFake()
+      ..operationFailure = const EngineException(EngineFailure.invalidRequest);
+    await boot(tester, fake);
+    await tester.enterText(field('Explicit context'), 'casual.chat');
+    await tester.enterText(field('Writing example'), 'Synthetic owned sample.');
+    await tester.tap(find.text('I own this writing and authorize storing it'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Save authorized example'));
+    await tester.tap(find.text('Save authorized example'));
+    await tester.pumpAndSettle();
+
+    expect(fake.calls, hasLength(1));
+    expect(find.byKey(const Key('pending-mutation')), findsNothing);
+    expect(find.textContaining('No change was saved.'), findsOneWidget);
+  });
 }

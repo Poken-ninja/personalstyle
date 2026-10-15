@@ -73,13 +73,18 @@ String messageFor(
   return details.isEmpty ? message : '$message\n${details.join('\n')}';
 }
 
-String operationFailureStatus(EngineFailure failure) => switch (failure) {
-  EngineFailure.invalidRequest => 'REQUEST_INVALID',
+String statusForFailure(EngineFailure failure) => switch (failure) {
+  EngineFailure.start => 'ENGINE_START_FAILED',
+  EngineFailure.exited => 'ENGINE_UNAVAILABLE',
+  EngineFailure.authentication => 'AUTHENTICATION_FAILED',
+  EngineFailure.incompatible => 'PROTOCOL_INCOMPATIBLE',
+  EngineFailure.capability => 'CAPABILITY_UNSUPPORTED',
+  EngineFailure.invalidRequest => 'INVALID_INPUT',
   EngineFailure.mutationConflict => 'MUTATION_CONFLICT',
   EngineFailure.sourceUnavailable => 'SOURCE_UNAVAILABLE',
   EngineFailure.protectedStorage => 'PROTECTED_STORAGE_ERROR',
   EngineFailure.profileDatabase => 'PROFILE_DATABASE_ERROR',
-  EngineFailure.noEligibleExamples => 'NO_ELIGIBLE_EXAMPLES',
+  EngineFailure.noEligibleExamples => 'NO_ELIGIBLE_VOICE_EVIDENCE',
   EngineFailure.profileInvalid => 'PROFILE_INVALID',
   EngineFailure.modelUnavailable => 'MODEL_UNAVAILABLE',
   EngineFailure.operationTimeout => 'OPERATION_TIMEOUT',
@@ -88,6 +93,11 @@ String operationFailureStatus(EngineFailure failure) => switch (failure) {
   EngineFailure.verificationRejected => 'VERIFICATION_REJECTED',
   _ => 'ENGINE_OPERATION_FAILED',
 };
+
+bool mutationWasDefinitelyRejected(EngineFailure failure) =>
+    failure == EngineFailure.invalidRequest ||
+    failure == EngineFailure.mutationConflict ||
+    failure == EngineFailure.sourceUnavailable;
 
 class PersonalStyleApp extends StatelessWidget {
   const PersonalStyleApp({
@@ -209,6 +219,7 @@ class _WritingScreenState extends State<WritingScreen> {
     setState(() {
       busy = true;
       notice = null;
+      operationFailure = null;
     });
     try {
       await action();
@@ -220,12 +231,16 @@ class _WritingScreenState extends State<WritingScreen> {
               : const EngineException(EngineFailure.operation);
           operationFailure = failure.failure;
           state = ViewState.operationFailed;
+          final rejected =
+              pending != null && mutationWasDefinitelyRejected(failure.failure);
+          if (rejected) pending = null;
           notice = messageFor(
             failure.failure,
             safeCode: failure.safeCode,
             safePhase: failure.safePhase,
             safePhaseDetail: failure.safePhaseDetail,
           );
+          if (rejected) notice = '$notice\nNo change was saved.';
         });
       }
     } finally {
@@ -403,15 +418,14 @@ class _WritingScreenState extends State<WritingScreen> {
     if (mounted) {
       setState(() {
         if (request.$1 == 'feedback.write') feedbackSaved = true;
-        notice = request.$1 == 'example.write'
-            ? 'Writing example saved.'
-            : 'Feedback saved.';
+        notice =
+            'The same request was accepted or an earlier save was confirmed.';
       });
     }
   });
 
   String get pendingOperationName => switch (pending?.$1) {
-    'example.write' => 'example save',
+    'example.write' => 'writing example save',
     'feedback.write' => 'feedback submission',
     _ => 'submission',
   };
@@ -420,8 +434,8 @@ class _WritingScreenState extends State<WritingScreen> {
       'The $pendingOperationName did not receive confirmation, so its status is unknown. Retrying sends the same request ID: an already-saved item is returned without duplication, while an uncommitted item may be saved now. No retry happens automatically.';
 
   String get pendingOperationButton => switch (pending?.$1) {
-    'example.write' => 'Retry example save (same ID)',
-    'feedback.write' => 'Retry feedback (same ID)',
+    'example.write' => 'Retry writing example save with same ID',
+    'feedback.write' => 'Retry feedback submission with same ID',
     _ => 'Retry previous submission (same ID)',
   };
 
@@ -456,7 +470,7 @@ class _WritingScreenState extends State<WritingScreen> {
       ViewState.ready => 'READY',
       ViewState.rewriting => 'REWRITING',
       ViewState.result => 'RESULT',
-      ViewState.operationFailed => operationFailureStatus(
+      ViewState.operationFailed => statusForFailure(
         operationFailure ?? EngineFailure.operation,
       ),
     };
@@ -498,19 +512,33 @@ class _WritingScreenState extends State<WritingScreen> {
                   Text(
                     'The engine exited during the pending $pendingOperationName. Its save status is unknown; no retry was started.',
                   ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      pendingOperationNotice,
-                      key: const Key('pendingNotice'),
+                Card(
+                  key: const Key('pending-mutation'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Unconfirmed $pendingOperationName',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          pendingOperationNotice,
+                          key: const Key('pendingNotice'),
+                        ),
+                        if (connected)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: OutlinedButton(
+                              onPressed: busy ? null : retryMutation,
+                              child: Text(pendingOperationButton),
+                            ),
+                          ),
+                      ],
                     ),
-                    if (connected)
-                      OutlinedButton(
-                        onPressed: busy ? null : retryMutation,
-                        child: Text(pendingOperationButton),
-                      ),
-                  ],
+                  ),
                 ),
               ],
               if (result != null) ...[

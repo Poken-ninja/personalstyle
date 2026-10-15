@@ -748,3 +748,29 @@ read-only Windows ACL metadata matched SEC01. No full regression, model call, pr
 consent change or ACL modification was performed. No native UI action was run. The historical
 ACL failure remains unreproduced and unknown; Phase A remains incomplete, native export/readback
 is still unverified, and Phases B/C remain unstarted.
+
+## Reconcile merged UX-A before F08 resumption — 2026-10-15
+
+PR #16 was merged to `main` at `9a7a2049ca9d19f5d5d9d163b54a174d073d27a8`.
+The existing F08 branch was based on `4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a` and has
+been reconciled with that main revision. The overlapping Flutter changes were resolved by
+preserving F08's protocol 1.1 document operations, native picker/export flow, document result
+checks and allowlisted ACL phase/detail diagnostics, while incorporating UX-A's explicit
+uncertain-mutation card and clearing pending state only for deterministic rejection codes.
+The retry remains explicit and uses the same idempotency key; no mutation retry is automatic.
+
+Post-merge integration checks on the reconciled branch: focused Flutter engine/UI tests **32
+passed**; `flutter analyze --no-pub` passed; `flutter build windows --release --no-pub`
+passed. The first sandboxed Flutter test invocation produced no output and was stopped; the
+same command with access to the installed SDK passed, so this was an execution restriction,
+not a test failure. Python engine/protocol/storage were unchanged by this reconciliation;
+the previously recorded 53 focused Python tests remain applicable. Post-merge main CI run
+`38763693546` passed on merge commit `9a7a2049ca9d19f5d5d9d163b54a174d073d27a8`. UI status
+labels now match UX-A (`INVALID_INPUT`, `NO_ELIGIBLE_VOICE_EVIDENCE`) while preserving the
+F08-specific `DOCUMENT_OPERATION_FAILED` status.
+
+This does not resolve the historical owner-store failure or verify native export/read-back.
+No owner profile operation, model call, consent change, or ACL change was performed. F08
+Phase A remains **INCOMPLETE/BLOCKED**; native export/read-back is still the outstanding
+acceptance gate. DOCX/PDF Phases B/C and S03 Phase B remain unstarted. Historical counters are
+unchanged.
