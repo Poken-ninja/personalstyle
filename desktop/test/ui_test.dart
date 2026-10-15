@@ -114,6 +114,25 @@ Future<void> rewrite(WidgetTester tester) async {
 }
 
 void main() {
+  test('operation failure status preserves the safe error category', () {
+    expect(
+      operationFailureStatus(EngineFailure.protectedStorage),
+      'PROTECTED_STORAGE_ERROR',
+    );
+    expect(
+      operationFailureStatus(EngineFailure.modelUnavailable),
+      'MODEL_UNAVAILABLE',
+    );
+    expect(
+      operationFailureStatus(EngineFailure.verificationRejected),
+      'VERIFICATION_REJECTED',
+    );
+    expect(
+      operationFailureStatus(EngineFailure.operation),
+      'ENGINE_OPERATION_FAILED',
+    );
+  });
+
   testWidgets('document picker cancellation makes no engine request', (
     tester,
   ) async {
@@ -244,7 +263,7 @@ void main() {
     await boot(tester, fake);
     await rewrite(tester);
     await tester.pumpAndSettle();
-    expect(find.text('OPERATION_FAILED'), findsOneWidget);
+    expect(find.text('VERIFICATION_REJECTED'), findsOneWidget);
     expect(find.byKey(const Key('verified')), findsNothing);
     expect(find.byKey(const Key('result')), findsNothing);
   });
@@ -310,6 +329,79 @@ void main() {
     },
   );
 
+  testWidgets('example failure shows safe reason and named pending action', (
+    tester,
+  ) async {
+    final fake = WireFake()
+      ..operationFailure = const EngineException(
+        EngineFailure.protectedStorage,
+        safeCode: 'STORAGE_BOUNDARY_INVALID',
+        safePhase: 'directory_acl_verify',
+        safePhaseDetail: 'acl_rule_count_mismatch',
+      );
+    await boot(tester, fake);
+    await tester.enterText(field('Explicit context'), 'casual.chat');
+    await tester.enterText(field('Writing example'), 'Synthetic owned sample.');
+    await tester.tap(find.text('I own this writing and authorize storing it'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Save authorized example'));
+    await tester.tap(find.text('Save authorized example'));
+    await tester.pumpAndSettle();
+
+    expect(fake.calls, hasLength(1));
+    expect(fake.calls.single.$1, 'example.write');
+    expect(find.text('PROTECTED_STORAGE_ERROR'), findsOneWidget);
+    expect(find.textContaining('STORAGE_BOUNDARY_INVALID'), findsOneWidget);
+    expect(
+      find.textContaining('profile directory protection check'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('unexpected ACL rule count'), findsOneWidget);
+    expect(find.byKey(const Key('pendingNotice')), findsOneWidget);
+    expect(find.textContaining('same request ID'), findsOneWidget);
+    expect(find.text('Retry example save (same ID)'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'Rewrite'))
+          .onPressed,
+      isNull,
+    );
+    expect(find.textContaining('credential'), findsNothing);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.widgetWithText(OutlinedButton, 'Open .txt or .md document'),
+          )
+          .onPressed,
+      isNull,
+    );
+  });
+
+  testWidgets('engine exit preserves uncertain mutation status', (
+    tester,
+  ) async {
+    final fake = WireFake()
+      ..operationFailure = const EngineException(EngineFailure.profileDatabase);
+    await boot(tester, fake);
+    await tester.enterText(field('Explicit context'), 'casual.chat');
+    await tester.enterText(field('Writing example'), 'Synthetic owned sample.');
+    await tester.tap(find.text('I own this writing and authorize storing it'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Save authorized example'));
+    await tester.tap(find.text('Save authorized example'));
+    await tester.pumpAndSettle();
+    fake.onExit!();
+    await tester.pumpAndSettle();
+
+    expect(find.text('ENGINE_UNAVAILABLE'), findsOneWidget);
+    expect(find.textContaining('pending example save'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('pendingNotice'))).data,
+      contains('status is unknown'),
+    );
+    expect(find.text('Retry example save (same ID)'), findsNothing);
+  });
+
   testWidgets('engine exit invalidates result and session UI', (tester) async {
     final fake = WireFake();
     await boot(tester, fake);
@@ -336,7 +428,7 @@ void main() {
       expect(find.textContaining('credential-secret'), findsNothing);
       expect(find.textContaining('raw-private-writing'), findsNothing);
       expect(find.textContaining('private.db'), findsNothing);
-      expect(find.text('OPERATION_FAILED'), findsOneWidget);
+      expect(find.text('ENGINE_OPERATION_FAILED'), findsOneWidget);
     },
   );
 
@@ -354,8 +446,8 @@ void main() {
       expect(fake.calls, hasLength(2));
       final originalMutation = fake.calls.last;
       fake.operationFailure = null;
-      await tester.ensureVisible(find.text('Confirm previous submission'));
-      await tester.tap(find.text('Confirm previous submission'));
+      await tester.ensureVisible(find.text('Retry feedback (same ID)'));
+      await tester.tap(find.text('Retry feedback (same ID)'));
       await tester.pumpAndSettle();
       expect(fake.calls.last, originalMutation);
       expect(fake.calls, hasLength(3));

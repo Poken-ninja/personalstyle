@@ -108,6 +108,88 @@ void main() {
     }
     expect(client.toString(), isNot(contains('synthetic-test-token')));
   });
+  test(
+    'only whitelisted engine codes are retained as safe diagnostics',
+    () async {
+      status = 422;
+      response = {
+        'protocol_version': '1.1',
+        'ok': false,
+        'error': {
+          'code': 'ENGINE_OPERATION_FAILED',
+          'engine_code': 'STORAGE_BOUNDARY_INVALID',
+          'engine_phase': 'directory_acl_verify',
+          'engine_phase_detail': 'acl_rule_count_mismatch',
+          'detail': 'private-writing credential-secret C:/private.db',
+        },
+      };
+      try {
+        await client.call('example.write', {
+          'id': 'synthetic-id',
+          'text': 'PRIVATE_WRITING_SENTINEL',
+        });
+        fail('Expected the engine failure');
+      } on EngineException catch (error) {
+        expect(error.failure, EngineFailure.protectedStorage);
+        expect(error.safeCode, 'STORAGE_BOUNDARY_INVALID');
+        expect(error.safePhase, 'directory_acl_verify');
+        expect(error.safePhaseDetail, 'acl_rule_count_mismatch');
+        expect(error.toString(), 'EngineException(protectedStorage)');
+        expect(error.toString(), isNot(contains('PRIVATE_WRITING_SENTINEL')));
+        expect(error.toString(), isNot(contains('credential-secret')));
+      }
+
+      response['error'] = {
+        'code': 'ENGINE_OPERATION_FAILED',
+        'engine_code': 'UNTRUSTED_VALUE_PRIVATE_WRITING_SENTINEL',
+        'engine_phase': 'PRIVATE_PATH_AND_WRITING_SENTINEL',
+        'engine_phase_detail': 'PRIVATE_WRITING_SENTINEL',
+      };
+      try {
+        await client.call('example.write', {
+          'text': 'PRIVATE_WRITING_SENTINEL',
+        });
+        fail('Expected the engine failure');
+      } on EngineException catch (error) {
+        expect(error.failure, EngineFailure.operation);
+        expect(error.safeCode, isNull);
+        expect(error.safePhase, isNull);
+        expect(error.safePhaseDetail, isNull);
+        expect(error.toString(), isNot(contains('UNTRUSTED_VALUE')));
+      }
+    },
+  );
+  test('known direct engine errors get safe classifications', () async {
+    status = 422;
+    response = {
+      'protocol_version': '1.1',
+      'ok': false,
+      'error': {'code': 'INVALID_EXAMPLE', 'detail': 'private text'},
+    };
+    await expectLater(
+      client.call('example.write', {'text': 'synthetic'}),
+      throwsA(
+        isA<EngineException>()
+            .having((e) => e.failure, 'failure', EngineFailure.invalidRequest)
+            .having((e) => e.safeCode, 'safe code', 'INVALID_EXAMPLE'),
+      ),
+    );
+
+    response['error'] = {
+      'code': 'REQUIRED_INFORMATION_MISSING',
+      'detail': 'private text',
+    };
+    await expectLater(
+      client.call('rewrite', {'original': 'synthetic'}),
+      throwsA(
+        isA<EngineException>().having(
+          (e) => e.failure,
+          'failure',
+          EngineFailure.verificationRejected,
+        ),
+      ),
+    );
+  });
   test('oversized input is rejected before HTTP execution', () async {
     await expectLater(
       client.call('rewrite', {'original': 'x' * 73729}),
@@ -179,6 +261,16 @@ void main() {
       );
     }
   });
+
+  test(
+    'engine config path is absolute and normalized before process launch',
+    () {
+      final config = normalizeConfigPath('../personalstyle.toml');
+      expect(File(config).isAbsolute, isTrue);
+      expect(config.split(Platform.pathSeparator), isNot(contains('..')));
+      expect(config.toLowerCase(), endsWith('personalstyle.toml'));
+    },
+  );
 
   test('closing during process launch prevents a late ready session', () async {
     final root = Platform.environment['FLUTTER_ROOT']!;

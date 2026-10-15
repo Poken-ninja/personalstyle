@@ -7,8 +7,8 @@ BRANCH: task/f08-document-import-export
 BASE / MERGE_BASE: 4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a
 F07: merged by PR #13 at 4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a
 WIP: 1
-IMPLEMENTATION: Phase A primary pass used; Phases B/C not started; no phase resets
-IMPLEMENTATION_ATTEMPT: 1 — Phase A primary implementation used
+IMPLEMENTATION: Phase A primary pass and one bounded UI diagnostics repair used; Phases B/C not started
+IMPLEMENTATION_ATTEMPT: 2/2 — owner-authorized safe error/pending-mutation diagnostics repair
 DIAGNOSIS: 0/2
 RECOVERY: 0/1
 REPAIR RULE: at most two materially different repairs per classified failure;
@@ -509,3 +509,242 @@ preserved; native save/cancel and exported-file read-back remain outstanding. Th
 and task record are selectively committed as a WIP checkpoint only; Phase A is INCOMPLETE, not
 verified. Counters remain implementation 1/2, diagnosis 0/2, recovery 0/1. Phases B/C remain
 unstarted and PR #14 remains untouched.
+
+## Sanitized example-write diagnosis and UI correction — 2026-10-15
+
+The configured profile directory passed SEC01 verification; the canonical SQLite file was
+absent at inspection. The reported `casual.chat` identifier satisfies the engine's context
+syntax. Flutter's `example.write` payload contains a generated UUID, entered sample, selected
+context, local-user provenance, `authorizedExample`, `exampleLearning`, and `held_out=false`.
+Storage authorization is required to submit; learning authorization is separate and may remain
+false. The engine limits example text to 64 KiB and the P01 envelope to its existing bounded
+request ceiling. On first valid example, the engine creates/protects the database, initializes
+schema 3, inserts atomically, then reads back the record and rechecks the boundary.
+
+Three isolated synthetic tests passed (69.12 seconds): authenticated P01 mutation/idempotency,
+SQLite example round-trip, and rollback of initial schema creation. They used a separate
+SEC01-protected temporary store and fixture provider; no model was called and no owner data was
+read or mutated. These results did not reproduce a storage defect.
+
+The exact historical engine code cannot be recovered: P01's sanitized response includes a
+whitelisted `engine_code`, but Flutter reduced engine failures to `EngineFailure.operation`
+and discarded that code. The pending UI state retained the mutation capability/payload but not
+the error response. Therefore `OPERATION_FAILED` is insufficient evidence to claim a particular
+storage or SQLite cause. This is classified as a client diagnostic defect; the original
+example-write failure remains unknown.
+
+One bounded F08 implementation repair (attempt 2/2) maps only known engine codes to safe client
+categories, displays the safe reference code, names the pending mutation, and explains same-ID
+retry semantics. Direct safe engine codes (including validation, source, verification and
+document failures) receive an appropriate sanitized classification; arbitrary codes and details
+are discarded. A new rewrite/example/feedback mutation cannot replace an uncertain pending
+write, import is disabled while one is pending, and a process exit preserves the in-memory
+pending status without enabling a retry against a dead session. No automatic retry occurs.
+The repair did not replay or alter the owner submission, and it cannot recover the old dropped
+engine code, so the original example-write root cause remains unknown.
+
+Verification after the final client changes: `flutter test --no-pub test/engine_test.dart
+test/ui_test.dart` passed 29 tests; `flutter analyze --no-pub` passed; `git diff --check`
+passed. `flutter build windows --debug --no-pub` built
+`desktop/build/windows/x64/runner/Debug/personalstyle_desktop.exe`. The Release build was
+attempted but Windows returned `LNK1104` because the owner-launched Release executable was
+still running and locked. It was not terminated. The Debug build does not replace the required
+Release build/native acceptance evidence. After the owner closed the old Release process, the
+current source passed `flutter build windows --release --no-pub`; the owner-facing Debug
+session was left running.
+
+The earlier successful Windows Release build, owner-observed native import and cancellation,
+and authenticated Python import→F07 rewrite→export/restart fixture remain preserved as their
+respective evidence. Native save-dialog cancellation, actual UI export and saved-file read-back
+remain unverified. No genuine verified UI result is currently available to export, and no model
+call or builder-initiated owner-profile write was made during this diagnostic repair. Phase A remains
+INCOMPLETE; no F08 completion commit/PR was created. Phases B/C remain unstarted and PR #14
+remains untouched. Attempt 2/2 is consumed; no further F08 implementation repair is available
+under this task contract without a new owner decision.
+
+## Owner-observed example-save diagnostic — 2026-10-15
+
+The owner used the updated diagnostic UI for one newly authorized owner-authored example
+submission. The UI displayed the sanitized `STORAGE_BOUNDARY_INVALID` reference and warned
+that save status was uncertain. The old pending request was not replayed. No writing or consent
+values were recorded here.
+
+Read-only inspection of the configured canonical location found the profile directory present
+and SEC01-verified, the SQLite database absent, and no journal/WAL/SHM sidecars. Consequently
+there are currently no canonical examples available for `casual.chat`. This is consistent with
+no example being durably saved in that database, but it does not establish which
+`SecurityError` phase failed during the request. The code maps directory/file ACL and path
+boundary failures to the same public code; no safe phase-level trace was retained. No profile
+content was read by the builder; no reset or permission modification was made, and no model
+call was made. The owner submission did not leave a canonical database at the configured path.
+
+Classification: the client now surfaces the engine's safe code, but the underlying protected
+storage operation remains **unknown**. Synthetic protected-store/protocol tests passed and did
+not reproduce it. F08 remains blocked at the profile prerequisite; do not retry or create more
+examples automatically. Any change to example persistence/security diagnostics requires a
+separate owner-approved scope because storage/security code is outside this F08 write set.
+
+## Owner-authorized storage-boundary phase trace — 2026-10-15
+
+Exceptional diagnostic counter: `STORAGE_BOUNDARY_PHASE_DIAGNOSTIC: 1/1` (phase-reporting
+instrumentation implemented; the controlled owner attempt was pending at this checkpoint). Historical
+F08 implementation attempt 2/2 remains exhausted; no counters were reset.
+
+The authorized diagnostic change carries only a fixed security-operation phase from
+`SecurityError` to `StoreError`, then to a sanitized P01 `engine_phase` field. Flutter accepts
+only the ten phase identifiers declared by the engine and renders fixed explanatory labels.
+Arbitrary exception text, paths, OS command output, writing, credentials and SQLite details are
+not exposed. The original `STORAGE_BOUNDARY_INVALID` code and all checks, permissions, transaction,
+retry and consent behavior are unchanged. This reports where a later failure occurs; it does not
+yet establish the original failure's cause.
+
+Targeted verification after instrumentation:
+- Python storage, SEC01 security, and sanitized protocol error tests: **62 passed in 91.89s**.
+- Flutter engine/UI tests: **29 passed**; the known phase identifier is displayed as a fixed
+  label and an untrusted phase string is discarded.
+- Ruff on changed Python files: passed.
+- mypy `src`: passed (14 source files).
+- `flutter analyze --no-pub`: passed.
+- `git diff --check`: passed.
+
+No model call, profile initialization, ACL modification, owner-store access, or example replay
+was performed during instrumentation verification. At this checkpoint the canonical database
+was absent and the controlled attempt had not yet been performed; its subsequent result is
+recorded below.
+
+## Controlled storage-phase reproduction — 2026-10-15
+
+The one owner-authorized controlled submission reproduced `STORAGE_BOUNDARY_INVALID` with
+the safe phase `path_validation`. No exception details, writing, credential, or path were
+returned to Flutter. A read-only component audit found no reparse points in the configured
+profile path; the database target remained absent. No SQLite open, profile write, ACL change,
+or model call occurred.
+
+Root cause is established in the current desktop launch integration. `EngineSession` passes
+the default config string `../personalstyle.toml` while the app's working directory is
+`desktop/`. `protocol.main` uses `options.config.absolute()` and joins the configured storage
+path to its parent without normalizing the parent traversal. A deterministic reproduction of
+that exact expression confirms the resulting profile path still contains `..`. SEC01's
+`_check_path` intentionally rejects any such component as `path_validation`; that security
+rejection is correct. This is a F08 desktop launch-path defect, not an ACL or SQLite failure.
+
+The smallest repair is for the Flutter launcher to pass an absolute, normalized config path
+to the child process (and test that the resolved argument contains no `..`). It requires no
+storage/security relaxation, schema change, data reset, or consent change. The diagnostic-only
+authorization is exhausted (`STORAGE_BOUNDARY_PHASE_DIAGNOSTIC: 1/1`); no launch-path repair
+was made in this diagnostic checkpoint. Do not ask the owner to resubmit the example until a
+separately authorized bounded repair is implemented and built. The historical failed example
+operation is now explained by the same reproduced launch-path defect; it was not committed to
+the configured canonical database.
+
+## Owner-authorized launch-path correction — 2026-10-15
+
+Exceptional correction counter: `LAUNCH_PATH_CORRECTION: 1/1 used`. F08 implementation
+attempts remain 2/2; this separate owner-authorized correction does not reset or rewrite them.
+Flutter now converts the configured child-process config argument to an absolute normalized
+filesystem path before spawning P01. A focused regression test covers the existing
+`../personalstyle.toml` launch form and asserts the child argument has no `..` segment. P01's
+path validation and SEC01 checks are unchanged. The correction does not initialize storage or
+submit/replay an example. Targeted verification and a rebuilt-app acceptance result will be
+recorded below before any claim that the issue is resolved.
+
+After the correction, `flutter test --no-pub test/engine_test.dart test/ui_test.dart` passed
+**30 tests** and `flutter analyze --no-pub` passed. The pre-fix Release app remains open and
+locks the standard Release executable, so the corrected Windows Release build is pending its
+normal app close. The controlled failure's `path_validation` phase confirms that request was
+rejected before database access; no resubmission is requested. No F08 acceptance completion is
+claimed until the corrected app is built and startup/path readiness is confirmed.
+
+The owner closed the pre-fix app. The corrected `flutter build windows --release --no-pub`
+then passed, and the corrected Release executable was launched successfully (PID 29960) from
+the desktop working directory. No example was resubmitted and no profile operation was run.
+At launch checkpoint no profile operation had run; native export/read-back remained
+unverified.
+
+The owner subsequently reported an operation error with phase `directory_acl_verify`; the
+specific button/action was not stated. Read-only
+inspection confirmed the running engine uses the repository-root config, the expected
+`data/personalstyle.db` setting, and the same Windows account as the builder. The canonical
+directory passed SEC01 verification on a fresh check. The database file and journal/WAL/SHM
+sidecars were absent, so the reported operation did not create or mutate the canonical store.
+No content was opened. This new phase is after path validation; it does not invalidate the
+confirmed `..` launch-path defect or its fix, but it shows the operation still fails before
+database creation. The remaining cause (for example, an ACL subprocess failure/timeout versus
+a transient verification discrepancy) is not established by the fixed phase code. The
+single diagnostic counter is exhausted; no additional retry, permission edit, or speculative
+repair is authorized. F08 remains blocked pending a new bounded diagnostic authorization.
+
+## Owner-authorized ACL failure-detail diagnostic — 2026-10-15
+
+Exceptional counter: `ACL_FAILURE_DETAIL_DIAGNOSTIC: 1/1 used`. Historical implementation,
+phase-diagnostic and launch-path counters remain unchanged. This bounded diagnostic added
+fixed identifiers for ACL verification outcomes (owner, inheritance, rule count, identity,
+permissions, process start/timeout, and command failure). Only an exact identifier from the
+PowerShell helper is propagated through `StoreError` and the sanitized protocol response;
+stderr, arbitrary stdout, exception messages, paths, profile data and credentials remain
+excluded. Flutter maps those identifiers to fixed human-readable labels. Storage checks,
+ACL policy, database behavior, retries and consent are unchanged.
+
+Synthetic verification: focused ACL-category/storage/protocol tests passed **4/4**; Ruff and
+`mypy src` passed; Dart formatter completed. The Flutter test command produced no output and
+left no Flutter/Dart process visible; interrupting that stuck command yielded no test result,
+so Flutter tests for this detail change are **unverified**. One read-only SEC01 verification
+of the configured `data` directory passed. It did not create or inspect the profile database.
+No failing ACL state was reproduced, so the historical `directory_acl_verify` report remains
+unresolved; no exact ACL mismatch can be claimed. No app operation, model call, profile write,
+consent change or permission modification was performed. F08 remains blocked/incomplete.
+
+Next permitted action: validate the Flutter diagnostic change in a separate bounded test run
+before relying on its new detail display. Do not ask the owner to resubmit the prior example
+or retry a pending mutation.
+
+## Independent Windows ACL metadata inspection — 2026-10-15
+
+To avoid repeating the SEC01 verifier, the configured `data` directory ACL was inspected
+directly using read-only Windows security metadata. It is a directory with protected
+inheritance, owner matching the current account, and exactly two explicit Allow/FullControl
+rules: the current account and LocalSystem. Both rules are non-inherited, use
+ContainerInherit+ObjectInherit, and have no propagation flags. This matches the SEC01
+directory policy. No account SID, path, file contents, or profile data was recorded.
+
+This independently rules out a persistent mismatch in the directory's current ACL metadata.
+It does not recover the historical failure cause or rule out a transient PowerShell verifier
+failure at the time of the app operation. The database remains untouched by this inspection.
+No permission change or app submission occurred. Do not ask the owner to retry; keep the
+historical failure classified as unreproduced/unknown.
+
+After the owner asked for a different diagnostic path, the existing bounded
+`scripts/p01_transport_acceptance.py` was run once. It launched a fresh authenticated P01
+child using a temporary SEC01-protected store, completed a protocol handshake, submitted one
+synthetic `example.write`, repeated the same idempotency key, read the saved synthetic record
+back, and stopped the child. Result: **PASSED**; handshake 0.0214s, first write 4.5593s.
+The temporary store was isolated from the owner profile and cleaned up. This confirms the
+current child-process/auth/storage/example-write path works with a newly prepared protected
+store. Together with the current exact ACL metadata, it narrows the historical failure to an
+unreproduced condition of the prior owner-store operation/session; it does not prove which
+condition caused it. No further owner submission is needed for this diagnosis.
+
+## Owner-authorized specific UI error categories — 2026-10-15
+
+Exceptional counter: `ERROR_DETAIL_UI: 1/1 used`; F08 implementation attempts remain 2/2 and
+all earlier diagnostic counters remain preserved. The UI now uses a specific safe status for
+protected storage, database, model, verification, request, timeout, resource, and document
+failure classes instead of displaying only `OPERATION_FAILED`. It displays a fixed human-readable
+ACL detail only when the engine provides one of the allowlisted categories. If the engine does
+not provide a recognized detail, the UI does not guess. The engine's current ACL metadata
+passes; this change does not claim to explain the earlier failure or make storage succeed.
+
+One concrete UI defect was found and fixed: a response rejected because its verification state
+was not `verified` was mapped to generic operation failure. Such responses now use the existing
+`verificationRejected` category; malformed result structure remains a generic engine operation
+failure. No verification requirement was weakened.
+
+Evidence: focused Flutter engine/UI run reached **22 engine tests passed** and found the above
+UI status mismatch; after the narrow correction, `test/ui_test.dart` passed **17/17**.
+`flutter analyze --no-pub` passed, and the Windows Release build passed at
+`desktop/build/windows/x64/runner/Release/personalstyle_desktop.exe`. The prior focused Python
+security/storage/protocol tests passed **4/4**, Ruff passed, `mypy src` passed, and direct
+read-only Windows ACL metadata matched SEC01. No full regression, model call, profile write,
+consent change or ACL modification was performed. No native UI action was run. The historical
+ACL failure remains unreproduced and unknown; Phase A remains incomplete, native export/readback
+is still unverified, and Phases B/C remain unstarted.

@@ -10,8 +10,9 @@ from uuid import uuid4
 import pytest
 from typer.testing import CliRunner
 
+from personalstyle import storage
 from personalstyle.cli import app
-from personalstyle.security import prepare_private_directory
+from personalstyle.security import SecurityError, prepare_private_directory
 from personalstyle.storage import MAX_TEXT_BYTES, ExampleInput, ExampleStore, StoreError
 
 CONFIG = Path(__file__).resolve().parents[1] / "personalstyle.toml"
@@ -50,6 +51,20 @@ def test_invalid_request_never_creates_database(tmp_path, changes):
 def test_valid_input_boundaries():
     example(text="a" * MAX_TEXT_BYTES, context="a" * 64, supplier="a" * 256).validate()
     example(learning_eligible=False, held_out=True, source_kind="authorized_reference").validate()
+
+
+def test_store_error_retains_only_allowlisted_security_detail():
+    safe = StoreError(
+        "STORAGE_BOUNDARY_INVALID", security_phase="directory_acl_verify",
+        security_phase_detail="acl_rule_count_mismatch",
+    )
+    unsafe = StoreError(
+        "STORAGE_BOUNDARY_INVALID", security_phase="PRIVATE_PATH_SENTINEL",
+        security_phase_detail="PRIVATE_WRITING_SENTINEL",
+    )
+    assert safe.security_phase_detail == "acl_rule_count_mismatch"
+    assert unsafe.security_phase is None and unsafe.security_phase_detail is None
+    assert str(safe) == "STORAGE_BOUNDARY_INVALID"
 
 
 def test_exact_roundtrip_idempotency_and_conflict(store):
@@ -100,6 +115,22 @@ def test_insecure_boundary_blocks_before_sqlite_open(tmp_path, monkeypatch):
     with pytest.raises(StoreError, match="STORAGE_BOUNDARY_INVALID"):
         ExampleStore(directory / "profile.db").add(example())
     assert list(directory.iterdir()) == []
+
+
+def test_storage_error_retains_only_fixed_security_phase(tmp_path, monkeypatch):
+    directory = tmp_path / "phase-store"
+    directory.mkdir()
+    detail = "PRIVATE_PATH_AND_WRITING_SENTINEL"
+
+    def fail_boundary(path):
+        raise SecurityError(detail, phase="directory_acl_verify")
+
+    monkeypatch.setattr(storage, "verify_private_directory", fail_boundary)
+    with pytest.raises(StoreError, match="STORAGE_BOUNDARY_INVALID") as caught:
+        ExampleStore(directory / "profile.db").add(example())
+    assert caught.value.security_phase == "directory_acl_verify"
+    assert detail not in str(caught.value)
+    assert not (directory / "profile.db").exists()
 
 
 def test_permission_change_requires_reverification(store):

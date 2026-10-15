@@ -32,19 +32,61 @@ enum ViewState {
   operationFailed,
 }
 
-String messageFor(EngineFailure failure) => switch (failure) {
-  EngineFailure.start =>
-    'The local engine could not start. Check the development engine setup.',
-  EngineFailure.exited =>
-    'The local engine exited. Close and reopen PersonalStyle.',
-  EngineFailure.authentication =>
-    'The engine rejected this session. Close and reopen PersonalStyle.',
-  EngineFailure.incompatible =>
-    'This engine protocol is incompatible with PersonalStyle.',
-  EngineFailure.capability => 'This engine is missing a required capability.',
-  EngineFailure.invalidRequest =>
-    'The request is invalid or too large. Check your input.',
-  EngineFailure.operation => 'The engine could not complete the operation. Check protected profile and runtime readiness.',
+String messageFor(
+  EngineFailure failure, {
+  String? safeCode,
+  String? safePhase,
+  String? safePhaseDetail,
+}) {
+  final message = switch (failure) {
+    EngineFailure.start =>
+      'The local engine could not start. Check the development engine setup.',
+    EngineFailure.exited =>
+      'The local engine exited. Close and reopen PersonalStyle.',
+    EngineFailure.authentication =>
+      'The engine rejected this session. Close and reopen PersonalStyle.',
+    EngineFailure.incompatible =>
+      'This engine protocol is incompatible with PersonalStyle.',
+    EngineFailure.capability => 'This engine is missing a required capability.',
+    EngineFailure.invalidRequest => 'The request is invalid or too large. Check the document and request fields.',
+    EngineFailure.mutationConflict => 'This request ID conflicts with a different saved item. No retry was started.',
+    EngineFailure.sourceUnavailable => 'The source result or profile record is no longer available. No new item was saved.',
+    EngineFailure.protectedStorage => 'The engine could not verify protected profile storage. Do not reset the profile; the operation status may be uncertain.',
+    EngineFailure.profileDatabase => 'The protected profile database could not complete or confirm this operation. Its status may be uncertain; do not reset the profile.',
+    EngineFailure.noEligibleExamples => 'There is no eligible writing example for this exact context. Personalized rewriting needs an authorized learning example in that context.',
+    EngineFailure.profileInvalid => 'The profile contains data the engine cannot safely use. No profile reset was attempted.',
+    EngineFailure.modelUnavailable => 'The configured local model is unavailable or incompatible. No alternate model was selected.',
+    EngineFailure.operationTimeout => 'The operation timed out before a response arrived. Its submission status may be uncertain; no automatic retry was started.',
+    EngineFailure.resourceLimit => 'The operation reached an engine resource or time limit. No automatic retry was started.',
+    EngineFailure.documentOperation => 'The document operation could not be completed. Review the reason code before trying again.',
+    EngineFailure.verificationRejected => 'The result did not pass a required meaning, fact, context or constraint check. It was not accepted as verified.',
+    EngineFailure.operation => 'The engine could not complete the operation. Its status may be uncertain; do not reset the profile.',
+  };
+  final details = <String>[
+    if (safePhase != null && securityPhases.containsKey(safePhase))
+      'Check: ${securityPhases[safePhase]}',
+    if (safePhaseDetail != null &&
+        securityPhaseDetails.containsKey(safePhaseDetail))
+      'Detail: ${securityPhaseDetails[safePhaseDetail]}',
+    if (safeCode != null) 'Reference: $safeCode',
+  ];
+  return details.isEmpty ? message : '$message\n${details.join('\n')}';
+}
+
+String operationFailureStatus(EngineFailure failure) => switch (failure) {
+  EngineFailure.invalidRequest => 'REQUEST_INVALID',
+  EngineFailure.mutationConflict => 'MUTATION_CONFLICT',
+  EngineFailure.sourceUnavailable => 'SOURCE_UNAVAILABLE',
+  EngineFailure.protectedStorage => 'PROTECTED_STORAGE_ERROR',
+  EngineFailure.profileDatabase => 'PROFILE_DATABASE_ERROR',
+  EngineFailure.noEligibleExamples => 'NO_ELIGIBLE_EXAMPLES',
+  EngineFailure.profileInvalid => 'PROFILE_INVALID',
+  EngineFailure.modelUnavailable => 'MODEL_UNAVAILABLE',
+  EngineFailure.operationTimeout => 'OPERATION_TIMEOUT',
+  EngineFailure.resourceLimit => 'RESOURCE_LIMIT',
+  EngineFailure.documentOperation => 'DOCUMENT_OPERATION_FAILED',
+  EngineFailure.verificationRejected => 'VERIFICATION_REJECTED',
+  _ => 'ENGINE_OPERATION_FAILED',
 };
 
 class PersonalStyleApp extends StatelessWidget {
@@ -91,6 +133,7 @@ class _WritingScreenState extends State<WritingScreen> {
   Map<String, dynamic>? result;
   String mode = 'personalized';
   String? notice;
+  EngineFailure? operationFailure;
   bool busy = false;
   bool authorizedExample = false;
   bool exampleLearning = false;
@@ -116,7 +159,6 @@ class _WritingScreenState extends State<WritingScreen> {
         result = null;
         documentId = null;
         documentResult = false;
-        pending = null;
         state = ViewState.engineUnavailable;
         notice = messageFor(EngineFailure.exited);
       });
@@ -173,9 +215,16 @@ class _WritingScreenState extends State<WritingScreen> {
     } catch (error) {
       if (mounted && state != ViewState.engineUnavailable) {
         setState(() {
+          final failure = error is EngineException
+              ? error
+              : const EngineException(EngineFailure.operation);
+          operationFailure = failure.failure;
           state = ViewState.operationFailed;
           notice = messageFor(
-            error is EngineException ? error.failure : EngineFailure.operation,
+            failure.failure,
+            safeCode: failure.safeCode,
+            safePhase: failure.safePhase,
+            safePhaseDetail: failure.safePhaseDetail,
           );
         });
       }
@@ -212,16 +261,19 @@ class _WritingScreenState extends State<WritingScreen> {
     }
     if (isDocument) {
       if (value['state'] != 'VERIFIED' ||
-          value['whole_document_verification'] != 'verified' ||
-          value['output'] is! String) {
+          value['whole_document_verification'] != 'verified') {
+        throw const EngineException(EngineFailure.verificationRejected);
+      }
+      if (value['output'] is! String) {
         throw const EngineException(EngineFailure.operation);
       }
     } else {
       // Receipt validation only: semantic/fact/constraint verification stays in P01.
       if (value['state'] != 'SUCCEEDED' ||
-          value['verification_status'] != 'verified' ||
-          value['run_id'] is! String ||
-          value['candidates'] is! Map) {
+          value['verification_status'] != 'verified') {
+        throw const EngineException(EngineFailure.verificationRejected);
+      }
+      if (value['run_id'] is! String || value['candidates'] is! Map) {
         throw const EngineException(EngineFailure.operation);
       }
       for (final kind in ['generic', 'personalized']) {
@@ -351,10 +403,27 @@ class _WritingScreenState extends State<WritingScreen> {
     if (mounted) {
       setState(() {
         if (request.$1 == 'feedback.write') feedbackSaved = true;
-        notice = 'Previous submission confirmed.';
+        notice = request.$1 == 'example.write'
+            ? 'Writing example saved.'
+            : 'Feedback saved.';
       });
     }
   });
+
+  String get pendingOperationName => switch (pending?.$1) {
+    'example.write' => 'example save',
+    'feedback.write' => 'feedback submission',
+    _ => 'submission',
+  };
+
+  String get pendingOperationNotice =>
+      'The $pendingOperationName did not receive confirmation, so its status is unknown. Retrying sends the same request ID: an already-saved item is returned without duplication, while an uncommitted item may be saved now. No retry happens automatically.';
+
+  String get pendingOperationButton => switch (pending?.$1) {
+    'example.write' => 'Retry example save (same ID)',
+    'feedback.write' => 'Retry feedback (same ID)',
+    _ => 'Retry previous submission (same ID)',
+  };
 
   Widget input(
     String label,
@@ -387,7 +456,9 @@ class _WritingScreenState extends State<WritingScreen> {
       ViewState.ready => 'READY',
       ViewState.rewriting => 'REWRITING',
       ViewState.result => 'RESULT',
-      ViewState.operationFailed => 'OPERATION_FAILED',
+      ViewState.operationFailed => operationFailureStatus(
+        operationFailure ?? EngineFailure.operation,
+      ),
     };
     return Scaffold(
       appBar: AppBar(title: const Text('PersonalStyle')),
@@ -412,21 +483,36 @@ class _WritingScreenState extends State<WritingScreen> {
               const SizedBox(height: 20),
               input('Original text', original, lines: 4),
               OutlinedButton(
-                onPressed: available ? importDocument : null,
+                onPressed: available && pending == null ? importDocument : null,
                 child: const Text('Open .txt or .md document'),
               ),
               input('Intent', intent),
               input('Explicit context', contextInput),
               input('Constraints (one per line)', constraints, lines: 2),
               FilledButton(
-                onPressed: available ? rewrite : null,
+                onPressed: available && pending == null ? rewrite : null,
                 child: const Text('Rewrite'),
               ),
-              if (pending != null && connected)
-                OutlinedButton(
-                  onPressed: busy ? null : retryMutation,
-                  child: const Text('Confirm previous submission'),
+              if (pending != null) ...[
+                if (!connected)
+                  Text(
+                    'The engine exited during the pending $pendingOperationName. Its save status is unknown; no retry was started.',
+                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pendingOperationNotice,
+                      key: const Key('pendingNotice'),
+                    ),
+                    if (connected)
+                      OutlinedButton(
+                        onPressed: busy ? null : retryMutation,
+                        child: Text(pendingOperationButton),
+                      ),
+                  ],
                 ),
+              ],
               if (result != null) ...[
                 const Divider(height: 32),
                 Text(
@@ -485,13 +571,15 @@ class _WritingScreenState extends State<WritingScreen> {
                     spacing: 12,
                     children: [
                       FilledButton(
-                        onPressed: available && !feedbackSaved
+                        onPressed:
+                            available && !feedbackSaved && pending == null
                             ? () => feedback('accept')
                             : null,
                         child: const Text('Accept'),
                       ),
                       OutlinedButton(
-                        onPressed: available && !feedbackSaved
+                        onPressed:
+                            available && !feedbackSaved && pending == null
                             ? () => feedback('edit')
                             : null,
                         child: const Text('Submit edited feedback'),
@@ -529,7 +617,9 @@ class _WritingScreenState extends State<WritingScreen> {
                 ),
               ),
               OutlinedButton(
-                onPressed: available && authorizedExample ? addExample : null,
+                onPressed: available && authorizedExample && pending == null
+                    ? addExample
+                    : null,
                 child: const Text('Save authorized example'),
               ),
             ],

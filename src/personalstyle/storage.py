@@ -13,6 +13,8 @@ from typing import Any
 from uuid import UUID
 
 from personalstyle.security import (
+    SECURITY_PHASE_DETAILS,
+    SECURITY_PHASES,
     SecurityError,
     prepare_private_file,
     verify_private_directory,
@@ -58,6 +60,19 @@ SCHEMA = {**SCHEMA_V2, **DOCUMENT_SCHEMA}
 
 class StoreError(ValueError):
     """Fixed failure codes only; never include SQLite errors or writing."""
+
+    def __init__(
+        self, code: str, *, security_phase: str | None = None,
+        security_phase_detail: str | None = None,
+    ) -> None:
+        super().__init__(code)
+        self.security_phase = (
+            security_phase if security_phase in SECURITY_PHASES else None
+        )
+        self.security_phase_detail = (
+            security_phase_detail
+            if security_phase_detail in SECURITY_PHASE_DETAILS else None
+        )
 
 
 @dataclass(frozen=True)
@@ -161,8 +176,11 @@ class ExampleStore:
             yield version, rows()
             self._recheck(identity)
             check_time()
-        except SecurityError:
-            raise StoreError("STORAGE_BOUNDARY_INVALID") from None
+        except SecurityError as error:
+            raise StoreError(
+                "STORAGE_BOUNDARY_INVALID", security_phase=error.phase,
+                security_phase_detail=error.phase_detail,
+            ) from None
         except sqlite3.Error as error:
             if getattr(error, "sqlite_errorcode", None) == sqlite3.SQLITE_INTERRUPT:
                 raise StoreError("PROFILE_RESOURCE_LIMIT") from None
@@ -267,8 +285,11 @@ class ExampleStore:
             # cache_spill=OFF retains dirty pages until guarded commit; no stale ACL grant.
             self._recheck(identity)
             connection.execute("COMMIT")
-        except SecurityError:
-            raise StoreError("STORAGE_BOUNDARY_INVALID") from None
+        except SecurityError as error:
+            raise StoreError(
+                "STORAGE_BOUNDARY_INVALID", security_phase=error.phase,
+                security_phase_detail=error.phase_detail,
+            ) from None
         except (OSError, sqlite3.Error):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT") from None
         finally:
@@ -300,8 +321,11 @@ class ExampleStore:
             yield connection
             self._recheck(identity)
             connection.execute("COMMIT")
-        except SecurityError:
-            raise StoreError("STORAGE_BOUNDARY_INVALID") from None
+        except SecurityError as error:
+            raise StoreError(
+                "STORAGE_BOUNDARY_INVALID", security_phase=error.phase,
+                security_phase_detail=error.phase_detail,
+            ) from None
         except (OSError, sqlite3.Error):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT") from None
         finally:
@@ -338,8 +362,11 @@ class ExampleStore:
             self._schema(connection)
             self._recheck(identity)
             connection.execute("COMMIT")
-        except SecurityError:
-            raise StoreError("STORAGE_BOUNDARY_INVALID") from None
+        except SecurityError as error:
+            raise StoreError(
+                "STORAGE_BOUNDARY_INVALID", security_phase=error.phase,
+                security_phase_detail=error.phase_detail,
+            ) from None
         except (OSError, sqlite3.Error):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT") from None
         finally:
@@ -379,8 +406,11 @@ class ExampleStore:
             self._schema(connection)
             self._recheck(identity)
             connection.execute("COMMIT")
-        except SecurityError:
-            raise StoreError("STORAGE_BOUNDARY_INVALID") from None
+        except SecurityError as error:
+            raise StoreError(
+                "STORAGE_BOUNDARY_INVALID", security_phase=error.phase,
+                security_phase_detail=error.phase_detail,
+            ) from None
         except (OSError, sqlite3.Error):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT") from None
         finally:
@@ -517,8 +547,11 @@ class ExampleStore:
             cursor = connection.execute("SELECT * FROM examples WHERE id=?", (example_id,))
             row = cursor.fetchone()
             return None if row is None else dict(zip((item[0] for item in cursor.description), row))
-        except SecurityError:
-            raise StoreError("STORAGE_BOUNDARY_INVALID") from None
+        except SecurityError as error:
+            raise StoreError(
+                "STORAGE_BOUNDARY_INVALID", security_phase=error.phase,
+                security_phase_detail=error.phase_detail,
+            ) from None
         except (OSError, sqlite3.Error):
             raise StoreError("DATABASE_UNAVAILABLE_OR_CORRUPT") from None
         finally:

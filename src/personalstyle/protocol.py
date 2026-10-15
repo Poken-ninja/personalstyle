@@ -27,6 +27,7 @@ from personalstyle.feedback import FeedbackInput, record_feedback
 from personalstyle.generation import MAX_REQUEST_BYTES, RewriteRequest, generate_pair
 from personalstyle.learning import evaluate_context_preferences
 from personalstyle.provider import GenerationError, ModelProvider, OllamaProvider
+from personalstyle.security import SECURITY_PHASE_DETAILS, SECURITY_PHASES
 from personalstyle.storage import ExampleInput, ExampleStore, StoreError
 from personalstyle.verification import deterministic_failures, verify_pair
 
@@ -347,8 +348,15 @@ class _Handler(BaseHTTPRequestHandler):
             result = self.server.session.execute(capability, data)
             self._reply(200, {"ok": True, "result": result})
         except (DocumentError, StoreError, GenerationError) as error:
-            self._reply(422, {"ok": False, "error": {"code": "ENGINE_OPERATION_FAILED",
-                         "engine_code": str(error) if str(error) in ENGINE_CODES else "ENGINE_OPERATION_FAILED"}})
+            detail = {
+                "code": "ENGINE_OPERATION_FAILED",
+                "engine_code": str(error) if str(error) in ENGINE_CODES else "ENGINE_OPERATION_FAILED",
+            }
+            if isinstance(error, StoreError) and error.security_phase in SECURITY_PHASES:
+                detail["engine_phase"] = error.security_phase
+                if error.security_phase_detail in SECURITY_PHASE_DETAILS:
+                    detail["engine_phase_detail"] = error.security_phase_detail
+            self._reply(422, {"ok": False, "error": detail})
         except ProtocolError as error:
             value = {"code": error.code}
             if error.engine_code is not None:

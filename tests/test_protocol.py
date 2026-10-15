@@ -276,9 +276,27 @@ def test_header_and_input_bounds_and_sanitized_errors(boundary, caplog, capsys):
     assert request(server, token)[1]["error"] == {"code": "ENGINE_OPERATION_FAILED"}
     session.failure = StoreError("STORAGE_BOUNDARY_INVALID")
     assert request(server, token)[1]["error"]["engine_code"] == "STORAGE_BOUNDARY_INVALID"
+    session.failure = StoreError(
+        "STORAGE_BOUNDARY_INVALID", security_phase="directory_acl_verify",
+        security_phase_detail="acl_rule_count_mismatch",
+    )
+    phase_error = request(server, token)[1]["error"]
+    assert phase_error == {
+        "code": "ENGINE_OPERATION_FAILED",
+        "engine_code": "STORAGE_BOUNDARY_INVALID",
+        "engine_phase": "directory_acl_verify",
+        "engine_phase_detail": "acl_rule_count_mismatch",
+    }
     session.failure = StoreError(sensitive)
     body = request(server, token)[1]
     assert sensitive not in json.dumps(body) and token not in json.dumps(body)
+    session.failure = StoreError(
+        "STORAGE_BOUNDARY_INVALID", security_phase=sensitive,
+        security_phase_detail=sensitive,
+    )
+    body = request(server, token)[1]
+    assert "engine_phase" not in body["error"]
+    assert "engine_phase_detail" not in body["error"]
     assert sensitive not in caplog.text + str(capsys.readouterr())
 
 

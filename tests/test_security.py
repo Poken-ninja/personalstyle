@@ -10,13 +10,38 @@ from typer.testing import CliRunner
 from personalstyle.cli import app
 from personalstyle.config import MAX_CONFIG_BYTES, ConfigError, load_config
 from personalstyle.security import (
+    SECURITY_PHASE_DETAILS,
     SecurityError,
+    _acl,
     log_event,
     prepare_private_directory,
     verify_private_directory,
 )
 
 CONFIG = Path(__file__).resolve().parents[1] / "personalstyle.toml"
+
+
+@pytest.mark.parametrize(
+    "stdout,expected",
+    [
+        ("PSTYLE_DIAG:acl_rule_count_mismatch\n", "acl_rule_count_mismatch"),
+        ("PATH_PRIVATE_WRITING_SENTINEL\n", "acl_command_failed"),
+    ],
+)
+def test_acl_failure_exposes_only_fixed_detail(monkeypatch, tmp_path, stdout, expected):
+    monkeypatch.setattr(
+        "personalstyle.security.subprocess.run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0], 23, stdout=stdout, stderr="SECRET_CREDENTIAL_SENTINEL",
+        ),
+    )
+    with pytest.raises(SecurityError) as caught:
+        _acl(tmp_path)
+    assert caught.value.phase == "directory_acl_verify"
+    assert caught.value.phase_detail == expected
+    assert caught.value.phase_detail in SECURITY_PHASE_DETAILS
+    assert "SECRET_CREDENTIAL_SENTINEL" not in str(caught.value)
+    assert "PATH_PRIVATE_WRITING_SENTINEL" not in str(caught.value)
 
 
 @pytest.mark.parametrize("old,new", [
