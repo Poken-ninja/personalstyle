@@ -108,6 +108,48 @@ void main() {
     }
     expect(client.toString(), isNot(contains('synthetic-test-token')));
   });
+  test('known engine failure preserves only its safe code', () async {
+    status = 422;
+    response = {
+      'protocol_version': '1.0',
+      'ok': false,
+      'error': {
+        'code': 'ENGINE_OPERATION_FAILED',
+        'engine_code': 'STORAGE_BOUNDARY_INVALID',
+        'detail': 'raw-writing credential-secret C:/private/profile.db',
+      },
+    };
+    try {
+      await client.call('example.write', {'synthetic': true});
+      fail('Expected a protected-storage failure');
+    } on EngineException catch (error) {
+      expect(error.failure, EngineFailure.protectedStorage);
+      expect(error.safeCode, 'STORAGE_BOUNDARY_INVALID');
+      expect(error.toString(), isNot(contains('raw-writing')));
+      expect(error.toString(), isNot(contains('credential-secret')));
+    }
+  });
+  test('unknown engine code and detail are discarded', () async {
+    status = 422;
+    response = {
+      'protocol_version': '1.0',
+      'ok': false,
+      'error': {
+        'code': 'ENGINE_OPERATION_FAILED',
+        'engine_code': 'UNKNOWN-private-writing',
+        'detail': 'credential-secret C:/private/profile.db',
+      },
+    };
+    try {
+      await client.call('example.write', {'synthetic': true});
+      fail('Expected a generic engine failure');
+    } on EngineException catch (error) {
+      expect(error.failure, EngineFailure.operation);
+      expect(error.safeCode, isNull);
+      expect(error.toString(), isNot(contains('credential-secret')));
+      expect(error.toString(), isNot(contains('private-writing')));
+    }
+  });
   test('oversized input is rejected before HTTP execution', () async {
     await expectLater(
       client.call('rewrite', {'original': 'x' * 73729}),

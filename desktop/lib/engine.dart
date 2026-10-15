@@ -20,15 +20,65 @@ enum EngineFailure {
   incompatible,
   capability,
   invalidRequest,
+  mutationConflict,
+  sourceUnavailable,
+  protectedStorage,
+  profileDatabase,
+  noEligibleExamples,
+  profileInvalid,
+  modelUnavailable,
+  operationTimeout,
+  resourceLimit,
+  verificationRejected,
   operation,
 }
 
 class EngineException implements Exception {
-  const EngineException(this.failure);
+  const EngineException(this.failure, {this.safeCode});
   final EngineFailure failure;
+  final String? safeCode;
   @override
   String toString() => 'EngineException(${failure.name})';
 }
+
+const engineFailureCodes = <String, EngineFailure>{
+  'INVALID_REQUEST': EngineFailure.invalidRequest,
+  'INVALID_EXAMPLE': EngineFailure.invalidRequest,
+  'INVALID_FEEDBACK': EngineFailure.invalidRequest,
+  'VERIFICATION_INPUT_INVALID': EngineFailure.invalidRequest,
+  'IDEMPOTENCY_CONFLICT': EngineFailure.mutationConflict,
+  'VERIFIED_SOURCE_INVALID': EngineFailure.sourceUnavailable,
+  'FEEDBACK_SOURCE_INVALID': EngineFailure.sourceUnavailable,
+  'PREFERENCE_SOURCE_INVALID': EngineFailure.sourceUnavailable,
+  'STORAGE_BOUNDARY_INVALID': EngineFailure.protectedStorage,
+  'STORAGE_MIGRATION_REQUIRED': EngineFailure.protectedStorage,
+  'DATABASE_UNAVAILABLE_OR_CORRUPT': EngineFailure.profileDatabase,
+  'TRANSACTION_FAILED': EngineFailure.profileDatabase,
+  'PERSISTENCE_VERIFICATION_FAILED': EngineFailure.profileDatabase,
+  'NO_ELIGIBLE_EXAMPLES': EngineFailure.noEligibleExamples,
+  'PROFILE_SOURCE_INVALID': EngineFailure.profileInvalid,
+  'PROFILE_VERSION_INCOMPATIBLE': EngineFailure.profileInvalid,
+  'MODEL_UNAVAILABLE': EngineFailure.modelUnavailable,
+  'MODEL_RUNTIME_UNAVAILABLE': EngineFailure.modelUnavailable,
+  'MODEL_INCOMPATIBLE': EngineFailure.modelUnavailable,
+  'MODEL_IDENTITY_MISMATCH': EngineFailure.modelUnavailable,
+  'MODEL_RESPONSE_INVALID': EngineFailure.modelUnavailable,
+  'MODEL_PREPARATION_TIMEOUT': EngineFailure.operationTimeout,
+  'GENERATION_RESOURCE_LIMIT': EngineFailure.resourceLimit,
+  'PROFILE_RESOURCE_LIMIT': EngineFailure.resourceLimit,
+  'PERSONALIZATION_CONTEXT_LIMIT': EngineFailure.resourceLimit,
+  'MODEL_CALL_BUDGET_EXHAUSTED': EngineFailure.resourceLimit,
+  'GENERATION_ATTEMPTS_EXHAUSTED': EngineFailure.resourceLimit,
+  'CONTEXT_INAPPROPRIATE': EngineFailure.verificationRejected,
+  'MEANING_CHANGED': EngineFailure.verificationRejected,
+  'REQUIRED_FACTS_CHANGED': EngineFailure.verificationRejected,
+  'REQUIRED_INFORMATION_MISSING': EngineFailure.verificationRejected,
+  'STRUCTURAL_CONSTRAINT_FAILED': EngineFailure.verificationRejected,
+  'USER_CONSTRAINT_FAILED': EngineFailure.verificationRejected,
+  'VERIFIER_RESPONSE_INVALID': EngineFailure.verificationRejected,
+  'VERIFICATION_REPEATED_FAILURE': EngineFailure.verificationRejected,
+  'IDENTICAL_REPAIR': EngineFailure.verificationRejected,
+};
 
 String newMutationId() {
   final random = Random.secure();
@@ -118,15 +168,28 @@ class ProtocolClient {
     if (response.statusCode != 200 || decoded['ok'] != true) {
       final error = decoded['error'];
       final code = error is Map ? error['code'] : null;
-      throw EngineException(switch (code) {
+      final engineCode = error is Map ? error['engine_code'] : null;
+      final failure = switch (code) {
         'AUTHENTICATION_REQUIRED' ||
         'AUTHENTICATION_INVALID' => EngineFailure.authentication,
         'PROTOCOL_MAJOR_INCOMPATIBLE' => EngineFailure.incompatible,
         'CAPABILITY_UNSUPPORTED' => EngineFailure.capability,
         'REQUEST_MALFORMED' ||
         'REQUEST_RESOURCE_LIMIT' => EngineFailure.invalidRequest,
-        _ => EngineFailure.operation,
-      });
+        'ENGINE_OPERATION_FAILED' when engineCode is String =>
+          engineFailureCodes[engineCode] ?? EngineFailure.operation,
+        _ =>
+          code is String
+              ? engineFailureCodes[code] ?? EngineFailure.operation
+              : EngineFailure.operation,
+      };
+      final safeCode =
+          engineCode is String && engineFailureCodes.containsKey(engineCode)
+          ? engineCode
+          : code is String && engineFailureCodes.containsKey(code)
+          ? code
+          : null;
+      throw EngineException(failure, safeCode: safeCode);
     }
     return decoded['result'];
   }

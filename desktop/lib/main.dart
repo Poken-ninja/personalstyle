@@ -30,20 +30,70 @@ enum ViewState {
   operationFailed,
 }
 
-String messageFor(EngineFailure failure) => switch (failure) {
-  EngineFailure.start =>
-    'The local engine could not start. Check the development engine setup.',
-  EngineFailure.exited =>
-    'The local engine exited. Close and reopen PersonalStyle.',
-  EngineFailure.authentication =>
-    'The engine rejected this session. Close and reopen PersonalStyle.',
-  EngineFailure.incompatible =>
-    'This engine protocol is incompatible with PersonalStyle.',
-  EngineFailure.capability => 'This engine is missing a required capability.',
-  EngineFailure.invalidRequest =>
-    'The request is invalid or too large. Check your input.',
-  EngineFailure.operation => 'The engine could not complete the operation. Check protected profile and runtime readiness.',
+String statusForFailure(EngineFailure failure) => switch (failure) {
+  EngineFailure.start => 'ENGINE_START_FAILED',
+  EngineFailure.exited => 'ENGINE_UNAVAILABLE',
+  EngineFailure.authentication => 'AUTHENTICATION_FAILED',
+  EngineFailure.incompatible => 'PROTOCOL_INCOMPATIBLE',
+  EngineFailure.capability => 'CAPABILITY_UNSUPPORTED',
+  EngineFailure.invalidRequest => 'INVALID_INPUT',
+  EngineFailure.mutationConflict => 'MUTATION_CONFLICT',
+  EngineFailure.sourceUnavailable => 'SOURCE_UNAVAILABLE',
+  EngineFailure.protectedStorage => 'PROTECTED_STORAGE_ERROR',
+  EngineFailure.profileDatabase => 'PROFILE_DATABASE_ERROR',
+  EngineFailure.noEligibleExamples => 'NO_ELIGIBLE_VOICE_EVIDENCE',
+  EngineFailure.profileInvalid => 'PROFILE_INVALID',
+  EngineFailure.modelUnavailable => 'MODEL_UNAVAILABLE',
+  EngineFailure.operationTimeout => 'OPERATION_TIMEOUT',
+  EngineFailure.resourceLimit => 'RESOURCE_LIMIT',
+  EngineFailure.verificationRejected => 'VERIFICATION_REJECTED',
+  _ => 'ENGINE_OPERATION_FAILED',
 };
+
+String messageFor(EngineFailure failure, {String? safeCode}) {
+  final explanation = switch (failure) {
+    EngineFailure.start =>
+      'The local engine could not start. Check the development engine setup.',
+    EngineFailure.exited =>
+      'The local engine exited. Close and reopen PersonalStyle.',
+    EngineFailure.authentication =>
+      'The engine rejected this session. Close and reopen PersonalStyle.',
+    EngineFailure.incompatible =>
+      'This engine protocol is incompatible with PersonalStyle.',
+    EngineFailure.capability => 'This engine is missing a required capability.',
+    EngineFailure.invalidRequest =>
+      'The request is invalid or too large. Check your input.',
+    EngineFailure.mutationConflict => 'This request ID was already used with different content. No new change was accepted.',
+    EngineFailure.sourceUnavailable => 'The source result for this operation is no longer available in the current engine session.',
+    EngineFailure.protectedStorage => 'PersonalStyle could not verify protected profile storage. The engine did not report a more specific storage step. Do not reset the profile.',
+    EngineFailure.profileDatabase => 'PersonalStyle could not read or update the protected profile database. Do not reset the profile.',
+    EngineFailure.noEligibleExamples => 'There are no eligible writing examples for this context. Add an authorized example for this context to personalize the result.',
+    EngineFailure.profileInvalid => 'The profile data is invalid or uses an unsupported version. Do not reset the profile.',
+    EngineFailure.modelUnavailable => 'The selected local model is unavailable or incompatible. Check that the configured Ollama model is ready.',
+    EngineFailure.operationTimeout =>
+      'The operation exceeded its time limit. No automatic retry was made.',
+    EngineFailure.resourceLimit => 'The operation reached a configured resource limit. Shorten the input or reduce its requirements.',
+    EngineFailure.verificationRejected => 'The engine could not verify that the result preserves the required meaning and information. Review the input and requirements.',
+    EngineFailure.operation => 'The engine could not complete the operation. Its exact cause is not available.',
+  };
+  final reference = safeCode != null && engineFailureCodes.containsKey(safeCode)
+      ? safeCode
+      : null;
+  return reference == null
+      ? explanation
+      : '$explanation\nReference: $reference';
+}
+
+String pendingOperationName(String capability) => switch (capability) {
+  'example.write' => 'writing example save',
+  'feedback.write' => 'feedback submission',
+  _ => 'profile update',
+};
+
+bool mutationWasDefinitelyRejected(EngineFailure failure) =>
+    failure == EngineFailure.invalidRequest ||
+    failure == EngineFailure.mutationConflict ||
+    failure == EngineFailure.sourceUnavailable;
 
 class PersonalStyleApp extends StatelessWidget {
   const PersonalStyleApp({super.key, required this.connection});
@@ -84,6 +134,7 @@ class _WritingScreenState extends State<WritingScreen> {
   bool exampleLearning = false;
   bool feedbackLearning = false;
   bool feedbackSaved = false;
+  EngineException? lastFailure;
   // One uncertain mutation can be confirmed manually with the same UUID/payload.
   (String, Map<String, Object?>)? pending;
 
@@ -100,7 +151,6 @@ class _WritingScreenState extends State<WritingScreen> {
       if (!mounted) return;
       setState(() {
         result = null;
-        pending = null;
         state = ViewState.engineUnavailable;
         notice = messageFor(EngineFailure.exited);
       });
@@ -151,6 +201,7 @@ class _WritingScreenState extends State<WritingScreen> {
     setState(() {
       busy = true;
       notice = null;
+      lastFailure = null;
     });
     try {
       await action();
@@ -158,9 +209,13 @@ class _WritingScreenState extends State<WritingScreen> {
       if (mounted && state != ViewState.engineUnavailable) {
         setState(() {
           state = ViewState.operationFailed;
-          notice = messageFor(
-            error is EngineException ? error.failure : EngineFailure.operation,
-          );
+          lastFailure = error is EngineException ? error : null;
+          final failure = lastFailure?.failure ?? EngineFailure.operation;
+          final rejected =
+              pending != null && mutationWasDefinitelyRejected(failure);
+          if (rejected) pending = null;
+          notice = messageFor(failure, safeCode: lastFailure?.safeCode);
+          if (rejected) notice = '$notice\nNo change was saved.';
         });
       }
     } finally {
@@ -268,10 +323,12 @@ class _WritingScreenState extends State<WritingScreen> {
     final request = pending!;
     await widget.connection.call(request.$1, request.$2);
     pending = null;
+    lastFailure = null;
     if (mounted) {
       setState(() {
         if (request.$1 == 'feedback.write') feedbackSaved = true;
-        notice = 'Previous submission confirmed.';
+        notice =
+            'The same request was accepted or an earlier save was confirmed.';
       });
     }
   });
@@ -307,7 +364,9 @@ class _WritingScreenState extends State<WritingScreen> {
       ViewState.ready => 'READY',
       ViewState.rewriting => 'REWRITING',
       ViewState.result => 'RESULT',
-      ViewState.operationFailed => 'OPERATION_FAILED',
+      ViewState.operationFailed => statusForFailure(
+        lastFailure?.failure ?? EngineFailure.operation,
+      ),
     };
     return Scaffold(
       appBar: AppBar(title: const Text('PersonalStyle')),
@@ -338,11 +397,37 @@ class _WritingScreenState extends State<WritingScreen> {
                 onPressed: available ? rewrite : null,
                 child: const Text('Rewrite'),
               ),
-              if (pending != null && connected)
-                OutlinedButton(
-                  onPressed: busy ? null : retryMutation,
-                  child: const Text('Confirm previous submission'),
+              if (pending != null) ...[
+                Card(
+                  key: const Key('pending-mutation'),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Unconfirmed ${pendingOperationName(pending!.$1)}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'The outcome is unknown. PersonalStyle did not retry automatically. Retrying sends the same request ID: an already-saved matching request is deduplicated; different content is rejected.',
+                        ),
+                        if (connected)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: OutlinedButton(
+                              onPressed: busy ? null : retryMutation,
+                              child: Text(
+                                'Retry ${pendingOperationName(pending!.$1)} with same ID',
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
+              ],
               if (result != null) ...[
                 const Divider(height: 32),
                 const Text('Verified by the engine', key: Key('verified')),
