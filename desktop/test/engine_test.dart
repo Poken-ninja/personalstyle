@@ -56,7 +56,7 @@ void main() {
     () async {
       await client.handshake();
       expect(received.single, {
-        'protocol_version': '1.0',
+        'protocol_version': '1.1',
         'client_version': '0.1.0',
         'client_kind': 'desktop',
         'requested_capability': 'handshake',

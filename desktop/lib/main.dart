@@ -3,6 +3,7 @@ import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
 
+import 'document_picker.dart';
 import 'engine.dart';
 
 void main() => runApp(
@@ -17,6 +18,7 @@ void main() => runApp(
         defaultValue: '../personalstyle.toml',
       ),
     ),
+    picker: const NativeDocumentFilePicker(),
   ),
 );
 
@@ -46,8 +48,13 @@ String messageFor(EngineFailure failure) => switch (failure) {
 };
 
 class PersonalStyleApp extends StatelessWidget {
-  const PersonalStyleApp({super.key, required this.connection});
+  const PersonalStyleApp({
+    super.key,
+    required this.connection,
+    this.picker = const NativeDocumentFilePicker(),
+  });
   final EngineConnection connection;
+  final DocumentFilePicker picker;
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'PersonalStyle',
@@ -56,13 +63,18 @@ class PersonalStyleApp extends StatelessWidget {
       colorSchemeSeed: const Color(0xff275d72),
       useMaterial3: true,
     ),
-    home: WritingScreen(connection: connection),
+    home: WritingScreen(connection: connection, picker: picker),
   );
 }
 
 class WritingScreen extends StatefulWidget {
-  const WritingScreen({super.key, required this.connection});
+  const WritingScreen({
+    super.key,
+    required this.connection,
+    this.picker = const NativeDocumentFilePicker(),
+  });
   final EngineConnection connection;
+  final DocumentFilePicker picker;
   @override
   State<WritingScreen> createState() => _WritingScreenState();
 }
@@ -84,6 +96,8 @@ class _WritingScreenState extends State<WritingScreen> {
   bool exampleLearning = false;
   bool feedbackLearning = false;
   bool feedbackSaved = false;
+  String? documentId;
+  bool documentResult = false;
   // One uncertain mutation can be confirmed manually with the same UUID/payload.
   (String, Map<String, Object?>)? pending;
 
@@ -100,6 +114,8 @@ class _WritingScreenState extends State<WritingScreen> {
       if (!mounted) return;
       setState(() {
         result = null;
+        documentId = null;
+        documentResult = false;
         pending = null;
         state = ViewState.engineUnavailable;
         notice = messageFor(EngineFailure.exited);
@@ -176,7 +192,7 @@ class _WritingScreenState extends State<WritingScreen> {
       feedbackSaved = false;
       edited.clear();
     });
-    final value = await widget.connection.call('rewrite', {
+    final payload = <String, Object?>{
       'original': original.text,
       'intent': intent.text,
       'context': contextInput.text,
@@ -184,34 +200,98 @@ class _WritingScreenState extends State<WritingScreen> {
           .split('\n')
           .where((c) => c.trim().isNotEmpty)
           .toList(),
-    });
-    // Receipt validation only: semantic/fact/constraint verification stays in P01.
-    if (value is! Map<String, dynamic> ||
-        value['state'] != 'SUCCEEDED' ||
-        value['verification_status'] != 'verified' ||
-        value['run_id'] is! String ||
-        value['candidates'] is! Map) {
+    };
+    final isDocument = documentId != null;
+    if (isDocument) payload['document_id'] = documentId;
+    final value = await widget.connection.call(
+      isDocument ? 'document.rewrite' : 'rewrite',
+      payload,
+    );
+    if (value is! Map<String, dynamic>) {
       throw const EngineException(EngineFailure.operation);
     }
-    for (final kind in ['generic', 'personalized']) {
-      final candidate = (value['candidates'] as Map)[kind];
-      if (candidate is! Map ||
-          candidate['verification_status'] != 'verified' ||
-          candidate['text'] is! String) {
+    if (isDocument) {
+      if (value['state'] != 'VERIFIED' ||
+          value['whole_document_verification'] != 'verified' ||
+          value['output'] is! String) {
         throw const EngineException(EngineFailure.operation);
+      }
+    } else {
+      // Receipt validation only: semantic/fact/constraint verification stays in P01.
+      if (value['state'] != 'SUCCEEDED' ||
+          value['verification_status'] != 'verified' ||
+          value['run_id'] is! String ||
+          value['candidates'] is! Map) {
+        throw const EngineException(EngineFailure.operation);
+      }
+      for (final kind in ['generic', 'personalized']) {
+        final candidate = (value['candidates'] as Map)[kind];
+        if (candidate is! Map ||
+            candidate['verification_status'] != 'verified' ||
+            candidate['text'] is! String) {
+          throw const EngineException(EngineFailure.operation);
+        }
       }
     }
     if (!mounted || state == ViewState.engineUnavailable) return;
     setState(() {
       result = value;
+      documentResult = isDocument;
       state = ViewState.result;
       edited.text = candidateText;
     });
   });
 
-  String get candidateText =>
-      ((result?['candidates'] as Map?)?[mode] as Map?)?['text'] as String? ??
-      '';
+  String get candidateText {
+    final value = result;
+    if (documentResult) return value?['output'] as String? ?? '';
+    final candidates = value?['candidates'] as Map?;
+    return (candidates?[mode] as Map?)?['text'] as String? ?? '';
+  }
+
+  String formatForPath(String path) {
+    final filename = path.replaceAll('\\', '/').split('/').last;
+    final dot = filename.lastIndexOf('.');
+    return dot < 0 ? '' : filename.substring(dot + 1).toLowerCase();
+  }
+
+  Future<void> importDocument() => operate(() async {
+    final path = await widget.picker.openDocument();
+    if (path == null) return;
+    final format = formatForPath(path);
+    final value = await widget.connection.call('document.import', {
+      'path': path,
+      'format': format,
+    });
+    if (value is! Map ||
+        value['document_id'] is! String ||
+        value['text'] is! String) {
+      throw const EngineException(EngineFailure.operation);
+    }
+    if (!mounted) return;
+    setState(() {
+      original.text = value['text'] as String;
+      documentId = value['document_id'] as String;
+      result = null;
+      documentResult = false;
+      pending = null;
+      feedbackSaved = false;
+      state = ViewState.ready;
+      notice = 'Document imported.';
+    });
+  });
+
+  Future<void> exportDocument() => operate(() async {
+    final path = await widget.picker.saveDocument('PersonalStyle-result.txt');
+    if (path == null) return;
+    final format = formatForPath(path);
+    await widget.connection.call('document.export', {
+      'path': path,
+      'format': format,
+      'text': candidateText,
+    });
+    if (mounted) setState(() => notice = 'Verified document exported.');
+  });
 
   Future<void> mutation(String capability, Map<String, Object?> payload) async {
     pending = (capability, payload);
@@ -331,6 +411,10 @@ class _WritingScreenState extends State<WritingScreen> {
                 ),
               const SizedBox(height: 20),
               input('Original text', original, lines: 4),
+              OutlinedButton(
+                onPressed: available ? importDocument : null,
+                child: const Text('Open .txt or .md document'),
+              ),
               input('Intent', intent),
               input('Explicit context', contextInput),
               input('Constraints (one per line)', constraints, lines: 2),
@@ -345,54 +429,76 @@ class _WritingScreenState extends State<WritingScreen> {
                 ),
               if (result != null) ...[
                 const Divider(height: 32),
-                const Text('Verified by the engine', key: Key('verified')),
-                DropdownButton<String>(
-                  value: mode,
-                  onChanged: available && !feedbackSaved
-                      ? (value) {
-                          setState(() {
-                            mode = value!;
-                            edited.text = candidateText;
-                          });
-                        }
-                      : null,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'personalized',
-                      child: Text('Personalized'),
-                    ),
-                    DropdownMenuItem(value: 'generic', child: Text('Generic')),
-                  ],
+                Text(
+                  documentResult
+                      ? 'Whole document verified by the engine'
+                      : 'Verified by the engine',
+                  key: const Key('verified'),
                 ),
-                SelectableText(candidateText, key: const Key('result')),
-                const SizedBox(height: 16),
-                input('Edit result', edited, lines: 4),
-                CheckboxListTile(
-                  value: feedbackLearning,
-                  onChanged: available && !feedbackSaved
-                      ? (value) => setState(() => feedbackLearning = value!)
-                      : null,
-                  title: const Text(
-                    'Authorize learning from this feedback in its context',
+                if (documentResult &&
+                    result?['verified_segments'] is int &&
+                    result?['total_segments'] is int)
+                  Text(
+                    'Verified segments: ${result!['verified_segments']} / ${result!['total_segments']}',
+                    key: const Key('document-progress'),
                   ),
-                ),
-                Wrap(
-                  spacing: 12,
-                  children: [
-                    FilledButton(
-                      onPressed: available && !feedbackSaved
-                          ? () => feedback('accept')
-                          : null,
-                      child: const Text('Accept'),
+                SelectableText(candidateText, key: const Key('result')),
+                if (documentResult)
+                  OutlinedButton(
+                    onPressed: available ? exportDocument : null,
+                    child: const Text('Export verified document'),
+                  )
+                else ...[
+                  DropdownButton<String>(
+                    value: mode,
+                    onChanged: available && !feedbackSaved
+                        ? (value) {
+                            setState(() {
+                              mode = value!;
+                              edited.text = candidateText;
+                            });
+                          }
+                        : null,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'personalized',
+                        child: Text('Personalized'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'generic',
+                        child: Text('Generic'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  input('Edit result', edited, lines: 4),
+                  CheckboxListTile(
+                    value: feedbackLearning,
+                    onChanged: available && !feedbackSaved
+                        ? (value) => setState(() => feedbackLearning = value!)
+                        : null,
+                    title: const Text(
+                      'Authorize learning from this feedback in its context',
                     ),
-                    OutlinedButton(
-                      onPressed: available && !feedbackSaved
-                          ? () => feedback('edit')
-                          : null,
-                      child: const Text('Submit edited feedback'),
-                    ),
-                  ],
-                ),
+                  ),
+                  Wrap(
+                    spacing: 12,
+                    children: [
+                      FilledButton(
+                        onPressed: available && !feedbackSaved
+                            ? () => feedback('accept')
+                            : null,
+                        child: const Text('Accept'),
+                      ),
+                      OutlinedButton(
+                        onPressed: available && !feedbackSaved
+                            ? () => feedback('edit')
+                            : null,
+                        child: const Text('Submit edited feedback'),
+                      ),
+                    ],
+                  ),
+                ],
               ],
               const Divider(height: 40),
               Text(

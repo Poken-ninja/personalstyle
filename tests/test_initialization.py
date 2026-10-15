@@ -16,7 +16,7 @@ def test_current_configuration_preserved():
         expected = tomllib.load(stream)
     assert load_config(CONFIG) == expected
     assert expected["versions"] == {
-        "protocol": "1.0", "config_schema": 1, "storage_schema": 3,
+        "protocol": "1.1", "config_schema": 1, "storage_schema": 3,
         "profile_schema": 1, "prompt_contract": 1,
         "compatibility_policy": "same-major-capability-negotiated",
     }
@@ -45,7 +45,7 @@ def test_cli_help_and_startup_without_model(tmp_path, monkeypatch):
     ("storage_schema = 3", "storage_schema = 4"),
     ("profile_schema = 1", "profile_schema = 2"),
     ("prompt_contract = 1", "prompt_contract = 2"),
-    ('protocol = "1.0"', 'protocol = "2.0"'),
+    ('protocol = "1.1"', 'protocol = "2.0"'),
     ("max_generation_attempts = 3", "max_generation_attempts = 0"),
     ("max_total_model_calls = 8", "max_total_model_calls = true"),
     ("timeout_seconds = 60", "timeout_seconds = 0"),

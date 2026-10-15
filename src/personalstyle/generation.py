@@ -28,10 +28,11 @@ class RewriteRequest:
     context: str
     constraints: tuple[str, ...]
 
-    def validate(self) -> None:
+    def validate(self, *, max_request_bytes: int = MAX_REQUEST_BYTES) -> None:
         try:
             valid = (
-                type(self.original) is str and bool(self.original.strip())
+                type(max_request_bytes) is int and max_request_bytes >= MAX_REQUEST_BYTES
+                and type(self.original) is str and bool(self.original.strip())
                 and len(self.original.encode()) <= MAX_TEXT_BYTES
                 and type(self.intent) is str and bool(self.intent.strip())
                 and len(self.intent.encode()) <= 1024
@@ -40,7 +41,7 @@ class RewriteRequest:
                 and type(self.constraints) is tuple and len(self.constraints) <= 16
                 and all(type(c) is str and c.strip() and len(c.encode()) <= 1024
                         for c in self.constraints)
-                and len(json.dumps(asdict(self), ensure_ascii=False).encode()) <= MAX_REQUEST_BYTES
+                and len(json.dumps(asdict(self), ensure_ascii=False).encode()) <= max_request_bytes
             )
         except (TypeError, AttributeError, UnicodeError):
             valid = False

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personalstyle_desktop/engine.dart';
 import 'package:personalstyle_desktop/main.dart';
+import 'package:personalstyle_desktop/document_picker.dart';
 
 class WireFake implements EngineConnection {
   @override
@@ -13,6 +14,16 @@ class WireFake implements EngineConnection {
   Completer<Object?>? rewriteResponse;
   final calls = <(String, Map<String, Object?>)>[];
   bool stopped = false;
+  Object? importResult = {
+    'document_id': '22222222-2222-4222-8222-222222222222',
+    'format': 'md',
+    'text': '# Synthetic imported document\n\nOriginal paragraph.',
+  };
+  Object? documentResult = {
+    'state': 'VERIFIED',
+    'whole_document_verification': 'verified',
+    'output': '# Synthetic imported document\n\nVerified paragraph.',
+  };
   Map<String, dynamic> receipt = {
     'state': 'SUCCEEDED',
     'verification_status': 'verified',
@@ -43,6 +54,8 @@ class WireFake implements EngineConnection {
     calls.add((capability, payload));
     if (operationFailure != null) throw operationFailure!;
     if (capability == 'rewrite') return rewriteResponse?.future ?? receipt;
+    if (capability == 'document.import') return importResult;
+    if (capability == 'document.rewrite') return documentResult;
     return {'id': 'synthetic-record'};
   }
 
@@ -52,13 +65,38 @@ class WireFake implements EngineConnection {
   }
 }
 
-Future<void> boot(WidgetTester tester, WireFake fake) async {
+class PickerFake implements DocumentFilePicker {
+  String? openPath = r'C:\synthetic\input.md';
+  String? savePath = r'C:\synthetic\output.md';
+  String? suggestedName;
+  int openCalls = 0;
+  int saveCalls = 0;
+
+  @override
+  Future<String?> openDocument() async {
+    openCalls++;
+    return openPath;
+  }
+
+  @override
+  Future<String?> saveDocument(String suggestedName) async {
+    saveCalls++;
+    this.suggestedName = suggestedName;
+    return savePath;
+  }
+}
+
+Future<void> boot(
+  WidgetTester tester,
+  WireFake fake, {
+  DocumentFilePicker picker = const NativeDocumentFilePicker(),
+}) async {
   tester.view.resetPhysicalSize();
   tester.view.physicalSize = const Size(1100, 1800);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  await tester.pumpWidget(PersonalStyleApp(connection: fake));
+  await tester.pumpWidget(PersonalStyleApp(connection: fake, picker: picker));
   await tester.pumpAndSettle();
 }
 
@@ -76,6 +114,78 @@ Future<void> rewrite(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('document picker cancellation makes no engine request', (
+    tester,
+  ) async {
+    final fake = WireFake();
+    final picker = PickerFake()..openPath = null;
+    await boot(tester, fake, picker: picker);
+    await tester.tap(find.text('Open .txt or .md document'));
+    await tester.pumpAndSettle();
+    expect(picker.openCalls, 1);
+    expect(fake.calls, isEmpty);
+  });
+
+  testWidgets('import, long rewrite, and verified export delegate to engine', (
+    tester,
+  ) async {
+    final fake = WireFake();
+    final picker = PickerFake();
+    await boot(tester, fake, picker: picker);
+    await tester.tap(find.text('Open .txt or .md document'));
+    await tester.pumpAndSettle();
+    expect(fake.calls.single.$1, 'document.import');
+    expect(fake.calls.single.$2, {'path': picker.openPath, 'format': 'md'});
+    expect(
+      tester.widget<TextField>(field('Original text')).controller!.text,
+      '# Synthetic imported document\n\nOriginal paragraph.',
+    );
+    await tester.enterText(field('Intent'), 'Clarify without changing facts');
+    await tester.enterText(field('Explicit context'), 'work.email');
+    await tester.tap(find.text('Rewrite'));
+    await tester.pumpAndSettle();
+    expect(fake.calls[1].$1, 'document.rewrite');
+    expect(
+      fake.calls[1].$2['document_id'],
+      '22222222-2222-4222-8222-222222222222',
+    );
+    expect(fake.calls[1].$2['original'], contains('Original paragraph.'));
+    expect(find.text('Whole document verified by the engine'), findsOneWidget);
+    expect(find.text('Accept'), findsNothing);
+    expect(find.text('Submit edited feedback'), findsNothing);
+    await tester.tap(find.text('Export verified document'));
+    await tester.pumpAndSettle();
+    expect(picker.saveCalls, 1);
+    expect(picker.suggestedName, 'PersonalStyle-result.txt');
+    expect(fake.calls.last.$1, 'document.export');
+    expect(fake.calls.last.$2, {
+      'path': picker.savePath,
+      'format': 'md',
+      'text': '# Synthetic imported document\n\nVerified paragraph.',
+    });
+  });
+
+  testWidgets('export dialog cancellation creates no export request', (
+    tester,
+  ) async {
+    final fake = WireFake();
+    final picker = PickerFake()..savePath = null;
+    await boot(tester, fake, picker: picker);
+    await tester.tap(find.text('Open .txt or .md document'));
+    await tester.pumpAndSettle();
+    await tester.enterText(field('Intent'), 'Clarify');
+    await tester.enterText(field('Explicit context'), 'work.email');
+    await tester.tap(find.text('Rewrite'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Export verified document'));
+    await tester.pumpAndSettle();
+    expect(picker.saveCalls, 1);
+    expect(fake.calls.map((call) => call.$1), [
+      'document.import',
+      'document.rewrite',
+    ]);
+  });
+
   testWidgets('READY and rewrite transitions delegate exact request', (
     tester,
   ) async {
