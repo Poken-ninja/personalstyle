@@ -2,7 +2,7 @@
 
 ```text
 TASK: F08
-STATE: active — Phase A implementation checkpoint; Phase A acceptance INCOMPLETE
+STATE: blocked — Phase A acceptance INCOMPLETE; native export/read-back unverified and the historical owner-store save failure remains unreproduced
 BRANCH: task/f08-document-import-export
 BASE / MERGE_BASE: 4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a
 F07: merged by PR #13 at 4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a
