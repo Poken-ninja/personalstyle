@@ -16,10 +16,17 @@ from typing import Any, cast
 from uuid import UUID
 
 from personalstyle.config import load_config
+from personalstyle.document import DocumentProvider, inspect_document, rewrite_document
+from personalstyle.documents import (
+    MAX_DOCUMENT_BODY_BYTES,
+    DocumentError,
+    export_document,
+    import_document,
+)
 from personalstyle.feedback import FeedbackInput, record_feedback
 from personalstyle.generation import MAX_REQUEST_BYTES, RewriteRequest, generate_pair
 from personalstyle.learning import evaluate_context_preferences
-from personalstyle.provider import GenerationError, ModelProvider
+from personalstyle.provider import GenerationError, ModelProvider, OllamaProvider
 from personalstyle.storage import ExampleInput, ExampleStore, StoreError
 from personalstyle.verification import deterministic_failures, verify_pair
 
@@ -28,8 +35,9 @@ CAPABILITIES = (
     "handshake", "rewrite", "rewrite.generic", "example.write", "feedback.write",
     "preference.evaluate",
     "voice.status", "example.authorize", "example.personalization.set", "example.revoke",
+    "document.import", "document.export", "document.rewrite", "document.inspect",
 )
-MAX_BODY_BYTES = MAX_REQUEST_BYTES + 4096
+MAX_BODY_BYTES = max(MAX_REQUEST_BYTES + 4096, MAX_DOCUMENT_BODY_BYTES)
 MAX_HEADER_BYTES = 8192
 CLOSE_GRACE_SECONDS = 0.1
 ENGINE_CODES = frozenset({
@@ -46,6 +54,10 @@ ENGINE_CODES = frozenset({
     "IDENTICAL_REPAIR", "CONTEXT_INAPPROPRIATE", "MEANING_CHANGED", "REQUIRED_FACTS_CHANGED",
     "REQUIRED_INFORMATION_MISSING", "STRUCTURAL_CONSTRAINT_FAILED", "USER_CONSTRAINT_FAILED",
     "VERIFICATION_INPUT_INVALID",
+    "DOCUMENT_FORMAT_UNSUPPORTED", "DOCUMENT_EXTENSION_MISMATCH", "DOCUMENT_EMPTY",
+    "DOCUMENT_MALFORMED", "DOCUMENT_ENCRYPTED", "DOCUMENT_RESOURCE_LIMIT",
+    "DOCUMENT_PATH_INVALID", "DOCUMENT_IMPORT_FAILED", "DOCUMENT_EXPORT_FAILED",
+    "DOCUMENT_NOT_VERIFIED",
 })
 
 
@@ -112,6 +124,34 @@ def _validate(envelope: Any) -> tuple[str, Any]:
             rewrite.validate()
             deterministic_failures(rewrite, rewrite.original)
             return capability, rewrite
+        if capability == "document.import":
+            if data.keys() != {"path", "format"} or type(data["path"]) is not str or len(data["path"]) > 32767:
+                raise ProtocolError("REQUEST_MALFORMED")
+            if type(data["format"]) is not str:
+                raise ProtocolError("REQUEST_MALFORMED")
+            return capability, data
+        if capability == "document.export":
+            if data.keys() != {"path", "format", "text"} or type(data["path"]) is not str or len(data["path"]) > 32767:
+                raise ProtocolError("REQUEST_MALFORMED")
+            if type(data["format"]) is not str or type(data["text"]) is not str:
+                raise ProtocolError("REQUEST_MALFORMED")
+            return capability, data
+        if capability == "document.rewrite":
+            if (data.keys() != {"document_id", "original", "intent", "context", "constraints"}
+                    or type(data["constraints"]) is not list
+                    or type(data["document_id"]) is not str
+                    or str(UUID(data["document_id"])) != data["document_id"]):
+                raise ProtocolError("REQUEST_MALFORMED")
+            rewrite = RewriteRequest(**{k: v for k, v in data.items() if k != "document_id"}
+                                     | {"constraints": tuple(data["constraints"])})
+            rewrite.validate(max_request_bytes=MAX_DOCUMENT_BODY_BYTES)
+            deterministic_failures(rewrite, rewrite.original)
+            return capability, (data["document_id"], rewrite)
+        if capability == "document.inspect":
+            if (data.keys() != {"document_id"} or type(data["document_id"]) is not str
+                    or str(UUID(data["document_id"])) != data["document_id"]):
+                raise ProtocolError("REQUEST_MALFORMED")
+            return capability, data["document_id"]
         if capability == "example.write":
             example = ExampleInput(**data)
             example.validate()
@@ -187,6 +227,18 @@ class EngineSession:
                 raise ProtocolError("ENGINE_OPERATION_FAILED", 422, result["failure_code"])
             self._verified = result
             return result
+        if capability == "document.import":
+            return import_document(data["path"], data["format"])
+        if capability == "document.export":
+            return export_document(data["path"], data["format"], data["text"])
+        if capability == "document.rewrite":
+            document_id, request = data
+            provider = (cast(DocumentProvider, self.provider) if self.provider is not None
+                        else OllamaProvider(self.settings["model"]["model"]))
+            return rewrite_document(self.store, document_id, request, self.settings,
+                                    provider=provider)
+        if capability == "document.inspect":
+            return inspect_document(self.store, data)
         if capability == "example.write":
             example = self.store.add(data)
             return {"id": example["id"], "record_version": example["record_version"],
@@ -339,13 +391,20 @@ class _Handler(BaseHTTPRequestHandler):
             raw = self.rfile.read(length)
             if len(raw) != length:
                 raise ProtocolError("REQUEST_MALFORMED")
-            capability, data = _validate(_json(raw))
+            envelope = _json(raw)
+            capability_hint = envelope.get("requested_capability") if isinstance(envelope, dict) else None
+            permitted_size = (MAX_DOCUMENT_BODY_BYTES
+                              if capability_hint in {"document.export", "document.rewrite"}
+                              else MAX_REQUEST_BYTES + 4096)
+            if len(raw) > permitted_size:
+                raise ProtocolError("REQUEST_RESOURCE_LIMIT", 413)
+            capability, data = _validate(envelope)
             if monotonic() >= self._deadline:
                 raise ProtocolError("REQUEST_RESOURCE_LIMIT", 408)
             self._timer.cancel()  # Ingress ceiling must not shorten legitimate engine operations.
             result = self.server.session.execute(capability, data)
             self._reply(200, {"ok": True, "result": result})
-        except (StoreError, GenerationError) as error:
+        except (DocumentError, StoreError, GenerationError) as error:
             self._reply(422, {"ok": False, "error": {"code": "ENGINE_OPERATION_FAILED",
                          "engine_code": str(error) if str(error) in ENGINE_CODES else "ENGINE_OPERATION_FAILED"}})
         except ProtocolError as error:

@@ -8,6 +8,7 @@ from dataclasses import replace
 from typing import Any, Protocol, cast
 from uuid import UUID
 
+from personalstyle.documents import MAX_DOCUMENT_BODY_BYTES
 from personalstyle.generation import SYSTEM, RewriteRequest, generate_pair
 from personalstyle.profile import derive_personalization
 from personalstyle.provider import Candidate, GenerationError, ModelProvider, PreparedModel
@@ -382,7 +383,7 @@ class _ReservedProvider:
 def rewrite_document(store: ExampleStore, document_id: str, request: RewriteRequest,
                      settings: dict[str, Any], *, provider: DocumentProvider) -> dict[str, Any]:
     """Explicit create/update/resume; no background work and no profile-learning writes."""
-    request.validate()
+    request.validate(max_request_bytes=MAX_DOCUMENT_BODY_BYTES)
     proposed = segment_document(request.original)
     deterministic_failures(request, request.original)  # Validate constraint syntax before writes.
     try:

@@ -4,13 +4,17 @@ import 'dart:io';
 import 'dart:math';
 
 const clientVersion = '0.1.0';
-const protocolVersion = '1.0';
+const protocolVersion = '1.1';
 const requiredCapabilities = {
   'handshake',
   'rewrite',
   'example.write',
   'feedback.write',
   'preference.evaluate',
+  'document.import',
+  'document.export',
+  'document.rewrite',
+  'document.inspect',
 };
 
 enum EngineFailure {
@@ -120,10 +124,13 @@ class ProtocolClient {
   Future<Object?> call(String capability, Map<String, Object?> payload) async {
     if (_credential == null) throw const EngineException(EngineFailure.exited);
     try {
+      final timeout = capability == 'document.rewrite'
+          ? const Duration(seconds: 1800)
+          : const Duration(seconds: 600);
       return await _send(
         capability,
         payload,
-      ).timeout(const Duration(seconds: 600));
+      ).timeout(timeout);
     } on EngineException {
       rethrow;
     } catch (_) {
@@ -141,7 +148,9 @@ class ProtocolClient {
         'payload': payload,
       }),
     );
-    if (body.length > 73728) {
+    final documentContentOperation =
+        capability == 'document.export' || capability == 'document.rewrite';
+    if (body.length > (documentContentOperation ? 524288 : 73728)) {
       throw const EngineException(EngineFailure.invalidRequest);
     }
     final request = await _http.postUrl(endpoint);

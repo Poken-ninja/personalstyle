@@ -11,7 +11,7 @@ from threading import Thread
 from time import monotonic
 from types import SimpleNamespace
 from typing import ClassVar
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -22,12 +22,13 @@ from personalstyle.protocol import (
     CAPABILITIES,
     CLOSE_GRACE_SECONDS,
     MAX_BODY_BYTES,
+    PROTOCOL_VERSION,
     EngineServer,
     EngineSession,
 )
 from personalstyle.provider import Candidate, PreparedModel
-from personalstyle.security import prepare_private_directory
-from personalstyle.storage import ExampleInput, ExampleStore, StoreError
+from personalstyle.security import prepare_private_directory, prepare_private_file
+from personalstyle.storage import APPLICATION_ID, SCHEMA, ExampleInput, ExampleStore, StoreError
 from personalstyle.verification import CHECKS, VERIFY_SYSTEM
 
 TEXT = "Alex will deliver 12 reports on Monday. Thank you."
@@ -54,13 +55,13 @@ def serving(session):
         assert not worker.is_alive()
 
 
-def request(server, token, value=None, *, raw=None, headers=None, path="/v1"):
+def request(server, token, value=None, *, raw=None, headers=None, path="/v1", timeout=60):
     wire = json.dumps(envelope() if value is None else value).encode() if raw is None else raw
     fields = {"Content-Type": "application/json"}
     if token is not None:
         fields["Authorization"] = "Bearer " + token
     fields.update(headers or {})
-    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=60)
+    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=timeout)
     try:
         connection.request("POST", path, wire, fields)
         response = connection.getresponse()
@@ -99,7 +100,7 @@ def test_loopback_auth_handshake_revocation_and_no_logs(boundary, caplog, capsys
         assert status == 200 and body["ok"]
         result = body["result"]
         assert result["compatibility"] == "compatible" and result["engine_version"] == "0.1.0"
-        assert result["protocol_version"] == "1.1" and result["requested_protocol_version"] == protocol
+        assert result["protocol_version"] == PROTOCOL_VERSION and result["requested_protocol_version"] == protocol
         assert result["supported_capabilities"] == list(CAPABILITIES)
     replacement = EngineSession(session.settings, session.store, secrets.token_urlsafe(32))
     with serving(replacement) as restarted:
@@ -195,6 +196,40 @@ def test_authenticated_generic_rewrite_verifies_without_profile_database(tmp_pat
     assert result["candidates"]["generic"]["writing_dna_source"] is None
     assert provider.calls == ["prepare", "generate", "verify"]
     assert not store.path.exists()
+@pytest.mark.parametrize("format_name", ["txt", "md"])
+def test_document_text_operations_use_authenticated_engine_and_atomic_output(
+    tmp_path, caplog, capsys, format_name,
+):
+    settings = load_config(Path(__file__).resolve().parents[1] / "personalstyle.toml")
+    token = secrets.token_urlsafe(32)
+    source, target = tmp_path / f"source.{format_name}", tmp_path / f"result.{format_name}"
+    text = "# Synthetic heading\n\nUnicode — Καλημέρα\n"
+    source.write_bytes(text.encode("utf-8"))
+    session = EngineSession(settings, ExampleStore(tmp_path / "profile.db"), token)
+    with serving(session) as server:
+        status, imported = request(server, token, envelope("document.import", {
+            "path": str(source), "format": format_name,
+        }))
+        assert status == 200 and imported["result"]["text"] == text
+        assert UUID(imported["result"]["document_id"])
+        status, exported = request(server, token, envelope("document.export", {
+            "path": str(target), "format": format_name, "text": text,
+        }))
+        assert status == 200 and exported["result"]["format"] == format_name
+        assert target.read_text(encoding="utf-8") == text
+        assert "DOCUMENT_PATH_INVALID" == request(server, token, envelope("document.import", {
+            "path": str(source.parent / ".." / source.name), "format": "md",
+        }))[1]["error"]["engine_code"]
+        # Escaped content exceeds the old short-request ceiling but remains in the bounded
+        # document-only envelope.
+        escaped = "\\" * 40000
+        status, exported = request(server, token, envelope("document.export", {
+            "path": str(target), "format": format_name, "text": escaped,
+        }))
+        assert status == 200 and target.read_text(encoding="utf-8") == escaped
+    captured = caplog.text + str(capsys.readouterr())
+    assert str(source) not in captured and text not in captured and token not in captured
+    assert not session.store.path.exists()
 
 
 @pytest.mark.parametrize("value,headers,code", [
@@ -240,7 +275,7 @@ def test_invalid_json_is_bounded_before_dispatch(boundary, raw):
 def test_early_rejection_with_unread_body_stress(boundary, kind, code, caplog, capsys):
     server, session, token = boundary
     sensitive = "PRIVATE_TRANSPORT_BODY"
-    wire = (sensitive * 4000).encode()[:MAX_BODY_BYTES + 1]
+    wire = (sensitive * (MAX_BODY_BYTES // len(sensitive) + 1)).encode()[:MAX_BODY_BYTES + 1]
     headers = {}
     if kind == "origin":
         headers["Origin"] = "https://example.com"
@@ -376,6 +411,111 @@ class FixtureProvider:
         if self.invalid:
             text = TEXT.replace("12", "13")
         return Candidate(text, 0.01, 100, 40)
+
+
+class DocumentFixtureProvider:
+    def __init__(self):
+        self.calls = 0
+        self.digest = "b" * 64
+
+    def identity(self):
+        return self.digest
+
+    def prepare(self, context_tokens):
+        self.calls += 1
+        return PreparedModel("ollama", "qwen3:8b", self.digest, "fixture", context_tokens, 0, 0.01)
+
+    def generate_document(self, prepared, messages, **options):
+        self.calls += 1
+        data = json.loads(messages[1]["content"])
+        if "candidate" in data:
+            value = json.dumps(dict.fromkeys(CHECKS, True))
+        else:
+            units = data["request"]["original"]
+            value = json.dumps({"units": [
+                {"id": unit["id"], "text": unit["text"]} for unit in units
+            ]})
+        return Candidate(value, 0.01, 30, 20)
+
+    def generate(self, prepared, messages, **options):
+        return self.generate_document(prepared, messages, **options)
+
+
+def test_import_to_f07_rewrite_export_and_restart_reuses_checkpoints(
+    tmp_path, caplog, capsys, monkeypatch,
+):
+    from personalstyle import protocol
+
+    settings = load_config(Path(__file__).resolve().parents[1] / "personalstyle.toml")
+    profile = tmp_path / "profile"
+    prepare_private_directory(profile)
+    store = ExampleStore(profile / "profile.db")
+    prepare_private_file(store.path)
+    with sqlite3.connect(store.path) as connection:
+        for sql in SCHEMA.values():
+            connection.execute(sql)
+        connection.execute(f"PRAGMA application_id={APPLICATION_ID}")
+        connection.execute("PRAGMA user_version=3")
+        connection.execute("INSERT INTO store_meta VALUES (3, 1)")
+    store.add(ExampleInput(str(uuid4()), "Synthetic writing example.", "work.email",
+                           "owner", "owner", "user_owned", True, True, False))
+    source = tmp_path / "source.md"
+    target = tmp_path / "result.md"
+    text = "\n\n".join(
+        (f"Section {index} preserves report 42 and the requested facts. " + "synthetic " * 95).rstrip()
+        for index in range(20)
+    )
+    source.write_bytes(text.encode("utf-8"))
+    provider = DocumentFixtureProvider()
+    monkeypatch.setattr(protocol, "OllamaProvider", lambda model: provider)
+    token = secrets.token_urlsafe(32)
+    first = EngineSession(settings, store, token)
+    with serving(first) as server:
+        status, imported = request(server, token, envelope("document.import", {
+            "path": str(source), "format": "md",
+        }))
+        assert status == 200
+        document_id = imported["result"]["document_id"]
+        assert imported["result"]["text"] == text
+        rewrite_payload = {
+            "document_id": document_id,
+            "original": imported["result"]["text"],
+            "intent": "Improve clarity without changing facts",
+            "context": "work.email",
+            "constraints": ["Keep report 42"],
+        }
+        status, rewritten = request(
+            server, token, envelope("document.rewrite", rewrite_payload), timeout=1800,
+        )
+        assert status == 200, rewritten
+        result = rewritten["result"]
+        assert result["state"] == "VERIFIED" and result["whole_document_verification"] == "verified"
+        assert result["total_segments"] > 1 and result["model_calls"] > 5
+        assert result["output"] == text
+        used = provider.calls
+        status, inspection = request(server, token, envelope("document.inspect", {
+            "document_id": document_id,
+        }))
+        assert status == 200 and inspection["result"]["verified_segments"] == result["total_segments"]
+        status, exported = request(server, token, envelope("document.export", {
+            "path": str(target), "format": "md", "text": result["output"],
+        }))
+        assert status == 200 and exported["result"]["format"] == "md"
+        assert target.read_bytes().decode("utf-8") == text
+
+    second_token = secrets.token_urlsafe(32)
+    second = EngineSession(settings, ExampleStore(store.path), second_token)
+    with serving(second) as server:
+        assert request(server, second_token, envelope("document.inspect", {
+            "document_id": document_id,
+        }))[1]["result"]["state"] == "VERIFIED"
+        status, resumed = request(server, second_token, envelope(
+            "document.rewrite", rewrite_payload,
+        ))
+        assert status == 200 and resumed["result"]["reused_segments"] == resumed["result"]["total_segments"]
+        assert provider.calls == used
+    assert str(source) not in caplog.text and str(target) not in caplog.text
+    assert text not in caplog.text + str(capsys.readouterr())
 
 
 def test_existing_verified_workflow_protected_mutations_preferences_and_provenance(tmp_path, caplog, capsys):
