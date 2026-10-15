@@ -64,18 +64,42 @@ Future<void> boot(WidgetTester tester, WireFake fake) async {
 
 Finder field(String label) => find.widgetWithText(TextField, label);
 Future<void> rewrite(WidgetTester tester) async {
-  await tester.enterText(field('Original text'), 'Synthetic source.');
-  await tester.enterText(field('Intent'), 'Be concise');
-  await tester.enterText(field('Explicit context'), 'work.email');
   await tester.enterText(
-    field('Constraints (one per line)'),
+    field('Paste or write your draft'),
+    'Synthetic source.',
+  );
+  await tester.enterText(field('Maximum words (optional)'), '80');
+  await tester.enterText(
+    field('Exact terms to preserve (one per line)'),
     'Keep names\nKeep dates',
   );
-  await tester.tap(find.text('Rewrite'));
+  await tester.tap(find.byKey(const Key('humanize')));
   await tester.pump();
 }
 
 void main() {
+  test(
+    'friendly controls map to stable engine values and bounded constraints',
+    () {
+      expect(engineContext(WritingContext.academic), 'academic.writing');
+      expect(engineContext(WritingContext.professional), 'work.email');
+      expect(engineContext(WritingContext.everyday), 'casual.chat');
+      expect(
+        intentForRefinement('Humanize only'),
+        contains('preserving its meaning and facts'),
+      );
+      expect(constraintsForRequirements('80', 'ModelProvider\n42'), [
+        'max_words:80',
+        'required_literal:ModelProvider',
+        'required_literal:42',
+      ]);
+      expect(
+        () => constraintsForRequirements('0', ''),
+        throwsA(isA<EngineException>()),
+      );
+    },
+  );
+
   test('known failures have distinct stable presentation categories', () {
     expect(statusForFailure(EngineFailure.invalidRequest), 'INVALID_INPUT');
     expect(
@@ -130,28 +154,54 @@ void main() {
     );
   });
 
-  testWidgets('READY and rewrite transitions delegate exact request', (
+  testWidgets('friendly workspace maps context, refinement and requirements', (
     tester,
   ) async {
     final fake = WireFake()..rewriteResponse = Completer<Object?>();
     await boot(tester, fake);
     expect(find.text('READY'), findsOneWidget);
+    expect(find.text('Make this sound like me.'), findsOneWidget);
+    expect(find.text('Explicit context'), findsNothing);
+    expect(find.text('casual.chat'), findsNothing);
+    expect(find.text('Add your writing example'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('writing-context')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Everyday').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('refinement')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('More concise').last);
+    await tester.pumpAndSettle();
     await rewrite(tester);
     expect(find.text('REWRITING'), findsOneWidget);
     expect(fake.calls.single.$1, 'rewrite');
     expect(fake.calls.single.$2, {
       'original': 'Synthetic source.',
-      'intent': 'Be concise',
-      'context': 'work.email',
-      'constraints': ['Keep names', 'Keep dates'],
+      'intent': 'Humanize this draft in my writing voice more concisely while preserving its meaning and facts.',
+      'context': 'casual.chat',
+      'constraints': [
+        'max_words:80',
+        'required_literal:Keep names',
+        'required_literal:Keep dates',
+      ],
     });
     fake.rewriteResponse!.complete(fake.receipt);
     await tester.pumpAndSettle();
     expect(find.text('RESULT'), findsOneWidget);
     expect(find.byKey(const Key('verified')), findsOneWidget);
     expect(find.byKey(const Key('result')), findsOneWidget);
+    expect(find.byKey(const Key('original-result')), findsOneWidget);
+    expect(find.byKey(const Key('verification-explanation')), findsOneWidget);
     expect(
-      tester.widget<SelectableText>(find.byKey(const Key('result'))).data,
+      tester
+          .widget<SelectableText>(
+            find.descendant(
+              of: find.byKey(const Key('result')),
+              matching: find.byType(SelectableText),
+            ),
+          )
+          .data,
       'Personalized synthetic result.',
     );
   });
@@ -173,7 +223,7 @@ void main() {
       );
       expect(
         tester
-            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Rewrite'))
+            .widget<FilledButton>(find.byKey(const Key('humanize')))
             .onPressed,
         isNull,
       );
@@ -190,7 +240,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('ENGINE_OPERATION_FAILED'), findsOneWidget);
     expect(find.byKey(const Key('verified')), findsNothing);
-    expect(find.byKey(const Key('result')), findsNothing);
   });
 
   for (final event in ['accept', 'edit']) {
@@ -203,12 +252,12 @@ void main() {
         await tester.pumpAndSettle();
         if (event == 'edit') {
           await tester.enterText(
-            field('Edit result'),
+            field('Edit your result'),
             'Synthetic edited result.',
           );
         }
         final button = find.text(
-          event == 'accept' ? 'Accept' : 'Submit edited feedback',
+          event == 'accept' ? 'Accept result' : 'Submit my edit',
         );
         await tester.ensureVisible(button);
         await tester.tap(button);
@@ -231,28 +280,6 @@ void main() {
       },
     );
   }
-
-  testWidgets(
-    'example writing requires ownership authorization and exact context',
-    (tester) async {
-      final fake = WireFake();
-      await boot(tester, fake);
-      await tester.enterText(field('Explicit context'), 'friends.chat');
-      await tester.enterText(field('Writing example'), 'Synthetic example.');
-      await tester.tap(
-        find.text('I own this writing and authorize storing it'),
-      );
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Save authorized example'));
-      await tester.tap(find.text('Save authorized example'));
-      await tester.pumpAndSettle();
-      expect(fake.calls.single.$1, 'example.write');
-      expect(fake.calls.single.$2, containsPair('context', 'friends.chat'));
-      expect(fake.calls.single.$2, containsPair('authorized', true));
-      expect(fake.calls.single.$2, containsPair('learning_eligible', false));
-      expect(fake.calls.single.$2, containsPair('source_kind', 'user_owned'));
-    },
-  );
 
   testWidgets('engine exit invalidates result and session UI', (tester) async {
     final fake = WireFake();
@@ -327,8 +354,8 @@ void main() {
       await rewrite(tester);
       await tester.pumpAndSettle();
       fake.operationFailure = const EngineException(EngineFailure.operation);
-      await tester.ensureVisible(find.text('Accept'));
-      await tester.tap(find.text('Accept'));
+      await tester.ensureVisible(find.text('Accept result'));
+      await tester.tap(find.text('Accept result'));
       await tester.pumpAndSettle();
       expect(fake.calls, hasLength(2));
       final originalMutation = fake.calls.last;
@@ -350,48 +377,44 @@ void main() {
     },
   );
 
-  testWidgets('pending save remains visible after engine exit without retry', (
-    tester,
-  ) async {
-    final fake = WireFake();
-    await boot(tester, fake);
-    await tester.enterText(field('Explicit context'), 'casual.chat');
-    await tester.enterText(field('Writing example'), 'Synthetic example.');
-    await tester.tap(find.text('I own this writing and authorize storing it'));
-    await tester.pumpAndSettle();
-    fake.operationFailure = const EngineException(EngineFailure.operation);
-    await tester.ensureVisible(find.text('Save authorized example'));
-    await tester.tap(find.text('Save authorized example'));
-    await tester.pumpAndSettle();
-    expect(find.text('Unconfirmed writing example save'), findsOneWidget);
-    expect(fake.calls, hasLength(1));
-    fake.onExit!();
-    await tester.pumpAndSettle();
-    expect(find.text('ENGINE_UNAVAILABLE'), findsOneWidget);
-    expect(find.text('Unconfirmed writing example save'), findsOneWidget);
-    expect(find.text('Retry writing example save with same ID'), findsNothing);
-    expect(fake.calls, hasLength(1));
-  });
+  testWidgets(
+    'pending feedback remains visible after engine exit without retry',
+    (tester) async {
+      final fake = WireFake();
+      await boot(tester, fake);
+      await rewrite(tester);
+      await tester.pumpAndSettle();
+      fake.operationFailure = const EngineException(EngineFailure.operation);
+      await tester.ensureVisible(find.text('Accept result'));
+      await tester.tap(find.text('Accept result'));
+      await tester.pumpAndSettle();
+      expect(find.text('Unconfirmed feedback submission'), findsOneWidget);
+      expect(fake.calls, hasLength(2));
+      fake.onExit!();
+      await tester.pumpAndSettle();
+      expect(find.text('ENGINE_UNAVAILABLE'), findsOneWidget);
+      expect(find.text('Unconfirmed feedback submission'), findsOneWidget);
+      expect(find.text('Save authorized example'), findsNothing);
+      expect(fake.calls, hasLength(2));
+    },
+  );
 
   testWidgets(
-    'structured invalid example failure clears uncertainty without retry',
+    'structured invalid rewrite failure is shown without claiming a save',
     (tester) async {
       final fake = WireFake()
         ..operationFailure = const EngineException(
           EngineFailure.invalidRequest,
         );
       await boot(tester, fake);
-      await tester.enterText(field('Explicit context'), 'casual.chat');
-      await tester.enterText(field('Writing example'), 'Synthetic example.');
-      await tester.tap(
-        find.text('I own this writing and authorize storing it'),
+      await tester.enterText(
+        field('Paste or write your draft'),
+        'Synthetic source.',
       );
+      await tester.tap(find.byKey(const Key('humanize')));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Save authorized example'));
-      await tester.tap(find.text('Save authorized example'));
-      await tester.pumpAndSettle();
-      expect(find.text('Unconfirmed writing example save'), findsNothing);
-      expect(find.textContaining('No change was saved.'), findsOneWidget);
+      expect(find.text('INVALID_INPUT'), findsOneWidget);
+      expect(find.textContaining('No change was saved.'), findsNothing);
       expect(fake.calls, hasLength(1));
     },
   );
