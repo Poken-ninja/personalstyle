@@ -109,6 +109,29 @@ the engine retains its reproducible derived snapshot. Persisted preference editi
 engine-owned, context-scoped, versioned capability and explicit acceptance tests before Flutter
 exposes it. “Use simpler wording” must never imply the user lacks expertise.
 
+## Progressive personalization depth
+
+PersonalStyle should work for people who want one clear action and for power users who want
+fine control over how each context sounds. This is depth of user control, not a universal
+“humanization strength” score. Do not promise that a higher level is more human, more authentic,
+or less detectable.
+
+- **Simple:** choose a friendly context; use that context's eligible voice by default; humanize.
+- **Guided:** optionally choose wording complexity, formality/warmth, concision/detail, and
+  terminology handling through clear presets. “Match my voice” is the default; users can ask
+  for simpler or more technical wording without the product guessing their expertise.
+- **Advanced:** inspect context-scoped source and measured Writing DNA; adjust explicit
+  context-specific preferences; manage protected terms and formatting/structure requirements;
+  and review which authorized evidence is used. Advanced controls remain engine-validated and
+  cannot bypass fact, meaning, consent, context-isolation, verification, or resource limits.
+
+Advanced controls must be progressive disclosure rather than a second engineering console.
+Provide clear defaults and explain the effect of each control. Distinguish measured traits from
+user-chosen preferences, soft style requests from hard verifiable requirements, and generic
+output from personalized output. Do not expose prompt text, raw profile data or internal IDs as
+the way to achieve power-user control. Each advanced feature is exposed only after the engine
+has an authoritative, versioned contract and tests for it.
+
 ## Contexts with incomplete voice evidence
 
 Profiles are independent per context. If a user has Academic evidence but no Professional or
