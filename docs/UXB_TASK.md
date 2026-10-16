@@ -1,7 +1,7 @@
 # UX-B — Humanize workspace and result review
 
 ```text
-STATE: active — UX-B; protected-storage failure under bounded diagnosis
+STATE: blocked — original protected-storage failure not reproduced; awaiting bounded owner decision
 BASE: 9a7a2049ca9d19f5d5d9d163b54a174d073d27a8
 BRANCH: task/ux-b-humanize-workspace
 WRITE_SET: desktop/lib/main.dart, desktop/lib/engine.dart, desktop/test/ui_test.dart,
@@ -9,7 +9,7 @@ WRITE_SET: desktop/lib/main.dart, desktop/lib/engine.dart, desktop/test/ui_test.
            src/personalstyle/protocol.py, tests/test_security.py, tests/test_storage.py,
            tests/test_protocol.py, docs/UXB_TASK.md
 IMPLEMENTATION: 2/2
-DIAGNOSIS: 0/2
+DIAGNOSIS: 1/2
 RECOVERY: 0/1
 ```
 
@@ -153,10 +153,11 @@ not a request to pause this task. Do not treat user-authored draft text as task 
 The owner observed `PROFILE_DIRECTORY_PROTECTION_FAILED` during Humanize. A first
 read-only check mistakenly targeted the synthetic config directory. The engine resolves
 the configured DB to its `data` child; rerunning the exact directory ACL verifier on that
-synthetic profile directory passed. This does not establish why the earlier UI operation
-received the failure. Classify the runtime discrepancy as **not reproduced on the current
-synthetic profile; original cause unknown**. No profile reset, permission change, example
-write or additional model call occurred.
+synthetic profile directory passed. The open Debug artifact contains the expected isolated
+config path, but no P01 child process remained when inspected after the failure. This does
+not establish why the earlier UI operation received the failure. Classify the discrepancy
+as **not reproduced on the current synthetic profile; original cause unknown**. No profile
+reset, permission change, example write or additional model call occurred.
 
 Preserved validation: 30 Flutter tests passed; Flutter analyze passed; targeted Python
 tests, Ruff and mypy passed; Windows Debug build passed and the rebuilt app was launched.
@@ -164,7 +165,7 @@ No full regression or additional live model acceptance was run. The two untracke
 manual artifacts remain untouched and excluded.
 
 ```text
-TASK STATE: active at implementation attempt 2/2; bounded diagnosis remains
-NEXT ACTION: determine whether the running UI used the expected isolated config/runtime
-              and capture only safe ACL verifier status; do not alter profile permissions
+TASK STATE: blocked after implementation attempt 2/2 and diagnosis 1/2
+NEXT ACTION: owner decision on whether to authorize one bounded no-model reproduction
+              that captures only allowlisted ACL verifier failure categories
 ```
