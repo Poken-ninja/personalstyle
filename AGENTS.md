@@ -571,10 +571,31 @@ When blocked, leave an honest checkpoint containing current task, evidence, fail
 
 Normal implementation: minimum context -> one bounded behavior -> targeted tests -> checkpoint.
 Read README + AGENTS + the selected task first; consult deeper sections only when needed.
-Final task verification: full regression once -> static checks once -> one real acceptance
-run when materially required -> required CI once -> compact evidence. Do not rerun unchanged
-passing checks for ceremony. A compound task may share branch/contract/PR/budgets only when
-explicitly selected by the owner; preserve phase dependency guards and persistent counters.
+Verification uses three tiers:
+
+1. **Fast preflight:** changed-file checks, relevant static checks, shard-coverage validation,
+   and the smallest tests that directly exercise the change. Run local pytest through
+   `python scripts/run_pytest_shard.py --focus tests/test_file.py::test_name` so its writable
+   temporary root and diagnostics are checked. Stop if this tier fails.
+2. **Affected integration:** run the smallest relevant storage, security, consent, protocol,
+   migration, or product integration set required by the change's risk. Keep real protected-
+   storage checks when that boundary is affected; do not rerun the same focused cases inside
+   a broader local suite without a specific interaction question.
+3. **Complete acceptance:** use required exact-head GitHub CI for the complete regression and
+   static gate when its coverage checks prove it runs the required tests. Do not automatically
+   duplicate that full suite locally. Run a local full regression only for a documented
+   environment-specific acceptance, missing CI coverage, or a concrete diagnosis need.
+
+Reuse passing evidence only for an unchanged relevant revision, environment, and test
+contract. A relevant code, test, dependency, configuration, migration, or workflow change
+invalidates affected evidence. Exact-head CI success does not erase or reclassify an
+unresolved local failure, timeout, or environment event; preserve and report both.
+
+These are builder instructions. Enforcement comes only from executable shard-coverage
+checks, required CI jobs, and task-specific acceptance mechanisms; this text does not claim
+documents enforce wall-clock limits or test execution. Do not rerun unchanged passing checks
+for ceremony. A compound task may share branch/contract/PR/budgets only when explicitly
+selected by the owner; preserve phase dependency guards and persistent counters.
 
 Target normal implementation turns around 3?8 minutes where practical. The 10?15 minute
 threshold is advisory: checkpoint long work rather than expand scope. Documents do not
