@@ -110,7 +110,7 @@ String messageFor(EngineFailure failure, {String? safeCode}) {
       'The request is invalid or too large. Check your input.',
     EngineFailure.mutationConflict => 'This request ID was already used with different content. No new change was accepted.',
     EngineFailure.sourceUnavailable => 'The source result for this operation is no longer available in the current engine session.',
-    EngineFailure.protectedStorage => 'PersonalStyle could not verify protected profile storage. The engine did not report a more specific storage step. Do not reset the profile.',
+    EngineFailure.protectedStorage => _protectedStorageMessage(safeCode),
     EngineFailure.profileDatabase => 'PersonalStyle could not read or update the protected profile database. Do not reset the profile.',
     EngineFailure.noEligibleExamples => 'No eligible writing samples are available for this context. Your draft is still here; personalization requires genuine examples from the same context.',
     EngineFailure.profileInvalid => 'The profile data is invalid or uses an unsupported version. Do not reset the profile.',
@@ -133,6 +133,22 @@ String pendingOperationName(String capability) => switch (capability) {
   'example.write' => 'writing example save',
   'feedback.write' => 'feedback submission',
   _ => 'profile update',
+};
+
+String _protectedStorageMessage(String? code) => switch (code) {
+  'PROFILE_PATH_INVALID' => 'The configured profile location is unsafe or unsupported. Do not reset the profile.',
+  'PROFILE_PATH_CHECK_FAILED' => 'Windows could not inspect the configured profile location. Close PersonalStyle and retry once; do not reset the profile.',
+  'PROFILE_DIRECTORY_UNAVAILABLE' => 'The protected profile directory is missing or unavailable. Do not reset the profile.',
+  'PROFILE_DIRECTORY_PROTECTION_FAILED' => 'Windows rejected the profile directory protection check. Do not change permissions manually or reset the profile.',
+  'PROFILE_ACL_CHECK_UNAVAILABLE' => 'Windows could not run the protected-storage permission check. Close other PersonalStyle windows and retry once.',
+  'PROFILE_BOUNDARY_CHANGED' => 'The protected profile location changed during the operation. Close and reopen PersonalStyle; do not reset the profile.',
+  'PROFILE_DIRECTORY_NOT_EMPTY' => 'Storage preparation found existing files and refused to replace them. No reset was performed.',
+  'PROFILE_DIRECTORY_PREPARATION_FAILED' => 'Windows could not prepare the profile directory. Existing profile data was not taken over.',
+  'PROFILE_FILE_INVALID' => 'The profile database file failed its protected-file validation. Do not delete or reset it.',
+  'PROFILE_FILE_UNAVAILABLE' => 'The profile database file is missing or unavailable. Do not reset the profile.',
+  'PROFILE_FILE_PROTECTION_FAILED' => 'Windows rejected the profile database protection check. Do not change permissions manually or reset the profile.',
+  'PROFILE_FILE_CREATION_FAILED' => 'PersonalStyle could not create the profile database file inside protected storage.',
+  _ => 'PersonalStyle could not verify protected profile storage. Do not reset the profile.',
 };
 
 bool mutationWasDefinitelyRejected(EngineFailure failure) =>

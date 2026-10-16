@@ -10,6 +10,10 @@ from pathlib import Path
 class SecurityError(ValueError):
     """A local security precondition was not met."""
 
+    def __init__(self, message: str, *, code: str = "STORAGE_BOUNDARY_INVALID"):
+        super().__init__(message)
+        self.code = code
+
 
 def log_event(logger: logging.Logger, event: str, count: int = 0) -> None:
     """Emit only fixed identifiers and bounded counters, never caller text."""
@@ -61,18 +65,20 @@ foreach ($identity in @($sid, $system)) {
 
 def _check_path(path: Path) -> Path:
     if os.name != "nt":
-        raise SecurityError("Private storage preparation is verified only on Windows")
+        raise SecurityError("Private storage preparation is verified only on Windows",
+                            code="PROFILE_PATH_INVALID")
     absolute = path.absolute()
     if ".." in absolute.parts or absolute == Path(absolute.anchor):
-        raise SecurityError("Invalid profile directory")
+        raise SecurityError("Invalid profile directory", code="PROFILE_PATH_INVALID")
     try:
         for ancestor in (absolute, *absolute.parents):
             if ancestor.exists() or ancestor.is_symlink():
                 attributes = ancestor.lstat().st_file_attributes
                 if attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT:
-                    raise SecurityError("Reparse paths are not allowed")
+                    raise SecurityError("Reparse paths are not allowed", code="PROFILE_PATH_INVALID")
     except OSError as error:
-        raise SecurityError("Profile path cannot be inspected") from error
+        raise SecurityError("Profile path cannot be inspected",
+                            code="PROFILE_PATH_CHECK_FAILED") from error
     return absolute
 
 
@@ -89,23 +95,25 @@ def _acl(path: Path, create: bool = False, file: bool = False) -> None:
         context += "\n$inherit = [Security.AccessControl.InheritanceFlags]::None\n"
         creation = creation.replace("DirectorySecurity", "FileSecurity")
     script = context + (creation if create else "") + ACL_VERIFY
+    stage_code = "PROFILE_FILE_PROTECTION_FAILED" if file else "PROFILE_DIRECTORY_PROTECTION_FAILED"
     try:
         result = subprocess.run(
             [str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
             env=environment, capture_output=True, timeout=10, check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
-        raise SecurityError("OS permission verification unavailable") from error
+        raise SecurityError("OS permission verification unavailable",
+                            code="PROFILE_ACL_CHECK_UNAVAILABLE") from error
     if result.returncode != 0:
         # Never echo subprocess output containing paths or account information.
-        raise SecurityError("Private profile permissions could not be verified")
+        raise SecurityError("Private profile permissions could not be verified", code=stage_code)
 
 
 def verify_private_directory(path: Path) -> None:
     """Read back OS ownership and ACL before any future engine write."""
     absolute = _check_path(path)
     if not absolute.is_dir():
-        raise SecurityError("Profile directory is unavailable")
+        raise SecurityError("Profile directory is unavailable", code="PROFILE_DIRECTORY_UNAVAILABLE")
     _acl(absolute)
 
 
@@ -115,14 +123,16 @@ def prepare_private_directory(path: Path) -> Path:
     try:
         if absolute.exists():
             if not absolute.is_dir() or any(absolute.iterdir()):
-                raise SecurityError("Existing profile directory is not empty")
+                raise SecurityError("Existing profile directory is not empty",
+                                    code="PROFILE_DIRECTORY_NOT_EMPTY")
             verify_private_directory(absolute)
         else:
             # Parent must already exist; never recursively take over ancestors.
             absolute.mkdir()
             _acl(absolute, create=True)
     except OSError as error:
-        raise SecurityError("Profile directory preparation failed") from error
+        raise SecurityError("Profile directory preparation failed",
+                            code="PROFILE_DIRECTORY_PREPARATION_FAILED") from error
     return absolute
 
 
@@ -132,9 +142,9 @@ def verify_private_file(path: Path) -> None:
     try:
         info = absolute.stat()
         if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
-            raise SecurityError("Invalid private file")
+            raise SecurityError("Invalid private file", code="PROFILE_FILE_INVALID")
     except OSError as error:
-        raise SecurityError("Private file is unavailable") from error
+        raise SecurityError("Private file is unavailable", code="PROFILE_FILE_UNAVAILABLE") from error
     _acl(absolute, file=True)
 
 
@@ -146,7 +156,8 @@ def prepare_private_file(path: Path) -> None:
         with absolute.open("xb"):
             pass
     except OSError as error:
-        raise SecurityError("Private file creation failed") from error
+        raise SecurityError("Private file creation failed",
+                            code="PROFILE_FILE_CREATION_FAILED") from error
     _acl(absolute, create=True, file=True)
     verify_private_directory(absolute.parent)
     verify_private_file(absolute)

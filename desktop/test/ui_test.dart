@@ -3,7 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personalstyle_desktop/engine.dart';
-import 'package:personalstyle_desktop/main.dart';
+import 'package:personalstyle_desktop/main.dart'
+    show
+        PersonalStyleApp,
+        WritingContext,
+        constraintsForRequirements,
+        engineContext,
+        intentForRefinement,
+        messageFor,
+        mutationWasDefinitelyRejected,
+        statusForFailure;
 
 class WireFake implements EngineConnection {
   @override
@@ -78,6 +87,27 @@ Future<void> rewrite(WidgetTester tester) async {
 }
 
 void main() {
+  test('protected-storage failures explain distinct safe stages', () {
+    final directory = messageFor(
+      EngineFailure.protectedStorage,
+      safeCode: 'PROFILE_DIRECTORY_PROTECTION_FAILED',
+    );
+    final verifier = messageFor(
+      EngineFailure.protectedStorage,
+      safeCode: 'PROFILE_ACL_CHECK_UNAVAILABLE',
+    );
+    final file = messageFor(
+      EngineFailure.protectedStorage,
+      safeCode: 'PROFILE_FILE_PROTECTION_FAILED',
+    );
+    expect(directory, contains('profile directory protection check'));
+    expect(verifier, contains('permission check'));
+    expect(file, contains('database protection check'));
+    expect(directory, isNot(verifier));
+    expect(verifier, isNot(file));
+    expect(directory, isNot(contains('C:\\')));
+  });
+
   test(
     'friendly controls map to stable engine values and bounded constraints',
     () {
@@ -323,10 +353,7 @@ void main() {
     await rewrite(tester);
     await tester.pumpAndSettle();
     expect(find.text('PROTECTED_STORAGE_ERROR'), findsOneWidget);
-    expect(
-      find.textContaining('engine did not report a more specific storage step'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Do not reset the profile.'), findsOneWidget);
     expect(
       find.textContaining('Reference: STORAGE_BOUNDARY_INVALID'),
       findsOneWidget,

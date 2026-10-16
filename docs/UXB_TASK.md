@@ -1,11 +1,14 @@
 # UX-B — Humanize workspace and result review
 
 ```text
-STATE: implementation complete — awaiting owner visual acceptance
+STATE: frozen — UX-B checkpoint saved; protected-storage failure unresolved
 BASE: 9a7a2049ca9d19f5d5d9d163b54a174d073d27a8
 BRANCH: task/ux-b-humanize-workspace
-WRITE_SET: desktop/lib/main.dart, desktop/test/ui_test.dart, docs/UXB_TASK.md
-IMPLEMENTATION: 1/2
+WRITE_SET: desktop/lib/main.dart, desktop/lib/engine.dart, desktop/test/ui_test.dart,
+           src/personalstyle/security.py, src/personalstyle/storage.py,
+           src/personalstyle/protocol.py, tests/test_security.py, tests/test_storage.py,
+           tests/test_protocol.py, docs/UXB_TASK.md
+IMPLEMENTATION: 2/2
 DIAGNOSIS: 0/2
 RECOVERY: 0/1
 ```
@@ -36,9 +39,12 @@ in the engineering prototype is not evidence that the new workspace is usable.
 - Remove example enrollment from this workspace; do not change its engine capability.
 - Preserve safe error and uncertain-mutation handling from UX-A.
 
-No Python, protocol, schema, storage, profile, F08 or Figma-file changes. No generic-only
-generation fallback: the current engine requires eligible exact-context examples before
-it can generate a pair. No profile readiness or Writing DNA is invented by Flutter.
+The UX-B workspace itself adds no profile behavior or schema change. The later bounded
+diagnostics correction adds stage-specific protected-storage failure codes in Python/P01;
+it does not alter permissions, profile contents, generation policy or storage schema.
+No generic-only generation fallback: the current engine requires eligible exact-context
+examples before it can generate a pair. No profile readiness or Writing DNA is invented
+by Flutter.
 
 ## Context mapping
 
@@ -111,3 +117,53 @@ evidence for the run. A real generic-only choice requires a separate engine task
 
 The UX-B screen has no example-save/onboarding control. Any example-writing acceptance belongs to
 UX-C after its UI exists; it must not be inferred from attempts in the old prototype.
+
+## Protected-storage diagnostics correction
+
+The owner observed `STORAGE_BOUNDARY_INVALID` during synthetic rewrite acceptance.
+Read-only inspection confirmed the isolated preview profile's directory/file ACL checks
+and exact-context eligibility query passed, but did not establish which check failed in
+the earlier rewrite. The previous engine collapsed path, directory ACL, file ACL, ACL
+verifier availability, and filesystem-identity changes into one code. This bounded
+correction preserves fixed stage codes through storage and P01 and maps them to distinct
+UI guidance. It exposes no OS error text, paths, account identifiers, ACL entries,
+profile content, or credentials. No rewrite/model retry is part of this correction.
+
+IMPLEMENTATION ATTEMPT 2/2: owner-authorized error-specificity correction.
+Targeted evidence:
+- Synthetic ACL-stage tests, storage propagation test, and sanitized P01 error test: 3 passed.
+- Ruff on touched Python files: passed.
+- mypy src: passed (13 source files).
+- Flutter test suite: 30 passed, including distinct storage-stage messaging and legacy fallback.
+- Flutter analyze: passed, no issues.
+- Windows Debug rebuild: passed after the owner closed the previous preview; Flutter
+  launched the rebuilt app as PID 16316. The owner then observed the precise sanitized code
+  `PROFILE_DIRECTORY_PROTECTION_FAILED` when attempting Humanize.
+- This code identifies the failing stage (Windows protected-directory ACL verification).
+  It does not expose the underlying Windows/PowerShell reason, so the ACL itself is not
+  established as incorrectly configured. No profile reset, permission change, example
+  write, or further model call was performed.
+- No full regression, model call, profile write, or permission change was performed.
+
+## Frozen handoff — 2026-10-15
+
+The owner is pausing UX-B work for a hackathon. Preserve this branch and checkpoint as-is;
+do not retry the Humanize operation or change profile permissions during the pause.
+
+Latest visible behavior: the workspace presents friendly Writing context, Optional
+refinement, Writing voice, requirements and draft controls. The owner saw
+`PROFILE_DIRECTORY_PROTECTION_FAILED` for the selected Academic context. The immediate
+technical blocker is a failed protected-directory ACL verification in the active runtime;
+the sanitized code narrows the stage but does not establish the OS-level cause. Further
+diagnosis must use a separate bounded task and synthetic storage, not repeated user retries.
+
+Validation retained for this checkpoint: 30 Flutter tests passed; Flutter analyze passed;
+targeted Python tests, Ruff and mypy passed; Windows Debug build passed and the rebuilt app
+was launched. No full regression or live model acceptance was run. The two untracked F08
+manual artifacts are unrelated and intentionally excluded from this checkpoint.
+
+```text
+TASK STATE: frozen at UX-B implementation attempt 2/2
+NEXT ACTION: owner resumes after hackathon; first work should diagnose the ACL verifier's
+              sanitized nonzero result without resetting or changing profile permissions
+```

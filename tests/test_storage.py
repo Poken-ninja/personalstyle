@@ -11,7 +11,7 @@ import pytest
 from typer.testing import CliRunner
 
 from personalstyle.cli import app
-from personalstyle.security import prepare_private_directory
+from personalstyle.security import SecurityError, prepare_private_directory
 from personalstyle.storage import MAX_TEXT_BYTES, ExampleInput, ExampleStore, StoreError
 
 CONFIG = Path(__file__).resolve().parents[1] / "personalstyle.toml"
@@ -100,6 +100,15 @@ def test_insecure_boundary_blocks_before_sqlite_open(tmp_path, monkeypatch):
     with pytest.raises(StoreError, match="STORAGE_BOUNDARY_INVALID"):
         ExampleStore(directory / "profile.db").add(example())
     assert list(directory.iterdir()) == []
+
+
+def test_storage_preserves_fixed_boundary_stage_code(store, monkeypatch):
+    def fail_directory_check(_path):
+        raise SecurityError("private path omitted", code="PROFILE_DIRECTORY_PROTECTION_FAILED")
+
+    monkeypatch.setattr("personalstyle.storage.verify_private_directory", fail_directory_check)
+    with pytest.raises(StoreError, match="^PROFILE_DIRECTORY_PROTECTION_FAILED$"):
+        store.get("00000000-0000-4000-8000-000000000001")
 
 
 def test_permission_change_requires_reverification(store):

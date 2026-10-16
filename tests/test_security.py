@@ -143,3 +143,28 @@ def test_unsupported_os_fails_closed(tmp_path, monkeypatch):
     with pytest.raises(SecurityError, match="only on Windows"):
         prepare_private_directory(tmp_path / "private")
     assert not (tmp_path / "private").exists()
+
+
+def test_acl_failures_have_safe_stage_codes(tmp_path, monkeypatch):
+    from personalstyle import security
+
+    monkeypatch.setattr(
+        security.subprocess, "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 1, b"sensitive path", b"account SID"),
+    )
+    with pytest.raises(SecurityError) as directory_error:
+        security._acl(tmp_path, file=False)
+    with pytest.raises(SecurityError) as file_error:
+        security._acl(tmp_path / "profile.db", file=True)
+    assert directory_error.value.code == "PROFILE_DIRECTORY_PROTECTION_FAILED"
+    assert file_error.value.code == "PROFILE_FILE_PROTECTION_FAILED"
+    assert "sensitive path" not in str(directory_error.value)
+    assert "account SID" not in str(file_error.value)
+
+    def timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(args[0], kwargs.get("timeout", 10))
+
+    monkeypatch.setattr(security.subprocess, "run", timeout)
+    with pytest.raises(SecurityError) as unavailable:
+        security._acl(tmp_path)
+    assert unavailable.value.code == "PROFILE_ACL_CHECK_UNAVAILABLE"

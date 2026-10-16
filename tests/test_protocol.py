@@ -239,6 +239,8 @@ def test_header_and_input_bounds_and_sanitized_errors(boundary, caplog, capsys):
     assert request(server, token)[1]["error"] == {"code": "ENGINE_OPERATION_FAILED"}
     session.failure = StoreError("STORAGE_BOUNDARY_INVALID")
     assert request(server, token)[1]["error"]["engine_code"] == "STORAGE_BOUNDARY_INVALID"
+    session.failure = StoreError("PROFILE_DIRECTORY_PROTECTION_FAILED")
+    assert request(server, token)[1]["error"]["engine_code"] == "PROFILE_DIRECTORY_PROTECTION_FAILED"
     session.failure = StoreError(sensitive)
     body = request(server, token)[1]
     assert sensitive not in json.dumps(body) and token not in json.dumps(body)
