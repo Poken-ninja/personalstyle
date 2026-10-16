@@ -154,10 +154,13 @@ The owner observed `PROFILE_DIRECTORY_PROTECTION_FAILED` during Humanize. A firs
 read-only check mistakenly targeted the synthetic config directory. The engine resolves
 the configured DB to its `data` child; rerunning the exact directory ACL verifier on that
 synthetic profile directory passed. The open Debug artifact contains the expected isolated
-config path, but no P01 child process remained when inspected after the failure. This does
-not establish why the earlier UI operation received the failure. Classify the discrepancy
-as **not reproduced on the current synthetic profile; original cause unknown**. No profile
-reset, permission change, example write or additional model call occurred.
+config path, but no P01 child process remained when inspected after the failure. The
+isolated profile's Academic query is read-only and succeeds with zero eligible examples.
+The real configured profile directory also passes the ACL verifier, while its SQLite DB
+is absent. Neither current check reproduces the observed ACL failure, and the open Debug
+preview is not using the real profile. Classify the discrepancy as **not reproduced;
+original runtime cause unknown**. No profile reset, permission change, example write or
+additional model call occurred.
 
 Preserved validation: 30 Flutter tests passed; Flutter analyze passed; targeted Python
 tests, Ruff and mypy passed; Windows Debug build passed and the rebuilt app was launched.
@@ -166,6 +169,6 @@ manual artifacts remain untouched and excluded.
 
 ```text
 TASK STATE: blocked after implementation attempt 2/2 and diagnosis 1/2
-NEXT ACTION: owner decision on whether to authorize one bounded no-model reproduction
-              that captures only allowlisted ACL verifier failure categories
+NEXT ACTION: resolve the real profile/example prerequisite under its own authorized task;
+              do not claim personalized readiness or retry Humanize from the synthetic app
 ```
