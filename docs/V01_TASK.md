@@ -4,10 +4,10 @@
 TASK: V01
 BRANCH: task/v01-voice-evidence
 BASE: 9a7a2049ca9d19f5d5d9d163b54a174d073d27a8
-STATE: blocked before implementation — consent/revocation policy decision required
+STATE: blocked — final regression exposes a reproducible pre-dispatch P01 transport failure
 WIP: 1
-IMPLEMENTATION: 0/2 used
-DIAGNOSIS: 0/2 used
+IMPLEMENTATION: 1/2 used (attempt 1 completed; acceptance blocked)
+DIAGNOSIS: 1/2 used
 RECOVERY: 0/1 used
 ```
 
@@ -26,9 +26,8 @@ when learning is unchecked. UX-C source and tests are not part of this branch's 
 The authoritative product decision is ADR-004 at PR #14 head
 `cd9dfa5384c689ef6e4d6d7116bd51cf9b2e4f0c`. It requires exact-context source eligibility,
 typed provenance, separate storage and learning authorization, default-deny context
-transfer, and future inspect/delete/revoke behavior. It explicitly leaves the consent and
-revocation lifecycle unresolved. This contract records that open policy gate; it does not
-resolve it by implementation assumption.
+transfer, and future inspect/delete/revoke behavior. The owner resolved ADR-004's consent
+and revocation questions on 2026-10-16; the approved policy is recorded below.
 
 ## Objective
 
@@ -45,7 +44,7 @@ engine path is implemented and verified; the client must not simulate it.
 - UX-C checkpoint pushed; no UX-C screen changes in V01.
 - PR #14 ADR-004 remains draft; use its recorded decisions without changing its branch.
 - One authoritative Python writer and the existing SEC01 protected SQLite boundary.
-- Resolve the owner policy questions below before implementation attempt 1.
+- Owner policy approval received 2026-10-16; no further consent decision blocks attempt 1.
 - Confirm current remote main and branch/worktree state before feature edits. Preserve the
   unrelated F08 artifacts and the stashed `tests/test_storage.py` change from UX-C work.
 
@@ -66,12 +65,14 @@ At base `9a7a2049ca9d19f5d5d9d163b54a174d073d27a8`:
   distinguish an AI-generated draft from an original user-authored source by typed input.
 - `generate_pair` requires eligible examples before generating candidates. There is no
   generic-only fallback or read-only voice-readiness capability.
-- Protocol is 1.0, storage schema 3, profile schema 1, prompt contract 1. No version is
-  changed by this contract. A durable consent/revocation representation likely needs an
-  explicit storage migration; implementation must prove the minimum schema change and
-  compatibility before selecting a version. Protocol changes must be additive and
-  capability-negotiated. A profile or prompt version changes only if the actual serialized
-  profile or selection behavior changes.
+- Protocol is 1.0, storage schema 3, profile schema 1, prompt contract 1. The minimal
+  proposed storage change is an explicit schema 3→4 table keyed to example ID, recording
+  storage authorization, personalization authorization, authorization version and times.
+  Missing rows mean legacy/unconfirmed and are ineligible; migration preserves their source
+  bytes and does not infer consent. New protocol operations are additive/capability
+  negotiated under protocol 1.1. Profile schema stays 1 unless the serialized DNA changes;
+  prompt contract changes only if selection behavior changes. Verify all dependent provenance
+  validators and F07 checkpoint invalidation through profile-version change.
 - Existing explicit migrations are guarded, transactional transitions 1→2 and 2→3;
   normal operations do not silently migrate older stores. V01 must preserve this rule and
   existing examples, feedback, preferences, and F07 document state.
@@ -79,42 +80,40 @@ At base `9a7a2049ca9d19f5d5d9d163b54a174d073d27a8`:
 No migration or compatibility behavior is claimed as verified for V01 until executable
 upgrade, rollback/failure, reopen, and protected-boundary tests pass.
 
-## Required policy decision — implementation stop gate
+## Approved consent and revocation policy
 
-ADR-004 leaves source deletion/revocation and retention unresolved. Before implementation,
-the owner must decide:
+1. Legacy schema-3 examples remain intact but are not used until explicitly reauthorized
+   under V01. Migration must not delete or infer consent from `learning_eligible`.
+2. Storage authorization and exact-context personalization authorization are separate,
+   durable choices. Personalization requires storage authorization. Once authorized, the
+   choice persists across sessions until revoked; no repeated per-rewrite prompt.
+3. Revoking storage authorization deletes that source and invalidates dependent voice
+   evidence/derived preferences while preserving unrelated data. Turning personalization
+   off disables retrieval and future learning; the original sample may remain only while
+   storage authorization remains active.
+4. If learning is disabled, accept/edit feedback is not submitted or retained. Feedback
+   storage associated with opted-in learning is not a general feedback archive. Copy,
+   accept, edit, save and export remain available without training. Explicit file export is
+   not profile/feedback consent.
+5. Sources declared AI-generated, model output, held-out, or unauthorized cannot enter
+   eligible voice evidence. No client-supplied claim can prove authorship; the engine
+   enforces declared provenance and the authorization boundary, and the UI must not label
+   synthetic/AI drafts as authentic samples.
 
-1. **Existing schema-3 examples:** should they remain usable under their existing
-   `learning_eligible` flag, or become unavailable for personalization until the owner
-   explicitly reauthorizes them under the new durable consent contract? Recommended safe
-   default: preserve all records and mark authorization unconfirmed/ineligible; never infer
-   new consent from a legacy boolean.
-2. **Consent scopes and lifetime:** approve separate durable choices for (a) storing a
-   source and (b) using that source for exact-context personalization, with the latter
-   requiring the former; confirm that the authorization persists across sessions until
-   revoked. Learning OFF must not be represented as storage OFF.
-3. **Revocation semantics:** when storage authorization is revoked, choose whether the
-   source is deleted immediately (with dependent derived evidence invalidated) or retained
-   but quarantined and unusable pending explicit deletion. When personalization is turned
-   off while storage remains authorized, confirm whether the source stays stored but is
-   excluded from retrieval and derived learning.
-4. **Feedback:** confirm that explicit accept/edit submission stores a local feedback record
-   regardless of the learning toggle, while learning authorization only controls whether it
-   can create eligible learning evidence. This matches the current engine and UX-C
-   disclosure; changing feedback retention needs a separate explicit policy.
-
-Do not implement consent rows, migration defaults, deletion, retention, or UI consent copy
-until these choices are resolved. No owner/profile data may be inspected or changed to
-answer them.
+Physical secure erasure is not promised. Deletion means removal from the canonical SQLite
+records and invalidation of dependent derived state through the verified protected-store
+transaction; filesystem/media remanence is outside the claim.
 
 ## Planned minimal write set after policy resolution
 
 - `docs/V01_TASK.md`
-- authoritative Python storage/provenance/eligibility code and explicit migration only if
-  required by the approved policy;
-- P01 protocol capability/version declarations only if a client-visible readiness,
-  authorization, or revocation operation is needed;
-- targeted Python tests and migration fixtures;
+- `src/personalstyle/storage.py`, `src/personalstyle/feedback.py`, and `src/personalstyle/config.py`
+  for consent state, eligibility, revocation, feedback persistence, and ordered migration;
+- `src/personalstyle/protocol.py` and `personalstyle.toml` for additive P01 capabilities and
+  protocol/storage declarations;
+- `src/personalstyle/cli.py` for an explicit, never-implicit protected-store migration command;
+- focused tests for storage, feedback, profile, protocol, and F07 migration/checkpoint
+  compatibility;
 - no Flutter onboarding/profile screens, F08 files, PR #14 files, or unrelated shared docs.
 
 Refine this write set after the owner resolves policy and before attempt 1. Keep canonical
@@ -167,10 +166,53 @@ cannot prove. Do not run owner-profile operations as acceptance.
 - Any need to widen scope, change consent semantics beyond the owner's answer, bypass
   protected storage, or introduce generic fallback stops for owner decision.
 
-## Current stop condition and next permitted action
+## Current checkpoint — 2026-10-16
 
-No V01 feature code has been changed. The task is blocked before attempt 1 because ADR-004's
-source revocation/retention lifecycle and legacy-example authorization treatment are
-unresolved. The next permitted action is for the owner to answer the four policy points in
-“Required policy decision”; after that, reassess the minimum migration and begin attempt 1
-only if the resolved policy fits this contract.
+Owner policy was resolved on 2026-10-16. Implementation attempt 1 is used (1/2); one
+bounded diagnosis cycle is used (1/2); recovery remains 0/1.
+The current implementation uses schema 4's per-example authorization table; migration
+preserves old rows without manufacturing authorization and advances profile version to
+invalidate dependent snapshots. The `example_authorizations` primary key supports source
+mutation and the existing examples context index supports exact-context retrieval; no
+unmeasured secondary consent index is added. Protocol 1.1 exposes aggregate `voice.status`,
+legacy reauthorization, personalization toggle, and source revocation. Feedback with
+learning disabled returns `recorded=false` without opening SQLite. No Flutter/UX-C screens
+or generic-only generation were changed.
+
+Initial targeted runs exposed four fixture/implementation failures: an idempotent example
+write used an uninitialized timestamp; a consent-version CHECK prevented a legitimate
+version increment; a revocation query compared JSON objects as strings; and several fixtures
+still treated schema 4 as future or omitted explicit legacy authorization. These have been
+corrected. Focused V01/storage/feedback/protocol/F07 checks subsequently passed 35 tests;
+profile/generation/learning compatibility passed 56 tests after correcting the stale
+future-schema fixture (its corrected five-case test passed). The secondary consent index was
+removed before final verification because the actual join uses example ID and the existing
+examples context index; no query-plan evidence justified the additional index.
+
+Targeted evidence after the final schema design:
+
+- V01 evidence/migration/revocation tests plus affected F07 schema/checkpoint tests: 9 passed.
+- V01 + feedback + P01 voice-consent protocol + F07 migration/restart integration: 35 passed.
+- Profile/generation/learning compatibility: 56 passed; the one schema-version fixture was
+  corrected from treating schema 4 as future, and its five-case affected test passed.
+- The full suite first completed at 300 passed, 2 failed in 845.86s. Both failures were stale
+  F07 fixtures that assumed schema-3 examples remained eligible and profile version stayed
+  unchanged. The fixtures were corrected to add explicit exact-context authorization and
+  expect the deliberate migration profile-version increment.
+- The corrected full suite completed at 300 passed, 2 failed in 1062.62s. The failures were
+  `tests/test_feedback.py::test_authorized_roundtrip_versions_idempotency_and_weak_accept`
+  (`STORAGE_BOUNDARY_INVALID`) and
+  `tests/test_protocol.py::test_early_rejection_with_unread_body_stress[origin-ORIGIN_CALLER_REJECTED]`
+  (`WinError 10053`). In one isolated bounded run, the feedback test passed and the Origin
+  rejection reproduced with the same connection abort. The protocol request/Origin handling
+  and bounded response-close implementation are unchanged from base; V01 changed protocol
+  version/capabilities and added operations, not transport shutdown behavior. The exact
+  Windows abort mechanism remains unproven and is outside the V01 consent implementation
+  scope. The feedback boundary failure appears order/environment-dependent and was not
+  reproduced in isolation.
+
+Ruff, mypy and pip check were not run because the required full regression is not clean.
+V01 is not verified; no PR is opened and UX-C/V02 onboarding changes remain gated. Preserve
+all implementation and test work. The next permitted action is an owner decision on whether
+to authorize a separately bounded P01 transport diagnosis/repair or defer V01 finalization;
+do not modify P01 transport behavior under this V01 checkpoint.

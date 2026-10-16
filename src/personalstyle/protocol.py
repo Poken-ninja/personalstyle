@@ -23,8 +23,11 @@ from personalstyle.provider import GenerationError, ModelProvider
 from personalstyle.storage import ExampleInput, ExampleStore, StoreError
 from personalstyle.verification import deterministic_failures, verify_pair
 
-PROTOCOL_VERSION = "1.0"
-CAPABILITIES = ("handshake", "rewrite", "example.write", "feedback.write", "preference.evaluate")
+PROTOCOL_VERSION = "1.1"
+CAPABILITIES = (
+    "handshake", "rewrite", "example.write", "feedback.write", "preference.evaluate",
+    "voice.status", "example.authorize", "example.personalization.set", "example.revoke",
+)
 MAX_BODY_BYTES = MAX_REQUEST_BYTES + 4096
 MAX_HEADER_BYTES = 8192
 CLOSE_GRACE_SECONDS = 0.1
@@ -33,6 +36,7 @@ ENGINE_CODES = frozenset({
     "VERIFIED_SOURCE_INVALID", "FEEDBACK_SOURCE_INVALID", "PREFERENCE_SOURCE_INVALID",
     "STORAGE_BOUNDARY_INVALID", "STORAGE_MIGRATION_REQUIRED", "DATABASE_UNAVAILABLE_OR_CORRUPT",
     "TRANSACTION_FAILED", "PERSISTENCE_VERIFICATION_FAILED", "NO_ELIGIBLE_EXAMPLES",
+    "VOICE_SOURCE_UNAVAILABLE", "VOICE_SOURCE_INELIGIBLE", "VOICE_AUTHORIZATION_REQUIRED",
     "PROFILE_RESOURCE_LIMIT", "PROFILE_SOURCE_INVALID", "PROFILE_VERSION_INCOMPATIBLE",
     "MODEL_CALL_BUDGET_EXHAUSTED", "MODEL_IDENTITY_MISMATCH", "MODEL_UNAVAILABLE", "MODEL_INCOMPATIBLE",
     "MODEL_PREPARATION_TIMEOUT", "MODEL_RUNTIME_UNAVAILABLE", "MODEL_RESPONSE_INVALID",
@@ -111,6 +115,38 @@ def _validate(envelope: Any) -> tuple[str, Any]:
             example = ExampleInput(**data)
             example.validate()
             return capability, example
+        if capability == "example.authorize":
+            if data.keys() != {
+                "example_id", "storage_authorized", "personalization_authorized", "authorized",
+            } or type(data["example_id"]) is not str or any(
+                type(data[field]) is not bool for field in (
+                    "storage_authorized", "personalization_authorized", "authorized",
+                )
+            ):
+                raise ProtocolError("REQUEST_MALFORMED")
+            return capability, (
+                data["example_id"], data["storage_authorized"],
+                data["personalization_authorized"], data["authorized"],
+            )
+        if capability == "example.personalization.set":
+            if (data.keys() != {"example_id", "enabled", "authorized"}
+                    or type(data["example_id"]) is not str
+                    or type(data["enabled"]) is not bool
+                    or type(data["authorized"]) is not bool):
+                raise ProtocolError("REQUEST_MALFORMED")
+            return capability, (data["example_id"], data["enabled"], data["authorized"])
+        if capability == "example.revoke":
+            if (data.keys() != {"example_id", "authorized"}
+                    or type(data["example_id"]) is not str
+                    or type(data["authorized"]) is not bool):
+                raise ProtocolError("REQUEST_MALFORMED")
+            return capability, (data["example_id"], data["authorized"])
+        if capability == "voice.status":
+            if data.keys() != {"context"} or type(data["context"]) is not str or re.fullmatch(
+                r"[a-z][a-z0-9_.-]{0,63}", data["context"],
+            ) is None:
+                raise ProtocolError("REQUEST_MALFORMED")
+            return capability, data["context"]
         if capability == "feedback.write":
             if data.keys() != {"run_id", "event"} or str(UUID(data["run_id"])) != data["run_id"]:
                 raise ProtocolError("REQUEST_MALFORMED")
@@ -151,12 +187,32 @@ class EngineSession:
             return result
         if capability == "example.write":
             example = self.store.add(data)
-            return {"id": example["id"], "record_version": example["record_version"]}
+            return {"id": example["id"], "record_version": example["record_version"],
+                    "storage_authorized": True,
+                    "personalization_authorized": bool(data.learning_eligible)}
+        if capability == "example.authorize":
+            example_id, storage, personalization, authorized = data
+            return self.store.authorize_legacy_example(
+                example_id, storage_authorized=storage,
+                personalization_authorized=personalization, authorized=authorized,
+            )
+        if capability == "example.personalization.set":
+            example_id, enabled, authorized = data
+            self.store.set_personalization(example_id, enabled, authorized=authorized)
+            return {"id": example_id, "personalization_authorized": enabled}
+        if capability == "example.revoke":
+            example_id, authorized = data
+            return {"id": example_id,
+                    "deleted": self.store.revoke_example(example_id, authorized=authorized)}
+        if capability == "voice.status":
+            return self.store.voice_status(data)
         if capability == "feedback.write":
             run_id, event = data
             if self._verified is None or self._verified["run_id"] != run_id:
                 raise ProtocolError("SOURCE_RUN_UNAVAILABLE", 409)
             feedback = record_feedback(self.store, self._verified, event)
+            if feedback is None:
+                return {"recorded": False, "reason": "LEARNING_NOT_AUTHORIZED"}
             return {"id": feedback["event"]["id"], "classification": feedback["classification"],
                     "record_version": feedback["record_version"], "profile_version": feedback["profile_version"]}
         return evaluate_context_preferences(self.store, data)

@@ -98,12 +98,49 @@ def test_loopback_auth_handshake_revocation_and_no_logs(boundary, caplog, capsys
         assert status == 200 and body["ok"]
         result = body["result"]
         assert result["compatibility"] == "compatible" and result["engine_version"] == "0.1.0"
-        assert result["protocol_version"] == "1.0" and result["requested_protocol_version"] == protocol
+        assert result["protocol_version"] == "1.1" and result["requested_protocol_version"] == protocol
         assert result["supported_capabilities"] == list(CAPABILITIES)
     replacement = EngineSession(session.settings, session.store, secrets.token_urlsafe(32))
     with serving(replacement) as restarted:
         assert request(restarted, token)[0] == 401
     assert token not in caplog.text + str(capsys.readouterr())
+
+
+def test_voice_consent_protocol_persists_and_revokes_exact_source(tmp_path):
+    settings = load_config(Path(__file__).resolve().parents[1] / "personalstyle.toml")
+    directory = tmp_path / "profile"
+    prepare_private_directory(directory)
+    store = ExampleStore(directory / "profile.db")
+    token = secrets.token_urlsafe(32)
+    session = EngineSession(settings, store, token)
+    with serving(session) as server:
+        sample = asdict(ExampleInput(
+            str(uuid4()), "Synthetic sample.", "casual.chat", "local owner", "local owner",
+            "user_owned", True, False, False,
+        ))
+        status, saved = request(server, token, envelope("example.write", sample))
+        assert status == 200 and saved["result"]["storage_authorized"] is True
+        assert saved["result"]["personalization_authorized"] is False
+        status, readiness = request(server, token, envelope("voice.status", {"context": "casual.chat"}))
+        assert status == 200 and readiness["result"]["state"] == "PERSONALIZATION_OFF"
+        enabled = {"example_id": sample["id"], "enabled": True, "authorized": True}
+        assert request(server, token, envelope("example.personalization.set", enabled))[0] == 200
+        assert request(server, token, envelope("voice.status", {"context": "casual.chat"}))[1][
+            "result"]["state"] == "AVAILABLE"
+
+    restarted_token = secrets.token_urlsafe(32)
+    restarted = EngineSession(settings, ExampleStore(store.path), restarted_token)
+    with serving(restarted) as server:
+        assert request(server, restarted_token, envelope(
+            "voice.status", {"context": "casual.chat"},
+        ))[1]["result"]["state"] == "AVAILABLE"
+        revoked = {"example_id": sample["id"], "authorized": True}
+        assert request(server, restarted_token, envelope("example.revoke", revoked))[1][
+            "result"]["deleted"] is True
+        assert request(server, restarted_token, envelope(
+            "voice.status", {"context": "casual.chat"},
+        ))[1]["result"]["state"] == "UNAVAILABLE"
+    assert ExampleStore(store.path).get(sample["id"]) is None
 
 
 @pytest.mark.parametrize("value,headers,code", [
