@@ -4,9 +4,9 @@
 TASK: V01
 BRANCH: task/v01-voice-evidence
 BASE: 9a7a2049ca9d19f5d5d9d163b54a174d073d27a8
-STATE: blocked — final regression exposes a reproducible pre-dispatch P01 transport failure
+STATE: locally verified — combined V01 + P01 checks pass; not published
 WIP: 1
-IMPLEMENTATION: 1/2 used (attempt 1 completed; acceptance blocked)
+IMPLEMENTATION: 1/2 used (attempt 1; local acceptance passed)
 DIAGNOSIS: 1/2 used
 RECOVERY: 0/1 used
 ```
@@ -204,15 +204,31 @@ Targeted evidence after the final schema design:
   (`STORAGE_BOUNDARY_INVALID`) and
   `tests/test_protocol.py::test_early_rejection_with_unread_body_stress[origin-ORIGIN_CALLER_REJECTED]`
   (`WinError 10053`). In one isolated bounded run, the feedback test passed and the Origin
-  rejection reproduced with the same connection abort. The protocol request/Origin handling
-  and bounded response-close implementation are unchanged from base; V01 changed protocol
-  version/capabilities and added operations, not transport shutdown behavior. The exact
-  Windows abort mechanism remains unproven and is outside the V01 consent implementation
-  scope. The feedback boundary failure appears order/environment-dependent and was not
-  reproduced in isolation.
+  rejection reproduced with the same connection abort. A separately authorized P01 diagnosis
+  compared the exact test and transport path against unchanged `origin/main` at
+  `9a7a2049ca9d19f5d5d9d163b54a174d073d27a8`. The failure also passed in isolation on that
+  baseline and on the V01 branch. Source inspection found the bounded close path drained at
+  most `MAX_BODY_BYTES`, while the stress request is `MAX_BODY_BYTES + 1`; leaving its final
+  byte unread can trigger a Windows TCP reset after the structured response. The minimal P01
+  repair raises only that fixed byte cap by one, retaining the same fixed close deadline and
+  all reject/auth/resource semantics. It was independently verified in P01 commit
+  `4519bb03735c4f1ee7ada2b1ebcbaf0a87ffcc68`, then applied to this branch as
+  `53139f644a2d3f4f543534c07e8d3bc69fd798d8`. P01 evidence: targeted rejection/security
+  cases 9 passed, full `tests/test_protocol.py` 34 passed, Ruff/mypy/pip check/diff check all
+  passed. The feedback boundary failure appeared order/environment-dependent and passed in
+  isolation; the combined full regression also passed it.
 
-Ruff, mypy and pip check were not run because the required full regression is not clean.
-V01 is not verified; no PR is opened and UX-C/V02 onboarding changes remain gated. Preserve
-all implementation and test work. The next permitted action is an owner decision on whether
-to authorize a separately bounded P01 transport diagnosis/repair or defer V01 finalization;
-do not modify P01 transport behavior under this V01 checkpoint.
+After the P01 correction was applied to the V01 branch, the single combined full regression
+passed: `302 passed in 852.83s`. Final checks on that revision passed: Ruff (`src`, `tests`,
+and `scripts/f07_acceptance.py`), mypy (`src`), pip check, and `git diff --check`. The
+full-suite run includes schema-3→4 migration, rollback/reopen, consent, revocation,
+context-isolation, feedback, F07, and P01 protocol coverage. No live owner-profile operation
+or model call was used.
+
+V01 is locally verified on the current branch, but has not been pushed and has no PR. The
+WIP implementation checkpoint is `f35c4738c38b0584241e77b62fd5312d35765538`; the P01
+transport correction is included as `53139f644a2d3f4f543534c07e8d3bc69fd798d8`. Historical
+regression failures above remain part of the record. Implementation/diagnosis/recovery
+counters remain 1/2, 1/2, and 0/1; no counter was reset. The next permitted action is review
+and publication of the V01 branch. UX-C/V02 onboarding screens remain gated; F08 artifacts
+and PR #14 were not modified.
