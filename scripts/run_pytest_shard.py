@@ -12,7 +12,7 @@ TESTS = ROOT / "tests"
 SHARDS: dict[str, tuple[str, ...]] = {
     "documents-profile": ("test_document.py", "test_profile.py"),
     "provider-learning": ("test_provider.py", "test_initialization.py", "test_learning.py"),
-    "protocol-storage": ("test_protocol.py", "test_storage.py"),
+    "protocol-storage": ("test_protocol.py", "test_storage.py", "test_voice_evidence.py"),
     "feedback-security": (
         "test_feedback.py", "test_security.py", "test_generation.py", "test_verification.py"
     ),
