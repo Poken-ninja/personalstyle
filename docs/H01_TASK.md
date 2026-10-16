@@ -183,12 +183,20 @@ Evidence on the H01 branch (`task/h01-harness-performance`, base
   `test_voice_evidence.py`, absent from current main. The runner now adds it when present and
   independently validates every discovered module exactly once.
 
-The implementation's intended iteration-time benefit is avoiding duplicate full local
-regressions when exact-head CI supplies complete coverage and making interrupted runs
-diagnosable. This local change alone does not demonstrate a shorter end-to-end cycle; the
-post-publication CI duration and per-test report will provide the comparable complete-gate
-measurement. CI has not run on the H01 head yet.
+Exact-head CI on implementation commit `9e26a0115db01468edd1cf646ac03c646f74893b` passed
+all six jobs in run `38981661870` in **5m45s wall time**. All four Python shards passed;
+each performed the **12/12** exact-coverage check. The static/startup and aggregate harness
+jobs passed. CI logs contain flushed per-test phase records and slowest-test summaries, so
+the diagnostics were exercised on the hosted runner.
+
+The intended iteration-time benefit is avoiding duplicate full local regressions when
+exact-head CI supplies complete coverage and making interrupted runs diagnosable. The
+prior PR #18 CI was 6m18s, but those runs do not have identical test contents, so this is
+not a valid before/after speed comparison. No test execution speedup is claimed. The
+comparable single protected-storage test also showed no meaningful change (21.03s direct,
+21.36s through the runner).
 
 V01 attempt counters and historical failures remain unchanged. PR #18 remains draft and
-unmerged. F08 artifacts remain untouched. Next: inspect the selective H01 diff, commit and
-publish this branch for one exact-head CI run; do not merge PR #18 or change product code.
+unmerged. F08 artifacts remain untouched. H01 implementation is locally verified and its
+implementation commit passed exact-head CI; PR #19 remains a draft for owner review. No
+merge is authorized by this record.
