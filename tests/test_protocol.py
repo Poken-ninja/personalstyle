@@ -245,10 +245,10 @@ def test_close_discard_has_fixed_byte_time_bounds(stalled):
     server = SimpleNamespace(close_request=lambda request: setattr(request, "closed", True))
     EngineServer.shutdown_request(server, peer)
     assert peer.closed and peer.write_shutdown
-    assert peer.discarded <= MAX_BODY_BYTES
+    assert peer.discarded <= MAX_BODY_BYTES + 1
     assert peer.timeouts
     if not stalled:
-        assert peer.discarded == MAX_BODY_BYTES
+        assert peer.discarded == MAX_BODY_BYTES + 1
 
 
 def test_invalid_constraint_rejected_before_dispatch(boundary):

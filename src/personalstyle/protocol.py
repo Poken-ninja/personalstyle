@@ -250,7 +250,9 @@ class EngineServer(HTTPServer):
         try:
             connection.shutdown(socket.SHUT_WR)
             deadline = monotonic() + CLOSE_GRACE_SECONDS
-            remaining = MAX_BODY_BYTES
+            # A just-over-limit pre-dispatch request can contain one extra byte. Discard
+            # that boundary byte too, while keeping the close path strictly bounded.
+            remaining = MAX_BODY_BYTES + 1
             while remaining and (seconds := deadline - monotonic()) > 0:
                 connection.settimeout(seconds)
                 chunk = connection.recv(min(8192, remaining))
