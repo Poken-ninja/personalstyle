@@ -4,9 +4,9 @@
 TASK: V01
 BRANCH: task/v01-voice-evidence
 BASE: 9a7a2049ca9d19f5d5d9d163b54a174d073d27a8
-STATE: locally verified — combined V01 + P01 checks pass; not published
+STATE: revocation-safety repair — focused checks pass; final regression pending
 WIP: 1
-IMPLEMENTATION: 1/2 used (attempt 1; local acceptance passed)
+IMPLEMENTATION: 2/2 used (attempt 1; authorized revocation repair attempt 2)
 DIAGNOSIS: 1/2 used
 RECOVERY: 0/1 used
 ```
@@ -245,3 +245,42 @@ V01 is locally verified on the current branch. The WIP implementation checkpoint
 part of the record. Implementation/diagnosis/recovery counters remain 1/2, 1/2, and 0/1;
 no counter was reset. Publication and exact-head CI status are tracked in the review record.
 UX-C/V02 onboarding screens remain gated; F08 artifacts and PR #14 were not modified.
+
+## Owner-authorized revocation-safety repair — 2026-10-16
+
+This section supersedes the preceding pre-repair checkpoint summary. Current counters are
+implementation 2/2 used, diagnosis 1/2 used, recovery 0/1 used.
+
+The owner authorized one repair to prevent source revocation or personalization OFF from
+reactivating an older preference version. The isolated protected-store reproduction created
+an active line-count version 1 and a newer contested version 2 whose support included the
+source being revoked. Before repair, deleting only version 2 caused the generation-facing
+`active_preferences` API to expose the older active version 1. This reproduces the defect.
+
+Implementation attempt 2/2 invalidates every stored version for the affected exact
+`(context, feature)` inside the existing revocation/personalization transaction. It leaves
+other features, contexts, sources and their evidence untouched. The code uses a single SQL
+deletion with JSON validity guards; no schema/protocol/prompt change is required. Subsequent
+explicit preference evaluation derives state only from remaining feedback and cannot fall
+back to the deleted historical version.
+
+Focused evidence: the selected revocation/personalization/rollback cases passed (5
+parameterized test outcomes in 173.69 seconds). The complete V01 evidence and learning modules passed 20
+tests in 447.18 seconds. Coverage includes revocation, personalization OFF, preserved
+independent feature evidence, protected-store reopen, subsequent deterministic evaluation,
+and rollback after a simulated commit-boundary failure. The earlier fixture correction
+changed only an assertion: a context with another eligible source correctly remains
+`AVAILABLE` after one source is disabled.
+
+Final local regression after the repair was attempted once with a 900-second ceiling and
+did not complete before that ceiling. Captured progress showed one failure marker but pytest
+did not flush its summary/traceback before termination. The marker maps by collection order
+to `tests/test_profile.py::test_invalid_source_or_version_never_returns_profile[provenance-PROFILE_SOURCE_INVALID]`;
+that exact case passed once in isolation (1 passed in 10.25s). This is insufficient to call
+the full local regression clean or to classify the marker's original cause. No second full
+suite run was made. One-time final static checks passed: Ruff (`src`, `tests`, and
+`scripts/f07_acceptance.py`), mypy (`src`, 13 files), pip check, and `git diff --check`.
+The earlier intermittent local `PREFERENCE_SOURCE_INVALID` observation and its
+non-reproduction evidence above remain separate and unresolved. A successful pre-repair
+head CI run is not evidence for this correction. PR #18 remains draft; no merge, real-profile
+operation, F08 change or PR #14 change is authorized here.

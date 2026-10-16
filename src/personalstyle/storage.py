@@ -516,14 +516,22 @@ class ExampleStore:
     def _delete_dependent_learning(
         connection: sqlite3.Connection, context: str, example_id: str,
     ) -> None:
-        """Remove feedback and preference versions whose verified run used this source."""
+        """Remove dependent feedback and its full preference lineage atomically.
+
+        Removing only the newest dependent preference can expose an older active
+        version through the latest-version query. Invalidate that context/feature's
+        complete version chain instead; unrelated features and contexts remain intact.
+        """
         connection.execute(
-            "DELETE FROM preferences WHERE context=? AND EXISTS ("
-            "SELECT 1 FROM json_each(preferences.payload, '$.supporting_feedback_ids') p "
-            "JOIN feedback f ON f.id=p.value JOIN json_each(f.payload, '$.source.selected_examples') s "
-            "WHERE f.context=? AND json_extract(s.value, '$.id')=? "
-            "AND json_valid(f.payload) AND json_valid(preferences.payload))",
-            (context, context, example_id),
+            "DELETE FROM preferences WHERE context=? AND feature IN ("
+            "SELECT DISTINCT p.feature FROM preferences p "
+            "JOIN json_each(CASE WHEN json_valid(p.payload) THEN p.payload ELSE '{}' END, "
+            "'$.supporting_feedback_ids') supported "
+            "JOIN feedback f ON f.id=supported.value AND f.context=p.context "
+            "JOIN json_each(CASE WHEN json_valid(f.payload) THEN f.payload ELSE '{}' END, "
+            "'$.source.selected_examples') selected "
+            "WHERE p.context=? AND f.context=? AND json_extract(selected.value, '$.id')=?)",
+            (context, context, context, example_id),
         )
         connection.execute(
             "DELETE FROM feedback WHERE context=? AND id IN ("

@@ -1,11 +1,14 @@
 """V01 consent, persistence, migration and exact-context voice eligibility."""
 
+import json
 import sqlite3
 from pathlib import Path
 from uuid import UUID
 
 import pytest
 
+from personalstyle.feedback import CLASSIFIER, FeedbackInput, classify_edit, presentation_changes
+from personalstyle.generation import RewriteRequest
 from personalstyle.security import prepare_private_directory, prepare_private_file
 from personalstyle.storage import (
     APPLICATION_ID,
@@ -184,6 +187,123 @@ def test_revoking_source_deletes_only_dependent_learning_and_source(store):
     assert store.voice_status("casual.chat")["state"] == "UNAVAILABLE"
 
 
+@pytest.mark.parametrize("operation", ["revoke", "disable_personalization"])
+def test_revoking_or_disabling_source_does_not_reactivate_older_preferences(store, operation):
+    source = sample(230)
+    unrelated_source = sample(231)
+    store.add(source)
+    store.add(unrelated_source)
+
+    # Create six independent, structurally valid evidence units. The newest preference
+    # version depends on the revocable source; its predecessor remains active evidence.
+    feedback_ids = []
+    with store.feedback_connection(write=True) as connection:
+        for offset in range(6):
+            number = 240 + offset
+            feedback_id = str(UUID(int=number))
+            run_id = str(UUID(int=340 + offset))
+            selected = source if offset == 4 else unrelated_source
+            feedback = FeedbackInput(
+                feedback_id, "edit", "personalized", "local owner", "local owner",
+                True, True, False,
+                "Synthetic fact 42." if offset < 3 or offset == 5 else "Synthetic\nfact 42.",
+                classification_hint="style_expression",
+            )
+            accepted = "Synthetic\nfact 42." if offset < 3 or offset == 5 else "Synthetic fact 42."
+            request = RewriteRequest(accepted, "clarify", "casual.chat", ())
+            source_data = {
+                "context": "casual.chat", "candidate_mode": "personalized",
+                "verification_status": "verified",
+                "versions": {"profile_schema": 1, "storage_schema": 4},
+                "prompt_contract": 1, "run_id": run_id,
+                "selected_examples": [{"id": selected.id, "record_version": 1}],
+            }
+            payload_value = {
+                "event": feedback.__dict__, "context": "casual.chat",
+                "request": request.__dict__, "source": source_data,
+                "accepted_text": accepted,
+                "classification": classify_edit(request, accepted, feedback),
+                "classification_version": CLASSIFIER,
+            }
+            payload = json.dumps(payload_value, sort_keys=True)
+            observations = json.dumps(presentation_changes(accepted, feedback.edited_text), sort_keys=True)
+            connection.execute(
+                "INSERT INTO feedback VALUES (?, 'casual.chat', ?, 1, ?, ?, ?, ?)",
+                (feedback_id, payload, 20 + offset, f"2026-10-16T00:00:0{offset}+00:00",
+                 run_id, observations),
+            )
+            feedback_ids.append((feedback_id, run_id, "increase" if offset < 3 or offset == 5 else "decrease"))
+
+        def preference(feature: str, version: int, selected: list[tuple[str, str, str]],
+                       state: str, direction: str) -> None:
+            units = [
+                {"feedback_id": feedback_id, "run_id": run_id, "direction": unit_direction}
+                for feedback_id, run_id, unit_direction in selected
+            ]
+            feature_id = str(UUID(int=390 + (feature == "separator_characters")))
+            value = {
+                "id": feature_id, "version": version, "context": "casual.chat",
+                "feature": feature, "direction": direction, "state": state,
+                "policy_version": "context_preference_promotion.v1",
+                "supporting_units": units,
+                "supporting_feedback_ids": [unit["feedback_id"] for unit in units],
+                "supporting_run_ids": [unit["run_id"] for unit in units],
+                "source_profile_version": 30 + version,
+            }
+            connection.execute(
+                "INSERT INTO preferences VALUES (?, ?, 'casual.chat', ?, ?)",
+                (feature_id, version, feature, json.dumps(value, sort_keys=True)),
+            )
+
+        preference("line_count", 1, feedback_ids[:3], "active", "increase")
+        preference("line_count", 2, feedback_ids[3:], "contested", "increase")
+        preference("separator_characters", 1, feedback_ids[:3], "active", "increase")
+
+    with store.feedback_connection() as connection:
+        before = ExampleStore.active_preferences(connection, "casual.chat")
+        assert [item["feature"] for item in before] == ["separator_characters"]
+
+    if operation == "revoke":
+        assert store.revoke_example(source.id, authorized=True)
+    else:
+        store.set_personalization(source.id, False, authorized=True)
+
+    # Generation consumes this API. Deleting only version 2 would expose v1 again.
+    with store.feedback_connection() as connection:
+        after = ExampleStore.active_preferences(connection, "casual.chat")
+        assert [item["feature"] for item in after] == ["separator_characters"]
+        assert connection.execute(
+            "SELECT COUNT(*) FROM preferences WHERE context='casual.chat' AND feature='line_count'",
+        ).fetchone() == (0,)
+
+    reopened = ExampleStore(store.path)
+    with reopened.feedback_connection() as connection:
+        assert [item["feature"] for item in ExampleStore.active_preferences(connection, "casual.chat")] == [
+            "separator_characters",
+        ]
+    assert reopened.get(unrelated_source.id) is not None
+    if operation == "revoke":
+        assert reopened.get(source.id) is None
+        assert reopened.voice_status("casual.chat")["state"] == "AVAILABLE"
+    else:
+        assert reopened.get(source.id)["text"] == source.text
+        with reopened.feedback_connection() as connection:
+            auth = dict(connection.execute(
+                "SELECT example_id, personalization_authorized FROM example_authorizations",
+            ).fetchall())
+        assert auth[source.id] == 0 and auth[unrelated_source.id] == 1
+        assert reopened.voice_status("casual.chat")["state"] == "AVAILABLE"
+
+    from personalstyle.learning import evaluate_context_preferences
+
+    evaluated = evaluate_context_preferences(reopened, "casual.chat")
+    assert next(item for item in evaluated if item["feature"] == "line_count")["state"] != "active"
+    with reopened.feedback_connection() as connection:
+        assert "line_count" not in {
+            item["feature"] for item in ExampleStore.active_preferences(connection, "casual.chat")
+        }
+
+
 def test_personalization_off_retains_authorized_source_but_removes_its_learning(store):
     source = sample(220)
     store.add(source)
@@ -205,3 +325,49 @@ def test_personalization_off_retains_authorized_source_but_removes_its_learning(
     with store.feedback_connection() as connection:
         assert connection.execute("SELECT COUNT(*) FROM feedback").fetchone() == (0,)
         assert connection.execute("SELECT COUNT(*) FROM preferences").fetchone() == (0,)
+
+
+def test_revocation_version_chain_invalidation_rolls_back_atomically(store, monkeypatch):
+    source = sample(250)
+    unrelated = sample(251)
+    store.add(source)
+    store.add(unrelated)
+    feedback_id = str(UUID(int=252))
+    run_id = str(UUID(int=253))
+    preference_id = str(UUID(int=254))
+    source_payload = json.dumps({"source": {"selected_examples": [{"id": source.id}]}})
+    with store.feedback_connection(write=True) as connection:
+        connection.execute(
+            "INSERT INTO feedback VALUES (?, 'casual.chat', ?, 1, 3, '2026-10-16', ?, '{}')",
+            (feedback_id, source_payload, run_id),
+        )
+        for version in (1, 2):
+            connection.execute(
+                "INSERT INTO preferences VALUES (?, ?, 'casual.chat', 'line_count', ?)",
+                (preference_id, version, json.dumps({"supporting_feedback_ids": [feedback_id]})),
+            )
+
+    def snapshot() -> dict[str, list[tuple]]:
+        with store.feedback_connection() as connection:
+            return {
+                table: connection.execute(f"SELECT * FROM {table} ORDER BY 1").fetchall()
+                for table in ("examples", "example_authorizations", "feedback", "preferences")
+            }
+
+    before = snapshot()
+    original_recheck = store._recheck
+    rechecks = 0
+
+    def reject_commit(identity):
+        nonlocal rechecks
+        rechecks += 1
+        if rechecks == 2:
+            from personalstyle.security import SecurityError
+            raise SecurityError("synthetic commit-boundary failure")
+        original_recheck(identity)
+
+    with monkeypatch.context() as patcher:
+        patcher.setattr(store, "_recheck", reject_commit)
+        with pytest.raises(StoreError, match="^STORAGE_BOUNDARY_INVALID$"):
+            store.revoke_example(source.id, authorized=True)
+    assert snapshot() == before
