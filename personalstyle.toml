@@ -5,9 +5,9 @@ environment = "local"
 # Version contracts are specified here before they are mechanized.
 # The Python/core package product version remains authoritative in pyproject.toml.
 [versions]
-protocol = "1.0"
+protocol = "1.1"
 config_schema = 1
-storage_schema = 3
+storage_schema = 4
 profile_schema = 1
 prompt_contract = 1
 compatibility_policy = "same-major-capability-negotiated"

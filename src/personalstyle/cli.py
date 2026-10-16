@@ -26,6 +26,9 @@ def check(
     prepare_storage: Annotated[
         bool, typer.Option(help="Explicitly prepare an empty OS-protected profile directory")
     ] = False,
+    migrate_storage: Annotated[
+        bool, typer.Option(help="Explicitly migrate the protected profile to the current schema")
+    ] = False,
     add_example: Annotated[Path | None, typer.Option(help="Bounded JSON example request file")] = None,
     get_example: Annotated[str | None, typer.Option(help="Explicitly print a stored example UUID")] = None,
     writing_dna: Annotated[
@@ -39,12 +42,17 @@ def check(
     try:
         settings = load_config(config)
         relative = PureWindowsPath(settings["storage"]["path"])
-        if sum((prepare_storage, add_example is not None, get_example is not None,
+        if sum((prepare_storage, migrate_storage, add_example is not None, get_example is not None,
                 writing_dna is not None, generate is not None)) > 1:
             raise StoreError("INVALID_EXAMPLE")
-        if any(value is not None for value in (add_example, get_example, writing_dna, generate)):
+        if migrate_storage or any(value is not None for value in (
+            add_example, get_example, writing_dna, generate,
+        )):
             store = ExampleStore(config.absolute().parent.joinpath(*relative.parts))
-            if generate is not None:
+            if migrate_storage:
+                store.migrate_to_current_schema()
+                typer.echo("Protected profile schema migration completed; legacy voice sources require explicit authorization.")
+            elif generate is not None:
                 try:
                     with generate.open("rb") as stream:
                         payload = stream.read(MAX_REQUEST_BYTES + 1)
