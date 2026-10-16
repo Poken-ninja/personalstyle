@@ -80,6 +80,20 @@ At base `9a7a2049ca9d19f5d5d9d163b54a174d073d27a8`:
 No migration or compatibility behavior is claimed as verified for V01 until executable
 upgrade, rollback/failure, reopen, and protected-boundary tests pass.
 
+## Existing-store migration instructions and risks
+
+Migration is explicit; ordinary engine startup/read/write does not upgrade a profile. After
+installing this engine, close all PersonalStyle engine/client processes so an old-schema
+writer cannot overlap the migration, then run `personalstyle --migrate-storage` from the
+directory containing the active `personalstyle.toml` (or supply its path with `--config`).
+The verified CLI exposes this exact root command. It performs ordered migrations to schema
+4 inside the existing protected-store boundary. Schema 3 examples and other canonical rows
+are retained; missing V01 authorization rows mean legacy examples remain excluded until the
+owner explicitly reauthorizes each source. The migration increments profile version to
+invalidate dependent snapshots. The migration is transactional and its rollback/reopen
+behavior is covered by the passing storage tests. Do not reset the store or run concurrent
+old/new engine writers. This task did not run migration on the owner's real profile.
+
 ## Approved consent and revocation policy
 
 1. Legacy schema-3 examples remain intact but are not used until explicitly reauthorized
@@ -225,10 +239,9 @@ full-suite run includes schema-3→4 migration, rollback/reopen, consent, revoca
 context-isolation, feedback, F07, and P01 protocol coverage. No live owner-profile operation
 or model call was used.
 
-V01 is locally verified on the current branch, but has not been pushed and has no PR. The
-WIP implementation checkpoint is `f35c4738c38b0584241e77b62fd5312d35765538`; the P01
-transport correction is included as `53139f644a2d3f4f543534c07e8d3bc69fd798d8`. Historical
-regression failures above remain part of the record. Implementation/diagnosis/recovery
-counters remain 1/2, 1/2, and 0/1; no counter was reset. The next permitted action is review
-and publication of the V01 branch. UX-C/V02 onboarding screens remain gated; F08 artifacts
-and PR #14 were not modified.
+V01 is locally verified on the current branch. The WIP implementation checkpoint is
+`f35c4738c38b0584241e77b62fd5312d35765538`; the P01 transport correction is included as
+`53139f644a2d3f4f543534c07e8d3bc69fd798d8`. Historical regression failures above remain
+part of the record. Implementation/diagnosis/recovery counters remain 1/2, 1/2, and 0/1;
+no counter was reset. Publication and exact-head CI status are tracked in the review record.
+UX-C/V02 onboarding screens remain gated; F08 artifacts and PR #14 were not modified.
