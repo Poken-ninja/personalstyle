@@ -1,7 +1,7 @@
 # UX-B — Humanize workspace and result review
 
 ```text
-STATE: frozen — UX-B checkpoint saved; protected-storage failure unresolved
+STATE: active — UX-B; protected-storage failure under bounded diagnosis
 BASE: 9a7a2049ca9d19f5d5d9d163b54a174d073d27a8
 BRANCH: task/ux-b-humanize-workspace
 WRITE_SET: desktop/lib/main.dart, desktop/lib/engine.dart, desktop/test/ui_test.dart,
@@ -145,25 +145,26 @@ Targeted evidence:
   write, or further model call was performed.
 - No full regression, model call, profile write, or permission change was performed.
 
-## Frozen handoff — 2026-10-15
+## Current checkpoint — 2026-10-15
 
-The owner is pausing UX-B work for a hackathon. Preserve this branch and checkpoint as-is;
-do not retry the Humanize operation or change profile permissions during the pause.
+The phrase about pausing for a hackathon was part of the draft submitted in the UI; it was
+not a request to pause this task. Do not treat user-authored draft text as task control.
 
-Latest visible behavior: the workspace presents friendly Writing context, Optional
-refinement, Writing voice, requirements and draft controls. The owner saw
-`PROFILE_DIRECTORY_PROTECTION_FAILED` for the selected Academic context. The immediate
-technical blocker is a failed protected-directory ACL verification in the active runtime;
-the sanitized code narrows the stage but does not establish the OS-level cause. Further
-diagnosis must use a separate bounded task and synthetic storage, not repeated user retries.
+The owner observed `PROFILE_DIRECTORY_PROTECTION_FAILED` during Humanize. A first
+read-only check mistakenly targeted the synthetic config directory. The engine resolves
+the configured DB to its `data` child; rerunning the exact directory ACL verifier on that
+synthetic profile directory passed. This does not establish why the earlier UI operation
+received the failure. Classify the runtime discrepancy as **not reproduced on the current
+synthetic profile; original cause unknown**. No profile reset, permission change, example
+write or additional model call occurred.
 
-Validation retained for this checkpoint: 30 Flutter tests passed; Flutter analyze passed;
-targeted Python tests, Ruff and mypy passed; Windows Debug build passed and the rebuilt app
-was launched. No full regression or live model acceptance was run. The two untracked F08
-manual artifacts are unrelated and intentionally excluded from this checkpoint.
+Preserved validation: 30 Flutter tests passed; Flutter analyze passed; targeted Python
+tests, Ruff and mypy passed; Windows Debug build passed and the rebuilt app was launched.
+No full regression or additional live model acceptance was run. The two untracked F08
+manual artifacts remain untouched and excluded.
 
 ```text
-TASK STATE: frozen at UX-B implementation attempt 2/2
-NEXT ACTION: owner resumes after hackathon; first work should diagnose the ACL verifier's
-              sanitized nonzero result without resetting or changing profile permissions
+TASK STATE: active at implementation attempt 2/2; bounded diagnosis remains
+NEXT ACTION: determine whether the running UI used the expected isolated config/runtime
+              and capture only safe ACL verifier status; do not alter profile permissions
 ```
