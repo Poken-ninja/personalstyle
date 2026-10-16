@@ -27,6 +27,11 @@ constraint syntax.
 - Voice discovery is optional. Only genuine user-authored writing with the required explicit
   storage/learning authorization can become eligible voice evidence. Synthetic, third-party,
   rubric and unchanged AI-generated text are not personal-style evidence.
+- A user who opts in should be able to build a persistent, local, context-specific voice
+  profile and use it across future rewrites without re-explaining their style or being asked
+  for the same consent every time. Consent state must be visible and revocable. This is
+  personalization from authorized examples/preferences, not fine-tuning or retraining the
+  Ollama model.
 - Accepting a result is not consent to learn. Meaning, fact, constraint and context corrections
   are not silently converted into style preferences.
 - Verification and voice resemblance are distinct. A result is called verified only when the
@@ -37,6 +42,35 @@ constraint syntax.
 - Errors must state the safe failure category, the affected operation and whether a durable
   mutation's outcome is known. Never expose writing, credentials, private paths or exception
   dumps. Never automatically replay an uncertain mutation.
+
+## Ordinary humanize and result flow
+
+The normal path is usable without voice onboarding: paste or import a draft, choose a friendly
+context, humanize, review the result, and copy or export it. Voice discovery is optional, not a
+prerequisite imposed on every user. If no eligible context voice exists, the UI must explain
+that state and offer generic generation only when the engine has an authoritative generic-only
+path; the current `generate_pair` implementation still requires eligible examples, so this
+fallback is not yet available.
+
+The result view shows the original beside the accepted result and gives the user a direct
+**Copy result** action. It should also make textual changes easy to inspect (for example, a
+deterministic highlighted comparison or a clear side-by-side view); this is presentation, not
+a claim that the engine semantically classified every change. Copying must not submit feedback,
+save a profile example, or authorize learning.
+
+An opt-in voice profile should persist by context, so users do not repeat setup or consent on
+every rewrite. Turning profile learning off must stop future learning while preserving an
+honest explanation of what already-stored examples/preferences remain and how to remove them.
+This consent lifetime and revocation behavior belongs to the engine contract.
+
+Learning from edits must never be required to use the core humanize/copy flow. Example storage,
+feedback retention, and learning authorization are distinct durable behaviors and must each be
+explained accurately. In the current implementation, `feedback.write` stores the
+source/candidate and edited text even when `learning_authorized=false`; that flag only controls
+whether eligible style evidence may contribute to learning. Therefore, the existing learning
+checkbox alone is not consent to storage and cannot be described as “nothing saved” when
+unchecked. Resolve that data-retention/consent contract in the engine task before exposing the
+flow as an ordinary user choice.
 
 ## Screen direction
 

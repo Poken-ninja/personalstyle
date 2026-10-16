@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personalstyle_desktop/engine.dart';
 import 'package:personalstyle_desktop/main.dart'
@@ -272,6 +273,46 @@ void main() {
     expect(find.byKey(const Key('verified')), findsNothing);
   });
 
+  testWidgets(
+    'copy result copies the current edit without submitting feedback',
+    (tester) async {
+      final fake = WireFake();
+      String? copiedText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copiedText = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await boot(tester, fake);
+      await rewrite(tester);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        field('Edit your result'),
+        'My revised synthetic text.',
+      );
+      final copy = find.byKey(const Key('copy-result'));
+      await tester.ensureVisible(copy);
+      await tester.tap(copy);
+      await tester.pumpAndSettle();
+
+      expect(copiedText, 'My revised synthetic text.');
+      expect(fake.calls, hasLength(1));
+      expect(fake.calls.single.$1, 'rewrite');
+      expect(find.text('Result copied.'), findsOneWidget);
+    },
+  );
+
   for (final event in ['accept', 'edit']) {
     testWidgets(
       '$event feedback uses source run, UUID, explicit authorization, no classification',
@@ -280,6 +321,18 @@ void main() {
         await boot(tester, fake);
         await rewrite(tester);
         await tester.pumpAndSettle();
+        expect(
+          find.textContaining(
+            'Accepting or submitting feedback saves a local feedback record.',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining(
+            'This controls future learning, not whether submitted feedback is stored.',
+          ),
+          findsOneWidget,
+        );
         if (event == 'edit') {
           await tester.enterText(
             field('Edit your result'),

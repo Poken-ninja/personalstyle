@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import 'engine.dart';
 
@@ -483,14 +484,43 @@ class _WritingScreenState extends State<WritingScreen> {
                 ],
               ),
               input('Edit your result', edited, lines: 5),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  key: const Key('copy-result'),
+                  onPressed: edited.text.isEmpty
+                      ? null
+                      : () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: edited.text),
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Result copied.')),
+                          );
+                        },
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copy result'),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'Accepting or submitting feedback saves a local feedback record. '
+                  'Copying the result does not save or submit it.',
+                ),
+              ),
               CheckboxListTile(
                 value: feedbackLearning,
                 onChanged: available && !feedbackSaved
                     ? (value) => setState(() => feedbackLearning = value!)
                     : null,
-                title: const Text('Allow this feedback to inform my voice'),
+                title: const Text(
+                  'Allow eligible style edits to inform personalization',
+                ),
                 subtitle: const Text(
-                  'Optional. Accepting a result does not authorize learning.',
+                  'Optional. This controls future learning, not whether submitted feedback '
+                  'is stored. Fact and requirement corrections are not style preferences.',
                 ),
                 controlAffinity: ListTileControlAffinity.leading,
                 contentPadding: EdgeInsets.zero,
