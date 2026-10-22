@@ -93,9 +93,12 @@ def verify_pair(
     request.validate()
     # Validate recognized constraint syntax before any read or model operation.
     deterministic_failures(request, request.original)
-    calls = 3
-    generation_attempts = {"generic": 1, "personalized": 1}
-    history: dict[str, list[dict[str, Any]]] = {"generic": [], "personalized": []}
+    mode = pair.get("generation_mode", "paired")
+    candidate_modes = ("generic",) if mode == "generic" else ("generic", "personalized")
+    initial_calls = 2 if mode == "generic" else 3
+    calls = initial_calls
+    generation_attempts = dict.fromkeys(candidate_modes, 1)
+    history: dict[str, list[dict[str, Any]]] = {key: [] for key in candidate_modes}
     accepted: dict[str, Any] = {}
     result = {key: value for key, value in pair.items() if key != "candidates"}
     result.update({
@@ -121,7 +124,7 @@ def verify_pair(
         model, harness, context = settings["model"], settings["harness"], settings["context"]
         ceiling, attempts = harness["max_total_model_calls"], harness["max_generation_attempts"]
         if (
-            type(ceiling) is not int or not 3 <= ceiling <= 8
+            type(ceiling) is not int or not (2 if mode == "generic" else 3) <= ceiling <= 8
             or type(attempts) is not int or not 1 <= attempts <= 3
             or not 0 < harness["timeout_seconds"] <= 60
             or not 0 < model["max_tokens"] <= 2000
@@ -132,10 +135,12 @@ def verify_pair(
                 "constraint_required": True, "structural_required": True,
                 "context_required": True, "style_is_hard_gate": False,
             }
-            or pair["context"] != request.context or pair["model_calls"] != 3
+            or mode not in {"paired", "generic"}
+            or pair.get("generation_mode", "paired") != mode
+            or pair["context"] != request.context or pair["model_calls"] != initial_calls
             or pair["preparation_calls"] != 1 or pair["prompt_contract"] != 1
             or pair["versions"] != settings["versions"]
-            or set(pair["candidates"]) != {"generic", "personalized"}
+            or set(pair["candidates"]) != set(candidate_modes)
         ):
             return finish("VERIFICATION_INPUT_INVALID")
         prepared = PreparedModel(**pair["model_identity"])
@@ -148,27 +153,36 @@ def verify_pair(
             return finish("MODEL_IDENTITY_MISMATCH")
         adapter = provider if provider is not None else OllamaProvider(model["model"])
         preferences: list[dict[str, Any]] = []
-        dna, examples = derive_personalization(
-            store, request.context, max_examples=context["max_examples"],
-            profile_schema=settings["versions"]["profile_schema"],
-            timeout_seconds=harness["timeout_seconds"], preferences=preferences,
-        )
-        source = {key: dna[key] for key in (
-            "writing_dna_algorithm_version", "source_profile_version", "source_fingerprint",
-            "profile_schema",
-        )}
-        selected = [{"id": e["id"], "record_version": e["record_version"]} for e in examples]
-        if (
+        dna: dict[str, Any] | None = None
+        examples: list[dict[str, Any]] = []
+        if mode == "paired":
+            dna, examples = derive_personalization(
+                store, request.context, max_examples=context["max_examples"],
+                profile_schema=settings["versions"]["profile_schema"],
+                timeout_seconds=harness["timeout_seconds"], preferences=preferences,
+            )
+            source = {key: dna[key] for key in (
+                "writing_dna_algorithm_version", "source_profile_version", "source_fingerprint",
+                "profile_schema",
+            )}
+            selected = [{"id": e["id"], "record_version": e["record_version"]} for e in examples]
+            if (
+                pair["candidates"]["generic"]["selected_examples"] != []
+                or pair["candidates"]["generic"]["selected_preferences"] != []
+                or pair["candidates"]["personalized"]["selected_preferences"] != [
+                    {"id": p["id"], "version": p["version"]} for p in preferences
+                ]
+                or pair["candidates"]["generic"]["writing_dna_source"] is not None
+                or pair["candidates"]["personalized"]["selected_examples"] != selected
+                or pair["candidates"]["personalized"]["writing_dna_source"] != source
+            ):
+                return finish("PERSONALIZATION_SOURCE_CHANGED")
+        elif (
             pair["candidates"]["generic"]["selected_examples"] != []
             or pair["candidates"]["generic"]["selected_preferences"] != []
-            or pair["candidates"]["personalized"]["selected_preferences"] != [
-                {"id": p["id"], "version": p["version"]} for p in preferences
-            ]
             or pair["candidates"]["generic"]["writing_dna_source"] is not None
-            or pair["candidates"]["personalized"]["selected_examples"] != selected
-            or pair["candidates"]["personalized"]["writing_dna_source"] != source
         ):
-            return finish("PERSONALIZATION_SOURCE_CHANGED")
+            return finish("VERIFICATION_INPUT_INVALID")
 
         def call(system: str, data: dict[str, Any], repair_mode: str | None = None) -> str:
             nonlocal calls
@@ -189,8 +203,8 @@ def verify_pair(
                 max_tokens=model["max_tokens"], temperature=model["temperature"],
             ).text
 
-        for mode in ("generic", "personalized"):
-            candidate = dict(pair["candidates"][mode])
+        for candidate_mode in candidate_modes:
+            candidate = dict(pair["candidates"][candidate_mode])
             previous_failures: list[str] | None = None
             for attempt in range(1, attempts + 1):
                 failures = deterministic_failures(request, candidate["text"])
@@ -211,25 +225,27 @@ def verify_pair(
                     except (ValueError, TypeError):
                         return finish("VERIFIER_RESPONSE_INVALID")
                     failures = sorted(CHECKS[key] for key, value in verdict.items() if not value)
-                history[mode].append({"attempt": attempt, "failure_codes": failures,
-                                      "semantic_checks": verdict})
+                history[candidate_mode].append({"attempt": attempt, "failure_codes": failures,
+                                                "semantic_checks": verdict})
                 if not failures:
                     candidate["verification_status"] = "verified"
-                    accepted[mode] = candidate
+                    accepted[candidate_mode] = candidate
                     break
                 if failures == previous_failures:
                     return finish("VERIFICATION_REPEATED_FAILURE")
                 if attempt == attempts:
                     return finish("GENERATION_ATTEMPTS_EXHAUSTED")
                 previous_failures = failures
-                personalization = None if mode == "generic" else {"examples": examples, "writing_dna": dna,
-                                       "preferences": preferences}
+                personalization = None if candidate_mode == "generic" else {
+                    "examples": examples, "writing_dna": dna, "preferences": preferences,
+                }
                 repaired = call(SYSTEM + (
                     f" Repair attempt {attempt + 1}: correct the recorded hard failures in the data "
                     "rather than repeating the rejected candidate. Retain all other original facts "
                     "and constraints. Return only the repaired rewrite."
                 ), {"request": asdict(request), "personalization": personalization,
-                    "repair": {"failure_codes": failures, "previous_candidate": candidate["text"]}}, mode)
+                    "repair": {"failure_codes": failures, "previous_candidate": candidate["text"]}},
+                    candidate_mode)
                 if repaired == candidate["text"]:
                     return finish("IDENTICAL_REPAIR")
                 candidate["text"] = repaired

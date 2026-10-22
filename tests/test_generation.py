@@ -84,6 +84,31 @@ def test_pair_isolated_snapshot_parity_provenance_and_no_mutation(store, caplog)
     assert store.path.read_bytes() == before
 
 
+def test_generic_only_generation_never_reads_or_creates_profile(tmp_path, monkeypatch):
+    adapter = FakeProvider()
+    store = ExampleStore(tmp_path / "absent" / "personalstyle.db")
+    settings = load_config(CONFIG)
+    settings["harness"]["max_total_model_calls"] = 2
+    monkeypatch.setattr(
+        generation, "derive_personalization",
+        lambda *args, **kwargs: pytest.fail("generic mode must not read voice evidence"),
+    )
+
+    result = generate_pair(REQUEST, settings, store, provider=adapter, mode="generic")
+
+    assert [call[0] for call in adapter.calls] == ["prepare", "generate"]
+    assert result["generation_mode"] == "generic"
+    assert result["model_calls"] == 2 and result["preparation_calls"] == 1
+    assert set(result["candidates"]) == {"generic"}
+    candidate = result["candidates"]["generic"]
+    assert candidate["selected_examples"] == []
+    assert candidate["selected_preferences"] == []
+    assert candidate["writing_dna_source"] is None
+    payload = json.loads(adapter.calls[-1][1][1]["content"])
+    assert payload["personalization"] is None
+    assert not store.path.exists()
+
+
 def test_reverse_context_selection_and_boundary_failure(store, tmp_path):
     store.add(example(2, context="friends.chat", text="FRIENDS_ONLY"))
     adapter = FakeProvider()

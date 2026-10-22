@@ -50,10 +50,12 @@ class RewriteRequest:
 
 def generate_pair(
     request: RewriteRequest, settings: dict[str, Any], store: ExampleStore, *,
-    provider: ModelProvider | None = None,
+    provider: ModelProvider | None = None, mode: str = "paired",
 ) -> dict[str, Any]:
-    """One preparation and two calls; return neither candidate if either fails."""
+    """Generate a paired comparison or one explicit generic-only candidate."""
     request.validate()
+    if mode not in {"paired", "generic"}:
+        raise GenerationError("INVALID_REQUEST")
     model, harness, context = settings["model"], settings["harness"], settings["context"]
     if (
         model["provider"] != "ollama" or settings["versions"]["prompt_contract"] != 1
@@ -64,20 +66,25 @@ def generate_pair(
         or not 0 < context["max_context_tokens"] <= 6000
     ):
         raise GenerationError("INVALID_REQUEST")
-    if not 3 <= harness["max_total_model_calls"] <= 8:
+    minimum_calls = 2 if mode == "generic" else 3
+    if not minimum_calls <= harness["max_total_model_calls"] <= 8:
         raise GenerationError("MODEL_CALL_BUDGET_EXHAUSTED")
     adapter = provider if provider is not None else OllamaProvider(model["model"])
     preferences: list[dict[str, Any]] = []
-    dna, examples = derive_personalization(
-        store, request.context, max_examples=context["max_examples"],
-        profile_schema=settings["versions"]["profile_schema"],
-        timeout_seconds=harness["timeout_seconds"], preferences=preferences,
-    )
-    payloads = [
-        {"request": asdict(request), "personalization": None},
-        {"request": asdict(request), "personalization": {"examples": examples, "writing_dna": dna,
-                                       "preferences": preferences}},
-    ]
+    dna: dict[str, Any] | None = None
+    examples: list[dict[str, Any]] = []
+    if mode == "paired":
+        dna, examples = derive_personalization(
+            store, request.context, max_examples=context["max_examples"],
+            profile_schema=settings["versions"]["profile_schema"],
+            timeout_seconds=harness["timeout_seconds"], preferences=preferences,
+        )
+    generic_payload = {"request": asdict(request), "personalization": None}
+    payloads = [generic_payload]
+    if mode == "paired":
+        payloads.append({"request": asdict(request), "personalization": {
+            "examples": examples, "writing_dna": dna, "preferences": preferences,
+        }})
     messages = [[
         {"role": "system", "content": SYSTEM},
         {"role": "user", "content": json.dumps(p, ensure_ascii=False, sort_keys=True)},
@@ -93,30 +100,39 @@ def generate_pair(
     if max(content_sizes) + prepared.framing_bytes > context["max_context_tokens"]:
         raise GenerationError("PERSONALIZATION_CONTEXT_LIMIT")
     candidates = {}
-    for mode, pair, size in zip(("generic", "personalized"), messages, content_sizes):
+    candidate_modes = ("generic", "personalized") if mode == "paired" else ("generic",)
+    for candidate_mode, pair, size in zip(candidate_modes, messages, content_sizes):
         calls += 1
         candidate = adapter.generate(
             prepared, pair, timeout_seconds=harness["timeout_seconds"],
             max_tokens=model["max_tokens"], temperature=model["temperature"],
         )
-        candidates[mode] = {
+        writing_dna_source = None
+        if candidate_mode == "personalized":
+            if dna is None:
+                raise GenerationError("PERSONALIZATION_SOURCE_INVALID")
+            writing_dna_source = {
+                key: dna[key] for key in (
+                    "writing_dna_algorithm_version", "source_profile_version",
+                    "source_fingerprint", "profile_schema",
+                )
+            }
+        candidates[candidate_mode] = {
             "text": candidate.text, "verification_status": "not_verified",
             "seconds": candidate.seconds, "prompt_tokens": candidate.prompt_tokens,
             "output_tokens": candidate.output_tokens,
             "input_token_upper_bound": size + prepared.framing_bytes,
-            "selected_examples": [] if mode == "generic" else [
+            "selected_examples": [] if candidate_mode == "generic" else [
                 {"id": e["id"], "record_version": e["record_version"]} for e in examples
             ],
-            "selected_preferences": [] if mode == "generic" else [
+            "selected_preferences": [] if candidate_mode == "generic" else [
                 {"id": p["id"], "version": p["version"]} for p in preferences
             ],
-            "writing_dna_source": None if mode == "generic" else {
-                key: dna[key] for key in ("writing_dna_algorithm_version", "source_profile_version",
-                                         "source_fingerprint", "profile_schema")
-            },
+            "writing_dna_source": writing_dna_source,
         }
     return {
         "run_id": str(uuid4()), "context": request.context, "versions": settings["versions"],
+        "generation_mode": mode,
         "model_identity": asdict(prepared), "prompt_contract": 1,
         "token_budget_method": "utf8_byte_upper_bound.v1", "selection_policy": "exact_context.uuid.v1",
         "model_calls": calls, "preparation_calls": 1, "candidates": candidates,
