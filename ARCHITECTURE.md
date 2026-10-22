@@ -9,19 +9,23 @@ completed task records describe what exists and was verified.
 
 ## Product boundary
 
-PersonalStyle transforms:
+PersonalStyle humanizes user-supplied (often AI-written) draft text in the user's
+**demonstrated personal voice for the selected context**; generic polish is secondary.
 
 ```text
-original text
-+ intent
-+ explicit context
-+ explicit constraints
-+ relevant user evidence
+draft text + humanize intent + explicit context
++ authorized exact-context voice evidence
++ explicit requirements (academic rubric / professional brief / constraints)
         ↓
-personalized rewrite
+engine-owned rewriting + content/requirements verification
+        ↓
+context-appropriate personalized result + criterion-level evidence / review status
 ```
 
-The product must preserve meaning and required information while adapting expression to demonstrated behavior for the relevant context.
+The product must preserve meaning, facts, quotations, citations, and confirmed requirements
+while adapting expression to demonstrated behavior for the relevant context. This new
+product direction is specified in [ADR-004](docs/decisions/ADR-004-voice-and-constraint-humanization.md),
+not a claim of implemented rubric or baseline voice features.
 
 The personalization model is:
 
@@ -237,7 +241,12 @@ The boundary validates schema and hard limits before a model call.
 
 ### 2. Context resolver
 
-Maps the explicit request context to a bounded context profile.
+Maps an explicit user-facing context selection (academic, professional, casual or custom)
+to a bounded context profile. Existing code is exact-context only. Future user-authorized
+shared baseline traits, context-specific policy overrides and broader eligibility require
+V01 contracts; the default remains **no cross-context sharing**. Academic user voice is
+eligible within academic norms and confirmed rubric rules, not stripped away simply
+because the setting is academic.
 
 It does not perform free-form memory search.
 
@@ -295,7 +304,7 @@ Embeddings/vector retrieval are deferred until a concrete retrieval failure show
 
 Writing DNA begins as inspectable features, not an opaque representation.
 
-Candidate feature families:
+Candidate feature families (not all implemented or validated):
 - sentence-length distribution;
 - punctuation;
 - contractions;
@@ -348,6 +357,13 @@ rules and the distinction between second-pass and independent verification.
 Style diagnostics and real user behavior are product-quality signals; evaluation rules
 are owned by [AGENTS.md](AGENTS.md#product-testing-discipline).
 
+Future R01 owns parsed **candidate** requirements, user-confirmed criterion IDs/versions,
+objective criterion checks and explicit `needs_review` or `not_established` outcomes for
+subjective/source-dependent rules. Parsed rubric content is untrusted data and never voice
+training material. Flutter only presents user confirmation, per-criterion status and gaps.
+Do not add a blanket em-dash/emoji AI-tell filter or equate a style diagnostic with AI
+origin detection.
+
 ### 8. Feedback adapter
 
 User acceptance/edit creates a learning event.
@@ -370,8 +386,15 @@ Owner policy `context_preference_promotion.v1` evaluates the latest three indepe
 non-ambiguous verified style-feedback runs for each exact context and bounded presentation
 feature. Agreement activates; opposition contests; fewer than three remains unpromoted.
 Explicit engine evaluation appends versioned preference states/evidence in the same
-schema-2 store. Only active exact-context IDs/versions enter later generation as data.
+historical schema-2 store. The F07 migration advanced the current protected storage
+schema to 3 for durable document checkpoints; preference policy remains
+`context_preference_promotion.v1`. Only active exact-context IDs/versions enter later
+generation as data.
 No global widening, background mutation or second canonical writer is introduced.
+V01/V02/V03 propose optional original-writing questionnaire evidence and later richer
+style feedback under explicit provenance, consent and versioning. These are not present
+in the current exact-context implementation; no AI draft, rubric or third-party content
+is user-voice evidence merely because it entered a rewrite.
 The [historical task](docs/F05_F06_TASK.md#owner-continuation-promotion-policy-resolved)
 owns the precise policy and verification evidence.
 [AGENTS.md](AGENTS.md#personalization-state-rules) owns edit classification/promotion rules,
