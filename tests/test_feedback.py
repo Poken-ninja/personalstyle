@@ -80,6 +80,14 @@ def test_authorized_roundtrip_versions_idempotency_and_weak_accept(store, receip
     assert get_feedback(store, event().id) == first
 
 
+def test_learning_disabled_feedback_is_not_stored(store, receipt):
+    before = store.path.read_bytes()
+    result = record_feedback(store, receipt, event(3, learning_authorized=False))
+    assert result is None
+    assert store.path.read_bytes() == before
+    assert get_feedback(store, str(UUID(int=3))) is None
+
+
 @pytest.mark.parametrize("changes,category", [
     ({"edited_text": TEXT.replace("12", "13")}, "meaning_fact"),
     ({"edited_text": "Different facts.", "classification_hint": "meaning_fact"}, "meaning_fact"),
@@ -171,6 +179,8 @@ def test_explicit_atomic_migration_preserves_data_and_rejects_old_writer(tmp_pat
         assert store.get(str(UUID(int=90)))["text"] == "Synthetic"
         store.migrate_feedback_schema()
         store.migrate_document_schema()
+        # The 2->3 and 3->4 migrations are explicit; the latter leaves legacy consent absent.
+        store.migrate_voice_schema()
         assert store.get(str(UUID(int=90)))["text"] == "Synthetic"
         with pytest.raises(sqlite3.Error):
             old.execute("INSERT INTO examples VALUES (?, 'old', 'work.email', 'owner', "
@@ -178,7 +188,9 @@ def test_explicit_atomic_migration_preserves_data_and_rejects_old_writer(tmp_pat
         first = record_feedback(store, receipt, event())
         before = store.path.read_bytes()
         store.migrate_feedback_schema()
-        assert store.path.read_bytes() == before and first["profile_version"] == 4
+        store.migrate_document_schema()
+        store.migrate_voice_schema()
+        assert store.path.read_bytes() == before and first["profile_version"] == 5
     finally:
         old.close()
 
