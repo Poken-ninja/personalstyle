@@ -15,6 +15,7 @@ from uuid import uuid4
 
 import pytest
 
+from personalstyle import generation, verification
 from personalstyle.config import load_config
 from personalstyle.feedback import FeedbackInput
 from personalstyle.protocol import (
@@ -143,9 +144,64 @@ def test_voice_consent_protocol_persists_and_revokes_exact_source(tmp_path):
     assert ExampleStore(store.path).get(sample["id"]) is None
 
 
+def test_authenticated_generic_rewrite_verifies_without_profile_database(tmp_path, monkeypatch):
+    settings = load_config(Path(__file__).resolve().parents[1] / "personalstyle.toml")
+    store = ExampleStore(tmp_path / "absent" / "profile.db")
+    token = secrets.token_urlsafe(32)
+
+    class GenericProvider:
+        def __init__(self):
+            self.calls = []
+
+        def prepare(self, context_tokens):
+            self.calls.append("prepare")
+            return PreparedModel(
+                "ollama", settings["model"]["model"], "b" * 64, "0.40.0",
+                context_tokens, 0, 1,
+            )
+
+        def generate(self, _prepared, messages, **_options):
+            self.calls.append("verify" if messages[0]["content"] == VERIFY_SYSTEM else "generate")
+            output = json.dumps(dict.fromkeys(CHECKS, True)) if self.calls[-1] == "verify" else TEXT
+            return Candidate(output, 1, 64, 12)
+
+    provider = GenericProvider()
+    monkeypatch.setattr(
+        generation, "derive_personalization",
+        lambda *args, **kwargs: pytest.fail("generic generation read voice evidence"),
+    )
+    monkeypatch.setattr(
+        verification, "derive_personalization",
+        lambda *args, **kwargs: pytest.fail("generic verification read voice evidence"),
+    )
+    session = EngineSession(settings, store, token, provider)
+    payload = {"original": TEXT, "intent": "Make this clearer", "context": "work.email",
+               "constraints": []}
+
+    with serving(session) as server:
+        request_envelope = envelope("rewrite.generic", payload, protocol_version="1.1")
+        assert request(server, None, request_envelope)[0] == 401
+        assert provider.calls == []
+        status, body = request(server, token, request_envelope)
+
+    result = body["result"]
+    assert status == 200 and result["state"] == "SUCCEEDED"
+    assert result["generation_mode"] == "generic"
+    assert result["verification_status"] == "verified"
+    assert set(result["candidates"]) == {"generic"}
+    assert result["candidates"]["generic"]["text"] == TEXT
+    assert result["candidates"]["generic"]["selected_examples"] == []
+    assert result["candidates"]["generic"]["selected_preferences"] == []
+    assert result["candidates"]["generic"]["writing_dna_source"] is None
+    assert provider.calls == ["prepare", "generate", "verify"]
+    assert not store.path.exists()
+
+
 @pytest.mark.parametrize("value,headers,code", [
     (envelope(protocol_version="2.0"), {}, "PROTOCOL_MAJOR_INCOMPATIBLE"),
     (envelope("sqlite.write"), {}, "CAPABILITY_UNSUPPORTED"),
+    (envelope("rewrite.generic", {"original": TEXT}, protocol_version="1.1"),
+     {}, "REQUEST_MALFORMED"),
     (envelope(client_kind="browser"), {}, "ORIGIN_CALLER_REJECTED"),
     (envelope(), {"Origin": "https://example.com"}, "ORIGIN_CALLER_REJECTED"),
     (envelope(), {"Origin": ""}, "ORIGIN_CALLER_REJECTED"),

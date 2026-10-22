@@ -25,7 +25,8 @@ from personalstyle.verification import deterministic_failures, verify_pair
 
 PROTOCOL_VERSION = "1.1"
 CAPABILITIES = (
-    "handshake", "rewrite", "example.write", "feedback.write", "preference.evaluate",
+    "handshake", "rewrite", "rewrite.generic", "example.write", "feedback.write",
+    "preference.evaluate",
     "voice.status", "example.authorize", "example.personalization.set", "example.revoke",
 )
 MAX_BODY_BYTES = MAX_REQUEST_BYTES + 4096
@@ -104,7 +105,7 @@ def _validate(envelope: Any) -> tuple[str, Any]:
             if data:
                 raise ProtocolError("REQUEST_MALFORMED")
             return capability, protocol
-        if capability == "rewrite":
+        if capability in {"rewrite", "rewrite.generic"}:
             if data.keys() != {"original", "intent", "context", "constraints"} or type(data["constraints"]) is not list:
                 raise ProtocolError("REQUEST_MALFORMED")
             rewrite = RewriteRequest(**{**data, "constraints": tuple(data["constraints"])})
@@ -178,8 +179,9 @@ class EngineSession:
             return {"engine_version": version("personalstyle"), "protocol_version": PROTOCOL_VERSION,
                     "requested_protocol_version": data, "supported_capabilities": CAPABILITIES,
                     "compatibility": "compatible"}
-        if capability == "rewrite":
-            pair = generate_pair(data, self.settings, self.store, provider=self.provider)
+        if capability in {"rewrite", "rewrite.generic"}:
+            mode = "generic" if capability == "rewrite.generic" else "paired"
+            pair = generate_pair(data, self.settings, self.store, provider=self.provider, mode=mode)
             result = verify_pair(data, pair, self.settings, self.store, provider=self.provider)
             if result["state"] != "SUCCEEDED":
                 raise ProtocolError("ENGINE_OPERATION_FAILED", 422, result["failure_code"])

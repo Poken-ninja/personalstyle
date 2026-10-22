@@ -82,6 +82,56 @@ def test_pass_has_all_gates_identity_and_provenance(fixture, caplog):
     assert not caplog.text
 
 
+def test_generic_only_verification_skips_profile_and_returns_only_verified_candidate(
+    fixture, monkeypatch, tmp_path,
+):
+    settings, pair = fixture
+    pair["generation_mode"] = "generic"
+    pair["model_calls"] = 2
+    pair["candidates"] = {"generic": pair["candidates"]["generic"]}
+    store = ExampleStore(tmp_path / "absent" / "profile.db")
+    monkeypatch.setattr(
+        verification, "derive_personalization",
+        lambda *args, **kwargs: pytest.fail("generic verification must not read voice evidence"),
+    )
+
+    result = verify_pair(REQUEST, pair, settings, store, provider=Provider([PASS]))
+
+    assert result["state"] == "SUCCEEDED" and result["verification_status"] == "verified"
+    assert result["generation_mode"] == "generic"
+    assert set(result["candidates"]) == {"generic"}
+    assert result["candidates"]["generic"]["verification_status"] == "verified"
+    assert result["model_calls"] == 3
+    assert result["generation_attempts"] == {"generic": 1}
+    assert not store.path.exists()
+
+
+def test_generic_only_verification_rejects_required_fact_loss_without_success(
+    fixture, monkeypatch, tmp_path,
+):
+    settings, pair = fixture
+    pair["generation_mode"] = "generic"
+    pair["model_calls"] = 2
+    pair["candidates"] = {"generic": pair["candidates"]["generic"]}
+    pair["candidates"]["generic"]["text"] = "Alex will deliver 13 reports on Monday."
+    store = ExampleStore(tmp_path / "absent" / "profile.db")
+    monkeypatch.setattr(
+        verification, "derive_personalization",
+        lambda *args, **kwargs: pytest.fail("generic verification must not read voice evidence"),
+    )
+
+    result = verify_pair(
+        REQUEST, pair, settings, store,
+        provider=Provider([pair["candidates"]["generic"]["text"]]),
+    )
+
+    assert result["state"] == "FAILED" and result["candidates"] == {}
+    assert result["failure_code"] == "IDENTICAL_REPAIR"
+    assert "REQUIRED_INFORMATION_MISSING" in result["history"]["generic"][0]["failure_codes"]
+    assert result["model_calls"] == 3
+    assert not store.path.exists()
+
+
 @pytest.mark.parametrize("text,code", [
     ("", "STRUCTURAL_CONSTRAINT_FAILED"),
     ("Alex will deliver 13 reports on Monday.", "REQUIRED_INFORMATION_MISSING"),
