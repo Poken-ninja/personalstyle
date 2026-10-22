@@ -200,3 +200,15 @@ V01 attempt counters and historical failures remain unchanged. PR #18 remains dr
 unmerged. F08 artifacts remain untouched. H01 implementation is locally verified and its
 implementation commit passed exact-head CI; PR #19 remains a draft for owner review. No
 merge is authorized by this record.
+
+## Base reconciliation — 2026-10-22
+
+Owner authorized PR #18 to merge. V01 landed on main as merge commit
+`8cf61458d407eb3ba14ecf7fd11fee74ca371aa5`. H01 is being reconciled with that base; its
+previous exact-head CI remains historical evidence for `3c7a71089815c9d756f9c1e8831d9aae00629bd9`
+only. The V01 merge added `test_voice_evidence.py` to the test inventory while H01 adds
+`test_harness.py`. The shard-runner conflict is resolved to assign both modules, alongside
+protocol and storage tests, exactly once. The obsolete note that V01 is an unmerged draft
+has been removed from the active shard configuration. Combined-head verification is pending;
+no H01 merge is authorized by this record. Untracked F08 and historical pytest artifacts
+remain preserved and outside the merge.

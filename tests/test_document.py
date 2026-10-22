@@ -27,7 +27,7 @@ from personalstyle.document import (
 from personalstyle.generation import RewriteRequest
 from personalstyle.provider import Candidate, GenerationError, PreparedModel
 from personalstyle.security import SecurityError, prepare_private_directory, prepare_private_file
-from personalstyle.storage import APPLICATION_ID, SCHEMA_V2, ExampleStore, StoreError
+from personalstyle.storage import APPLICATION_ID, SCHEMA_V2, ExampleInput, ExampleStore, StoreError
 from personalstyle.verification import CHECKS
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,14 +53,18 @@ def policy_store(tmp_path):
         for sql in SCHEMA.values():
             connection.execute(sql)
         connection.execute(f"PRAGMA application_id={APPLICATION_ID}")
-        connection.execute("PRAGMA user_version=3")
-        connection.execute("INSERT INTO store_meta VALUES (3,1)")
+        connection.execute("PRAGMA user_version=4")
+        connection.execute("INSERT INTO store_meta VALUES (4,1)")
     # Initial add checks the actual OS ACL; seed this intentionally non-OS policy fixture directly.
     example = ExampleInput(str(UUID(int=10)), "Please send the note. Thank you.", "work.email",
                            "owner", "owner", "user_owned", True, True)
     with value.feedback_connection(write=True) as connection:
         connection.execute("INSERT INTO examples VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, '2026-10-08', 2)",
                            example.payload())
+        connection.execute(
+            "INSERT INTO example_authorizations VALUES (?, ?, 1, 1, 1, '2026-10-08', '2026-10-08')",
+            (example.id, example.context),
+        )
     return value
 
 
@@ -173,8 +177,20 @@ def test_dependency_invalidation(policy_store, change, monkeypatch):
     if change == "intent":
         arguments["intent"] = "Make it clearer."
     elif change == "context":
+        context_sample = ExampleInput(
+            str(UUID(int=11)), "Authorized friends chat sample.", "friends.chat",
+            "owner", "owner", "user_owned", True, True, False,
+        )
         with policy_store.feedback_connection(write=True) as connection:
-            connection.execute("UPDATE examples SET context='friends.chat'")
+            connection.execute(
+                "INSERT INTO examples VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, '2026-10-16', 2)",
+                context_sample.payload(),
+            )
+            connection.execute(
+                "INSERT INTO example_authorizations VALUES (?, ?, 1, 1, 1, '2026-10-16', '2026-10-16')",
+                (context_sample.id, context_sample.context),
+            )
+            connection.execute("UPDATE store_meta SET profile_version=profile_version+1")
         arguments["context"] = "friends.chat"
     elif change == "constraints":
         arguments["constraints"] = ("max_words:500",)
@@ -318,12 +334,17 @@ def test_valid_schema2_feedback_and_active_preference_survive_upgrade(policy_sto
                   for name in ("examples", "feedback", "preferences")}
     # Reconstruct exact merged schema 2, including real engine-generated canonical records.
     with sqlite3.connect(policy_store.path) as connection:
+        connection.execute("DROP TABLE example_authorizations")
         connection.execute("DROP TABLE document_segments")
         connection.execute("DROP TABLE documents")
         connection.execute("UPDATE store_meta SET schema_version=2")
         connection.execute("PRAGMA user_version=2")
     assert derive_learning_evidence(policy_store, "work.email")["eligible_observation_count"] == 3
-    policy_store.migrate_document_schema()
+    policy_store.migrate_to_current_schema()
+    policy_store.authorize_legacy_example(
+        str(UUID(int=10)), storage_authorized=True,
+        personalization_authorized=True, authorized=True,
+    )
     assert derive_learning_evidence(policy_store, "work.email")["eligible_observation_count"] == 3
     with policy_store.feedback_connection() as connection:
         assert policy_store.active_preferences(connection, "work.email") == active_before
@@ -334,7 +355,11 @@ def test_protected_document_progress_and_dependencies_in_fresh_process(schema2):
     with sqlite3.connect(schema2.path) as connection:
         connection.execute("DELETE FROM feedback")
         connection.execute("DELETE FROM preferences")
-    schema2.migrate_document_schema()
+    schema2.migrate_to_current_schema()
+    schema2.authorize_legacy_example(
+        str(UUID(int=1)), storage_authorized=True,
+        personalization_authorized=True, authorized=True,
+    )
     result = run(schema2, paragraphs("First paragraph.", "Middle paragraph.", "Last paragraph."),
                  EchoProvider(fail_prepare=2))
     assert result["state"] == "BLOCKED" and result["verified_segments"] == 1
@@ -375,14 +400,14 @@ def test_schema2_upgrade_preserves_all_canonical_data_and_is_idempotent(schema2)
     with sqlite3.connect(schema2.path) as connection:
         before = {name: connection.execute(f"SELECT * FROM {name}").fetchall()
                   for name in ("examples", "feedback", "preferences")}
-    schema2.migrate_document_schema()
+    schema2.migrate_to_current_schema()
     with sqlite3.connect(schema2.path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone() == (3,)
-        assert connection.execute("SELECT * FROM store_meta").fetchone() == (3, 17)
+        assert connection.execute("PRAGMA user_version").fetchone() == (4,)
+        assert connection.execute("SELECT * FROM store_meta").fetchone() == (4, 18)
         assert before == {name: connection.execute(f"SELECT * FROM {name}").fetchall()
                           for name in before}
     snapshot = schema2.path.read_bytes()
-    ExampleStore(schema2.path).migrate_document_schema()
+    ExampleStore(schema2.path).migrate_to_current_schema()
     assert schema2.path.read_bytes() == snapshot
     assert schema2.get(str(UUID(int=1)))["text"] == "Synthetic"
 
@@ -401,12 +426,12 @@ def test_schema3_failed_guard_rolls_back_entire_migration(schema2, monkeypatch):
 
     monkeypatch.setattr(schema2, "_recheck", recheck)
     with pytest.raises(StoreError, match="^STORAGE_BOUNDARY_INVALID$"):
-        schema2.migrate_document_schema()
+        schema2.migrate_to_current_schema()
     assert schema2.path.read_bytes() == before
 
 
 def test_checkpoint_atomic_cas_restart_and_query_plan(schema2):
-    schema2.migrate_document_schema()
+    schema2.migrate_to_current_schema()
     manifest = {"id": str(UUID(int=6)), "revision": 1, "state": "BLOCKED", "calls": 2}
     segment = {"id": "0000", "ordinal": 0, "state": "VERIFIED", "dependency": "a" * 64}
     schema2.save_document_checkpoint(manifest, [segment], expected_revision=0)
@@ -417,7 +442,7 @@ def test_checkpoint_atomic_cas_restart_and_query_plan(schema2):
         plan = connection.execute("EXPLAIN QUERY PLAN SELECT payload FROM document_segments "
                                   "WHERE document_id=? ORDER BY ordinal", (manifest["id"],)).fetchall()
         assert "document_order" in str(plan) and "TEMP B-TREE" not in str(plan)
-        assert connection.execute("SELECT profile_version FROM store_meta").fetchone() == (17,)
+        assert connection.execute("SELECT profile_version FROM store_meta").fetchone() == (18,)
     script = ("import json,sys; from pathlib import Path; from personalstyle.storage import ExampleStore; "
               "print(json.dumps(ExampleStore(Path(sys.argv[1])).document_checkpoint(sys.argv[2])))")
     result = subprocess.run([sys.executable, "-c", script,

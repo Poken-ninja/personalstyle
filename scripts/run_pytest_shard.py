@@ -15,11 +15,9 @@ from uuid import uuid4
 ROOT = Path(__file__).resolve().parents[1]
 TESTS = ROOT / "tests"
 RUN_ROOT = ROOT / ".pytest-harness"
-PROTOCOL_STORAGE = ["test_protocol.py", "test_storage.py", "test_harness.py"]
-# V01 is still an independent draft PR. Keep its module in this shard automatically when
-# present, without importing V01 into the H01 baseline or failing coverage on main.
-if (TESTS / "test_voice_evidence.py").is_file():
-    PROTOCOL_STORAGE.append("test_voice_evidence.py")
+PROTOCOL_STORAGE = (
+    "test_protocol.py", "test_storage.py", "test_harness.py", "test_voice_evidence.py"
+)
 SHARDS: dict[str, tuple[str, ...]] = {
     "documents-profile": ("test_document.py", "test_profile.py"),
     "provider-learning": ("test_provider.py", "test_initialization.py", "test_learning.py"),

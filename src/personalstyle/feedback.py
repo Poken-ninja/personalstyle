@@ -132,7 +132,7 @@ def _decode(row: tuple[Any, ...]) -> dict[str, Any]:
             or payload["source"]["candidate_mode"] != event.candidate_mode
             or payload["source"]["verification_status"] != "verified"
             or payload["source"]["versions"]["profile_schema"] != 1
-            or payload["source"]["versions"]["storage_schema"] not in (2, 3)
+            or payload["source"]["versions"]["storage_schema"] not in (2, 3, 4)
             or payload["source"]["prompt_contract"] != 1
             or row[6] != payload["source"]["run_id"] or str(UUID(row[6])) != row[6]
             or json.loads(row[7]) != _observations(payload)
@@ -145,8 +145,11 @@ def _decode(row: tuple[Any, ...]) -> dict[str, Any]:
 
 def record_feedback(
     store: ExampleStore, verified_pair: dict[str, Any], event: FeedbackInput,
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     event.validate()  # No filesystem/SQL action for unauthorized input.
+    if not event.learning_authorized:
+        # Learning-disabled feedback is not submitted or retained as a local record.
+        return None
     source = verified_source(verified_pair)
     raw_request, result = source["request"], source["result"]
     request = RewriteRequest(**{**raw_request, "constraints": tuple(raw_request["constraints"])})
