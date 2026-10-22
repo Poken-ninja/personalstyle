@@ -455,8 +455,8 @@ def test_import_to_f07_rewrite_export_and_restart_reuses_checkpoints(
         for sql in SCHEMA.values():
             connection.execute(sql)
         connection.execute(f"PRAGMA application_id={APPLICATION_ID}")
-        connection.execute("PRAGMA user_version=3")
-        connection.execute("INSERT INTO store_meta VALUES (3, 1)")
+        connection.execute("PRAGMA user_version=4")
+        connection.execute("INSERT INTO store_meta VALUES (4, 1)")
     store.add(ExampleInput(str(uuid4()), "Synthetic writing example.", "work.email",
                            "owner", "owner", "user_owned", True, True, False))
     source = tmp_path / "source.md"

@@ -19,7 +19,7 @@ PROTOCOL_STORAGE = (
     "test_protocol.py", "test_storage.py", "test_harness.py", "test_voice_evidence.py"
 )
 SHARDS: dict[str, tuple[str, ...]] = {
-    "documents-profile": ("test_document.py", "test_profile.py"),
+    "documents-profile": ("test_document.py", "test_documents.py", "test_profile.py"),
     "provider-learning": ("test_provider.py", "test_initialization.py", "test_learning.py"),
     "protocol-storage": tuple(PROTOCOL_STORAGE),
     "feedback-security": (

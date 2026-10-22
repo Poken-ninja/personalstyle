@@ -2,13 +2,13 @@
 
 ```text
 TASK: F08
-STATE: active — Phase A implementation checkpoint; Phase A acceptance INCOMPLETE
-BRANCH: task/f08-document-import-export
-BASE / MERGE_BASE: 4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a
-F07: merged by PR #13 at 4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a
+STATE: active — Phase A verified locally; exact-head CI and review pending; Phases B/C not started
+BRANCH: task/f08-phase-a-review (clean F08-only isolation; original mixed branch preserved)
+BASE / MERGE_BASE: 00003b396c56a6f05f60db3b1e9298d911f122ee
+F07: merged by PR #13; current base also contains merged V01/H01 work
 WIP: 1
-IMPLEMENTATION: Phase A primary pass used; Phases B/C not started; no phase resets
-IMPLEMENTATION_ATTEMPT: 1 — Phase A primary implementation used
+IMPLEMENTATION: 2/2 used; no counters reset; Phases B/C not started
+IMPLEMENTATION_ATTEMPT: 2/2 used across Phase A implementation and bounded integration corrections
 DIAGNOSIS: 0/2
 RECOVERY: 0/1
 REPAIR RULE: at most two materially different repairs per classified failure;
@@ -37,8 +37,11 @@ may use this larger envelope; all other operations retain the 73,728-byte ceilin
 server's pre-read cap is bounded at that document ceiling and rechecks the capability-specific
 limit after parsing. This was the compatibility basis for the actual protocol minor change.
 
-Current declarations: product `0.1.0`, protocol `1.1` (additive F08 capabilities), config schema `1`, storage schema `3`,
-profile schema `1`, prompt contract `1`, Flutter client `0.1.0+1`, model `ollama / qwen3:8b`.
+At task activation, declarations were product `0.1.0`, protocol `1.1`, config schema `1`,
+storage schema `3`, profile schema `1`, prompt contract `1`, Flutter client `0.1.0+1`, model
+`ollama / qwen3:8b`. Current base main has storage schema `4` after V01; the current protocol
+1.1 capability set includes main's V01/generic operations plus the additive F08 document
+operations. F08 introduces no further version bump.
 No database state is required by file import/export beyond F07's existing document
 checkpoints. Do not create F08 tables or bump storage/profile/config versions without a
 demonstrated compatibility requirement. Assess any protocol minor-version change against
@@ -509,3 +512,60 @@ preserved; native save/cancel and exported-file read-back remain outstanding. Th
 and task record are selectively committed as a WIP checkpoint only; Phase A is INCOMPLETE, not
 verified. Counters remain implementation 1/2, diagnosis 0/2, recovery 0/1. Phases B/C remain
 unstarted and PR #14 remains untouched.
+
+## Current verified checkpoint — 2026-10-22
+
+This section supersedes earlier status snapshots above without rewriting their history.
+
+**Phase A is verified locally; F08 overall is active and incomplete.** The DOCX Phase B and
+text-PDF Phase C have not started. Counters are implementation 2/2 used, diagnosis 0/2,
+recovery 0/1. The original `task/f08-document-import-export` worktree contains an unfinished
+main integration and unrelated V01/H01/G01 artifacts; it was preserved without reset, cleanup,
+or a mixed commit. A clean publication worktree was created at branch
+`task/f08-phase-a-review` from verified `origin/main`
+`00003b396c56a6f05f60db3b1e9298d911f122ee`. Its initial F08 checkpoint is
+`fdc2dbbbdfb19377db25162fbf3c200b7f1607b9`; this branch retains that checkpoint history and
+adds the evidence/compatibility corrections recorded here. The diff from that base is limited
+to F08 engine/client/tests/task work plus the required exact-once test-shard registration in
+`scripts/run_pytest_shard.py`.
+
+The composed protocol remains 1.1 and preserves main's V01/generic capabilities while adding
+`document.import`, `document.export`, `document.rewrite`, and `document.inspect`. Storage remains
+schema 4 from main; F08 adds no schema or profile migration. Its deterministic synthetic
+long-document fixture was corrected to construct schema 4 rather than the stale schema-3
+fixture used before V01 merged. The existing `pending save remains visible after engine exit`
+behavior from main was retained during conflict resolution; no UX behavior change was included.
+
+Verification on the isolated composition:
+
+- `scripts/run_pytest_shard.py --check`: **14 of 14 modules assigned exactly once** after
+  registering `test_documents.py` in the existing documents/profile shard.
+- Focused documents/protocol run: **55 passed, 1 failed**. The only failure was the synthetic
+  F07 protocol fixture creating schema 3 against current schema 4. After correcting that
+  fixture, the exact long-document import/rewrite/verify/export/restart test passed alone:
+  **1 passed in 280.96 seconds**. The run is intentionally recorded as separate evidence; the
+  combined subset was not repeated. All other cases in the focused run passed.
+- Flutter analysis passed. The first widget run found one merge-resolution regression: a pending
+  mutation was cleared on engine exit, contrary to main's behavior and test. That accidental
+  line was removed; the focused test passed, then the complete Flutter suite passed: **32 tests**.
+- Windows Release build passed: **33.3 seconds**.
+- Ruff passed on changed Python/harness files; mypy passed for `src` (14 files); `pip check`
+  passed; `git diff --check` passed.
+- Owner-operated native Windows acceptance runner completed authenticated P01 handshake,
+  configured `ollama / qwen3:8b` synthetic `rewrite.generic` with engine verification state
+  `SUCCEEDED / verified` (17-word source, 3 model calls, 8.09 seconds within a 240-second
+  ceiling), native Save-dialog cancellation, a second native Save selection,
+  authenticated `document.export`, exact UTF-8 saved-file read-back, and clean engine shutdown.
+  It reported `PROFILE_OR_FEEDBACK_MUTATION=NONE`. No owner profile or consent was accessed.
+  This is native dialog/process acceptance evidence, distinct from the Flutter widget tests.
+
+The first Flutter test invocation in the new worktree crashed inside Flutter 3.47.6 because its
+`.dart_tool/package_config.json` had not yet been generated. `flutter pub get` resolved the
+committed lockfile; analysis and tests then ran. This was a worktree setup issue, not a product
+test failure. The failed schema-3 fixture and accidental conflict-resolution line are both
+preserved above with their corrections.
+
+No F08 PR has been opened from this clean branch yet and no exact-head CI has run. Next
+permitted action: review the exact staged diff, commit only this F08 branch, push without force,
+open a draft PR against current main, and report exact-head CI status. Do not merge, start DOCX
+or PDF work, modify PR #14, or mark F08 overall complete.

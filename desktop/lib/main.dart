@@ -167,7 +167,6 @@ class _WritingScreenState extends State<WritingScreen> {
         result = null;
         documentId = null;
         documentResult = false;
-        pending = null;
         state = ViewState.engineUnavailable;
         notice = messageFor(EngineFailure.exited);
       });
