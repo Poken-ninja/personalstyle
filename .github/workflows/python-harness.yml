@@ -55,7 +55,7 @@ jobs:
       - name: Non-generation startup
         run: personalstyle --config personalstyle.toml
       - name: Lint
-        run: python -m ruff check src tests scripts/run_pytest_shard.py
+        run: python -m ruff check src tests scripts/run_pytest_shard.py scripts/pytest_diagnostics.py
       - name: Type check
         run: python -m mypy src
       - name: Dependency consistency
