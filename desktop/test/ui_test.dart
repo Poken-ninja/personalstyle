@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personalstyle_desktop/engine.dart';
 import 'package:personalstyle_desktop/main.dart';
@@ -19,6 +20,19 @@ class WireFake implements EngineConnection {
     'format': 'md',
     'text': '# Synthetic imported document\n\nOriginal paragraph.',
   };
+  Object? genericResponse = {
+    'state': 'SUCCEEDED',
+    'verification_status': 'verified',
+    'generation_mode': 'generic',
+    'run_id': '33333333-3333-4333-8333-333333333333',
+    'candidates': {
+      'generic': {
+        'text': 'Generic synthetic result.',
+        'verification_status': 'verified',
+      },
+    },
+  };
+  Completer<Object?>? genericRewriteResponse;
   Object? documentResult = {
     'state': 'VERIFIED',
     'whole_document_verification': 'verified',
@@ -53,7 +67,11 @@ class WireFake implements EngineConnection {
   Future<Object?> call(String capability, Map<String, Object?> payload) async {
     calls.add((capability, payload));
     if (operationFailure != null) throw operationFailure!;
+    if (capability == 'rewrite.generic') {
+      return genericRewriteResponse?.future ?? genericResponse;
+    }
     if (capability == 'rewrite') return rewriteResponse?.future ?? receipt;
+    if (capability == 'feedback.write') return {'id': 'synthetic-feedback'};
     if (capability == 'document.import') return importResult;
     if (capability == 'document.rewrite') return documentResult;
     return {'id': 'synthetic-record'};
@@ -101,15 +119,21 @@ Future<void> boot(
 }
 
 Finder field(String label) => find.widgetWithText(TextField, label);
+Future<void> selectContext(WidgetTester tester, String label) async {
+  await tester.tap(find.byKey(const Key('writing-context')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label).last);
+  await tester.pumpAndSettle();
+}
+
 Future<void> rewrite(WidgetTester tester) async {
   await tester.enterText(field('Original text'), 'Synthetic source.');
   await tester.enterText(field('Intent'), 'Be concise');
-  await tester.enterText(field('Explicit context'), 'work.email');
   await tester.enterText(
     field('Constraints (one per line)'),
     'Keep names\nKeep dates',
   );
-  await tester.tap(find.text('Rewrite'));
+  await tester.tap(find.text('Humanize'));
   await tester.pump();
 }
 
@@ -195,8 +219,8 @@ void main() {
       '# Synthetic imported document\n\nOriginal paragraph.',
     );
     await tester.enterText(field('Intent'), 'Clarify without changing facts');
-    await tester.enterText(field('Explicit context'), 'work.email');
-    await tester.tap(find.text('Rewrite'));
+    await selectContext(tester, 'Professional');
+    await tester.tap(find.text('Humanize'));
     await tester.pumpAndSettle();
     expect(fake.calls[1].$1, 'document.rewrite');
     expect(
@@ -228,8 +252,8 @@ void main() {
     await tester.tap(find.text('Open .txt or .md document'));
     await tester.pumpAndSettle();
     await tester.enterText(field('Intent'), 'Clarify');
-    await tester.enterText(field('Explicit context'), 'work.email');
-    await tester.tap(find.text('Rewrite'));
+    await selectContext(tester, 'Professional');
+    await tester.tap(find.text('Humanize'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Export verified document'));
     await tester.pumpAndSettle();
@@ -240,29 +264,30 @@ void main() {
     ]);
   });
 
-  testWidgets('READY and rewrite transitions delegate exact request', (
+  testWidgets('READY and generic Humanize transitions delegate exact request', (
     tester,
   ) async {
-    final fake = WireFake()..rewriteResponse = Completer<Object?>();
+    final fake = WireFake()..genericRewriteResponse = Completer<Object?>();
     await boot(tester, fake);
     expect(find.text('READY'), findsOneWidget);
     await rewrite(tester);
     expect(find.text('REWRITING'), findsOneWidget);
-    expect(fake.calls.single.$1, 'rewrite');
+    expect(fake.calls.single.$1, 'rewrite.generic');
     expect(fake.calls.single.$2, {
       'original': 'Synthetic source.',
       'intent': 'Be concise',
-      'context': 'work.email',
+      'context': 'academic.essay',
       'constraints': ['Keep names', 'Keep dates'],
     });
-    fake.rewriteResponse!.complete(fake.receipt);
+    fake.genericRewriteResponse!.complete(fake.genericResponse);
     await tester.pumpAndSettle();
     expect(find.text('RESULT'), findsOneWidget);
     expect(find.byKey(const Key('verified')), findsOneWidget);
     expect(find.byKey(const Key('result')), findsOneWidget);
+    expect(find.byKey(const Key('generic-result-label')), findsOneWidget);
     expect(
       tester.widget<SelectableText>(find.byKey(const Key('result'))).data,
-      'Personalized synthetic result.',
+      'Generic synthetic result.',
     );
   });
 
@@ -283,7 +308,7 @@ void main() {
       );
       expect(
         tester
-            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Rewrite'))
+            .widget<FilledButton>(find.widgetWithText(FilledButton, 'Humanize'))
             .onPressed,
         isNull,
       );
@@ -294,7 +319,7 @@ void main() {
     tester,
   ) async {
     final fake = WireFake();
-    fake.receipt['verification_status'] = 'not_verified';
+    (fake.genericResponse as Map)['verification_status'] = 'not_verified';
     await boot(tester, fake);
     await rewrite(tester);
     await tester.pumpAndSettle();
@@ -303,51 +328,69 @@ void main() {
     expect(find.byKey(const Key('result')), findsNothing);
   });
 
-  for (final event in ['accept', 'edit']) {
-    testWidgets(
-      '$event feedback uses source run, UUID, explicit authorization, no classification',
-      (tester) async {
-        final fake = WireFake();
-        await boot(tester, fake);
-        await rewrite(tester);
-        await tester.pumpAndSettle();
-        if (event == 'edit') {
-          await tester.enterText(
-            field('Edit result'),
-            'Synthetic edited result.',
-          );
-        }
-        final button = find.text(
-          event == 'accept' ? 'Accept' : 'Submit edited feedback',
-        );
-        await tester.ensureVisible(button);
-        await tester.tap(button);
-        await tester.pumpAndSettle();
-        final request = fake.calls.last;
-        expect(request.$1, 'feedback.write');
-        expect(request.$2['run_id'], fake.receipt['run_id']);
-        final payload = request.$2['event'] as Map;
-        expect(payload['event_type'], event);
-        expect(payload['candidate_mode'], 'personalized');
-        expect(payload['id'], matches(RegExp(r'^[a-f0-9-]{36}$')));
-        expect(payload['authorized'], isTrue);
-        expect(payload['learning_authorized'], isFalse);
-        expect(payload['classification_hint'], isNull);
-        expect(
-          payload['edited_text'],
-          event == 'edit' ? 'Synthetic edited result.' : null,
-        );
-        expect(fake.calls, hasLength(2));
-      },
-    );
-  }
+  testWidgets(
+    'generic edit and copy are local and expose no feedback controls',
+    (tester) async {
+      final fake = WireFake();
+      String? copiedText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copiedText = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      await boot(tester, fake);
+      await rewrite(tester);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        field('Edit result'),
+        'Locally edited generic text.',
+      );
+      expect(
+        find.text('Authorize learning from this feedback in its context'),
+        findsNothing,
+      );
+      expect(find.text('Accept'), findsNothing);
+      expect(find.text('Submit edited feedback'), findsNothing);
+      expect(find.text('Feedback saved.'), findsNothing);
+      await tester.ensureVisible(find.byKey(const Key('copy-result')));
+      await tester.tap(find.byKey(const Key('copy-result')));
+      await tester.pumpAndSettle();
+      expect(copiedText, 'Locally edited generic text.');
+      expect(fake.calls.map((call) => call.$1), ['rewrite.generic']);
+    },
+  );
+
+  testWidgets('friendly contexts map to engine IDs for generic Humanize', (
+    tester,
+  ) async {
+    final fake = WireFake();
+    await boot(tester, fake);
+    await tester.enterText(field('Original text'), 'Synthetic source.');
+    for (final entry in const {
+      'Academic': 'academic.essay',
+      'Professional': 'work.email',
+      'Everyday': 'casual.chat',
+    }.entries) {
+      await selectContext(tester, entry.key);
+      await tester.ensureVisible(find.text('Humanize'));
+      await tester.tap(find.text('Humanize'));
+      await tester.pumpAndSettle();
+      expect(fake.calls.last.$1, 'rewrite.generic');
+      expect(fake.calls.last.$2['context'], entry.value);
+    }
+    expect(fake.calls, hasLength(3));
+  });
 
   testWidgets(
     'example writing requires ownership authorization and exact context',
     (tester) async {
       final fake = WireFake();
       await boot(tester, fake);
-      await tester.enterText(field('Explicit context'), 'friends.chat');
+      await selectContext(tester, 'Everyday');
       await tester.enterText(field('Writing example'), 'Synthetic example.');
       await tester.tap(
         find.text('I own this writing and authorize storing it'),
@@ -357,7 +400,7 @@ void main() {
       await tester.tap(find.text('Save authorized example'));
       await tester.pumpAndSettle();
       expect(fake.calls.single.$1, 'example.write');
-      expect(fake.calls.single.$2, containsPair('context', 'friends.chat'));
+      expect(fake.calls.single.$2, containsPair('context', 'casual.chat'));
       expect(fake.calls.single.$2, containsPair('authorized', true));
       expect(fake.calls.single.$2, containsPair('learning_eligible', false));
       expect(fake.calls.single.$2, containsPair('source_kind', 'user_owned'));
@@ -434,7 +477,9 @@ void main() {
     (tester) async {
       final fake = WireFake();
       await boot(tester, fake);
-      await rewrite(tester);
+      await tester.enterText(field('Original text'), 'Synthetic source.');
+      await tester.ensureVisible(find.text('Humanize with stored voice'));
+      await tester.tap(find.text('Humanize with stored voice'));
       await tester.pumpAndSettle();
       fake.operationFailure = const EngineException(EngineFailure.operation);
       await tester.ensureVisible(find.text('Accept'));
@@ -457,15 +502,40 @@ void main() {
       await tester.pumpAndSettle();
       expect(fake.calls.last, originalMutation);
       expect(fake.calls, hasLength(3));
+      expect(
+        find.text(
+          'The same request was accepted or an earlier save was confirmed.',
+        ),
+        findsOneWidget,
+      );
     },
   );
+
+  testWidgets('explicit stored-voice action retains paired rewrite route', (
+    tester,
+  ) async {
+    final fake = WireFake();
+    await boot(tester, fake);
+    await tester.enterText(field('Original text'), 'Synthetic source.');
+    await tester.enterText(field('Intent'), 'Be concise');
+    await tester.ensureVisible(find.text('Humanize with stored voice'));
+    await tester.tap(find.text('Humanize with stored voice'));
+    await tester.pumpAndSettle();
+    expect(fake.calls.single.$1, 'rewrite');
+    expect(fake.calls.single.$2['context'], 'academic.essay');
+    expect(find.byKey(const Key('generic-result-label')), findsNothing);
+    expect(
+      tester.widget<SelectableText>(find.byKey(const Key('result'))).data,
+      'Personalized synthetic result.',
+    );
+  });
 
   testWidgets('pending save remains visible after engine exit without retry', (
     tester,
   ) async {
     final fake = WireFake();
     await boot(tester, fake);
-    await tester.enterText(field('Explicit context'), 'casual.chat');
+    await selectContext(tester, 'Everyday');
     await tester.enterText(field('Writing example'), 'Synthetic example.');
     await tester.tap(find.text('I own this writing and authorize storing it'));
     await tester.pumpAndSettle();
@@ -491,7 +561,7 @@ void main() {
           EngineFailure.invalidRequest,
         );
       await boot(tester, fake);
-      await tester.enterText(field('Explicit context'), 'casual.chat');
+      await selectContext(tester, 'Everyday');
       await tester.enterText(field('Writing example'), 'Synthetic example.');
       await tester.tap(
         find.text('I own this writing and authorize storing it'),

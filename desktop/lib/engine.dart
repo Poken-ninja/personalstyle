@@ -8,6 +8,7 @@ const protocolVersion = '1.1';
 const requiredCapabilities = {
   'handshake',
   'rewrite',
+  'rewrite.generic',
   'example.write',
   'feedback.write',
   'preference.evaluate',

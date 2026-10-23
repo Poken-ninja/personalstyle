@@ -78,7 +78,9 @@ void main() {
     );
   });
   test('missing required capability fails', () async {
-    (response['result'] as Map)['supported_capabilities'] = ['handshake'];
+    (response['result'] as Map)['supported_capabilities'] = requiredCapabilities
+        .where((value) => value != 'rewrite.generic')
+        .toList();
     await expectLater(
       client.handshake(),
       throwsA(
@@ -90,6 +92,25 @@ void main() {
       ),
     );
   });
+  test(
+    'generic rewrite serializes one explicit protocol 1.1 request',
+    () async {
+      const payload = {
+        'original': 'Synthetic draft.',
+        'intent': 'Clarify',
+        'context': 'academic.essay',
+        'constraints': <String>[],
+      };
+      await client.call('rewrite.generic', payload);
+      expect(received.single, {
+        'protocol_version': '1.1',
+        'client_version': '0.1.0',
+        'client_kind': 'desktop',
+        'requested_capability': 'rewrite.generic',
+        'payload': payload,
+      });
+    },
+  );
   test('authentication error ignores untrusted diagnostic text', () async {
     status = 401;
     response = {
