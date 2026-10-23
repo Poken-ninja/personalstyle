@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 
 import 'document_picker.dart';
 import 'engine.dart';
@@ -131,14 +132,17 @@ class WritingScreen extends StatefulWidget {
 
 class _WritingScreenState extends State<WritingScreen> {
   final original = TextEditingController();
-  final intent = TextEditingController();
-  final contextInput = TextEditingController();
+  final intent = TextEditingController(
+    text:
+        'Humanize this draft while preserving its meaning and important facts.',
+  );
   final constraints = TextEditingController();
   final edited = TextEditingController();
   final example = TextEditingController();
   late final AppLifecycleListener lifecycle;
   ViewState state = ViewState.starting;
   Map<String, dynamic>? result;
+  String selectedContext = 'Academic';
   String mode = 'personalized';
   String? notice;
   bool busy = false;
@@ -149,6 +153,7 @@ class _WritingScreenState extends State<WritingScreen> {
   EngineException? lastFailure;
   String? documentId;
   bool documentResult = false;
+  bool genericResult = false;
   // One uncertain mutation can be confirmed manually with the same UUID/payload.
   (String, Map<String, Object?>)? pending;
 
@@ -167,6 +172,7 @@ class _WritingScreenState extends State<WritingScreen> {
         result = null;
         documentId = null;
         documentResult = false;
+        genericResult = false;
         state = ViewState.engineUnavailable;
         notice = messageFor(EngineFailure.exited);
       });
@@ -199,14 +205,7 @@ class _WritingScreenState extends State<WritingScreen> {
     lifecycle.dispose();
     widget.connection.onExit = null;
     unawaited(widget.connection.stop());
-    for (final controller in [
-      original,
-      intent,
-      contextInput,
-      constraints,
-      edited,
-      example,
-    ]) {
+    for (final controller in [original, intent, constraints, edited, example]) {
       controller.dispose();
     }
     super.dispose();
@@ -239,18 +238,27 @@ class _WritingScreenState extends State<WritingScreen> {
     }
   }
 
-  Future<void> rewrite() => operate(() async {
+  static const contextIds = <String, String>{
+    'Academic': 'academic.essay',
+    'Professional': 'work.email',
+    'Everyday': 'casual.chat',
+  };
+
+  String get contextId => contextIds[selectedContext]!;
+
+  Future<void> rewrite({bool personalized = false}) => operate(() async {
     setState(() {
       state = ViewState.rewriting;
       result = null;
       pending = null;
       feedbackSaved = false;
+      feedbackLearning = false;
       edited.clear();
     });
     final payload = <String, Object?>{
       'original': original.text,
       'intent': intent.text,
-      'context': contextInput.text,
+      'context': contextId,
       'constraints': constraints.text
           .split('\n')
           .where((c) => c.trim().isNotEmpty)
@@ -259,7 +267,11 @@ class _WritingScreenState extends State<WritingScreen> {
     final isDocument = documentId != null;
     if (isDocument) payload['document_id'] = documentId;
     final value = await widget.connection.call(
-      isDocument ? 'document.rewrite' : 'rewrite',
+      isDocument
+          ? 'document.rewrite'
+          : personalized
+          ? 'rewrite'
+          : 'rewrite.generic',
       payload,
     );
     if (value is! Map<String, dynamic>) {
@@ -271,7 +283,7 @@ class _WritingScreenState extends State<WritingScreen> {
           value['output'] is! String) {
         throw const EngineException(EngineFailure.operation);
       }
-    } else {
+    } else if (personalized) {
       // Receipt validation only: semantic/fact/constraint verification stays in P01.
       if (value['state'] != 'SUCCEEDED' ||
           value['verification_status'] != 'verified' ||
@@ -287,11 +299,26 @@ class _WritingScreenState extends State<WritingScreen> {
           throw const EngineException(EngineFailure.operation);
         }
       }
+    } else {
+      final candidates = value['candidates'];
+      final candidate = candidates is Map ? candidates['generic'] : null;
+      if (value['generation_mode'] != 'generic' ||
+          value['verification_status'] != 'verified' ||
+          value['state'] != 'SUCCEEDED' ||
+          value['run_id'] is! String ||
+          candidates is! Map ||
+          candidates.length != 1 ||
+          candidate is! Map ||
+          candidate['verification_status'] != 'verified' ||
+          candidate['text'] is! String) {
+        throw const EngineException(EngineFailure.operation);
+      }
     }
     if (!mounted || state == ViewState.engineUnavailable) return;
     setState(() {
       result = value;
       documentResult = isDocument;
+      genericResult = !isDocument && !personalized;
       state = ViewState.result;
       edited.text = candidateText;
     });
@@ -301,7 +328,8 @@ class _WritingScreenState extends State<WritingScreen> {
     final value = result;
     if (documentResult) return value?['output'] as String? ?? '';
     final candidates = value?['candidates'] as Map?;
-    return (candidates?[mode] as Map?)?['text'] as String? ?? '';
+    final candidateMode = genericResult ? 'generic' : mode;
+    return (candidates?[candidateMode] as Map?)?['text'] as String? ?? '';
   }
 
   String formatForPath(String path) {
@@ -329,6 +357,7 @@ class _WritingScreenState extends State<WritingScreen> {
       documentId = value['document_id'] as String;
       result = null;
       documentResult = false;
+      genericResult = false;
       pending = null;
       feedbackSaved = false;
       state = ViewState.ready;
@@ -383,7 +412,7 @@ class _WritingScreenState extends State<WritingScreen> {
     await mutation('example.write', {
       'id': newMutationId(),
       'text': example.text,
-      'context': contextInput.text,
+      'context': contextId,
       'supplier': 'local_user',
       'authorizer': 'local_user',
       'source_kind': 'user_owned',
@@ -475,11 +504,40 @@ class _WritingScreenState extends State<WritingScreen> {
                 child: const Text('Open .txt or .md document'),
               ),
               input('Intent', intent),
-              input('Explicit context', contextInput),
+              DropdownButtonFormField<String>(
+                key: const Key('writing-context'),
+                initialValue: selectedContext,
+                decoration: const InputDecoration(
+                  labelText: 'Writing context',
+                  border: OutlineInputBorder(),
+                ),
+                items: contextIds.keys
+                    .map(
+                      (label) =>
+                          DropdownMenuItem(value: label, child: Text(label)),
+                    )
+                    .toList(),
+                onChanged: available
+                    ? (value) {
+                        if (value != null) {
+                          setState(() {
+                            selectedContext = value;
+                            result = null;
+                            genericResult = false;
+                            state = ViewState.ready;
+                          });
+                        }
+                      }
+                    : null,
+              ),
               input('Constraints (one per line)', constraints, lines: 2),
               FilledButton(
-                onPressed: available ? rewrite : null,
-                child: const Text('Rewrite'),
+                onPressed: available ? () => rewrite() : null,
+                child: const Text('Humanize'),
+              ),
+              OutlinedButton(
+                onPressed: available ? () => rewrite(personalized: true) : null,
+                child: const Text('Humanize with stored voice'),
               ),
               if (pending != null) ...[
                 Card(
@@ -517,9 +575,16 @@ class _WritingScreenState extends State<WritingScreen> {
                 Text(
                   documentResult
                       ? 'Whole document verified by the engine'
+                      : genericResult
+                      ? 'Generic result — no stored writing voice used; verified by the engine'
                       : 'Verified by the engine',
                   key: const Key('verified'),
                 ),
+                if (genericResult)
+                  const Text(
+                    'Generic humanization. This result was not personalized using stored writing.',
+                    key: Key('generic-result-label'),
+                  ),
                 if (documentResult &&
                     result?['verified_segments'] is int &&
                     result?['total_segments'] is int)
@@ -528,61 +593,81 @@ class _WritingScreenState extends State<WritingScreen> {
                     key: const Key('document-progress'),
                   ),
                 SelectableText(candidateText, key: const Key('result')),
+                if (!documentResult)
+                  OutlinedButton.icon(
+                    key: const Key('copy-result'),
+                    onPressed: edited.text.isEmpty
+                        ? null
+                        : () async {
+                            await Clipboard.setData(
+                              ClipboardData(text: edited.text),
+                            );
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Result copied.')),
+                            );
+                          },
+                    icon: const Icon(Icons.copy),
+                    label: const Text('Copy result'),
+                  ),
                 if (documentResult)
                   OutlinedButton(
                     onPressed: available ? exportDocument : null,
                     child: const Text('Export verified document'),
                   )
                 else ...[
-                  DropdownButton<String>(
-                    value: mode,
-                    onChanged: available && !feedbackSaved
-                        ? (value) {
-                            setState(() {
-                              mode = value!;
-                              edited.text = candidateText;
-                            });
-                          }
-                        : null,
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'personalized',
-                        child: Text('Personalized'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'generic',
-                        child: Text('Generic'),
-                      ),
-                    ],
-                  ),
+                  if (!genericResult)
+                    DropdownButton<String>(
+                      value: mode,
+                      onChanged: available && !feedbackSaved
+                          ? (value) {
+                              setState(() {
+                                mode = value!;
+                                edited.text = candidateText;
+                              });
+                            }
+                          : null,
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'personalized',
+                          child: Text('Personalized'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'generic',
+                          child: Text('Generic'),
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 16),
                   input('Edit result', edited, lines: 4),
-                  CheckboxListTile(
-                    value: feedbackLearning,
-                    onChanged: available && !feedbackSaved
-                        ? (value) => setState(() => feedbackLearning = value!)
-                        : null,
-                    title: const Text(
-                      'Authorize learning from this feedback in its context',
+                  if (!genericResult) ...[
+                    CheckboxListTile(
+                      value: feedbackLearning,
+                      onChanged: available && !feedbackSaved
+                          ? (value) => setState(() => feedbackLearning = value!)
+                          : null,
+                      title: const Text(
+                        'Authorize learning from this feedback in its context',
+                      ),
                     ),
-                  ),
-                  Wrap(
-                    spacing: 12,
-                    children: [
-                      FilledButton(
-                        onPressed: available && !feedbackSaved
-                            ? () => feedback('accept')
-                            : null,
-                        child: const Text('Accept'),
-                      ),
-                      OutlinedButton(
-                        onPressed: available && !feedbackSaved
-                            ? () => feedback('edit')
-                            : null,
-                        child: const Text('Submit edited feedback'),
-                      ),
-                    ],
-                  ),
+                    Wrap(
+                      spacing: 12,
+                      children: [
+                        FilledButton(
+                          onPressed: available && !feedbackSaved
+                              ? () => feedback('accept')
+                              : null,
+                          child: const Text('Accept'),
+                        ),
+                        OutlinedButton(
+                          onPressed: available && !feedbackSaved
+                              ? () => feedback('edit')
+                              : null,
+                          child: const Text('Submit edited feedback'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ],
               const Divider(height: 40),
