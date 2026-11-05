@@ -5,19 +5,39 @@
 ```text
 CONTRACT_ID: PS-V1-001
 CONTRACT_STATUS: contract_ready
-IMPLEMENTATION_STATUS: I01 / SEC01 / F01 / F02 / F03 / F04 / F05 / F06 / P01 merged and verified; V1 incomplete
-SELECTED_PRODUCT_TASK: F07
-ACTIVE_PRODUCT_TASK: F07 locally passing; draft PR awaits exact-head CI; docs/F07_TASK.md
-NEXT_PERMITTED_ACTION: observe required exact-head CI; do not merge or activate F08 automatically
-SURFACE_STATUS: Windows Phase A merged; overall alpha incomplete; Phase B and SEC02/SEC03 not_started
+IMPLEMENTATION_STATUS: I01 / SEC01 / F01-F07 / P01 / Windows Phase A / UX-A / F08 Phase A / V01 / H01 / G01 / UX-I02 merged; V1 incomplete
+SELECTED_PRODUCT_TASK: none
+ACTIVE_PRODUCT_TASK: none
+NEXT_PERMITTED_ACTION: owner selects and authorizes a separately bounded task from current main in a clean worktree
+F07_STATUS: merged; historical completed task; not awaiting CI
+F08_PHASE_A_STATUS: merged and verified for TXT/Markdown scope
+F08_PHASE_B_C_STATUS: DOCX / PDF frozen; unstarted; not activated
+F08_OVERALL_STATUS: incomplete
+UX_I02_STATUS: merged; generic desktop Humanize / Review / Edit / Copy
+VOICE_ONBOARDING_STATUS: optional future UI; not activated
+FEEDBACK_RECEIPT_CONTRACT: deferred
+SURFACE_STATUS: Windows Phase A merged; Windows alpha incomplete; model setup Phase B and SEC02/SEC03 not_started
 ACTIVE_IMPLEMENTATION_LIMIT: 1
-CURRENT_VERIFIED_MAIN: 96afb4691dfb141601f3239b3d93f203294347d4
+CURRENT_VERIFIED_MAIN: 05dfea97ccc3ad97c0dbe1b0d68073cf0e2f63fb
 ```
 
 This document owns product scope, roadmap, dependencies and completion definitions.
 Status and specifications are not execution evidence. Task-specific scope, acceptance,
 budgets and evidence live in the selected bounded task contract; stable builder and
 security rules live in [AGENTS.md](AGENTS.md).
+
+ST01 reconciles current state against live GitHub main and merged PRs; it is documentation
+work only. `CURRENT_VERIFIED_MAIN` names the inspected implementation baseline, not a new
+runtime acceptance result. No implementation task remains selected after ST01. Roadmap order,
+completed dependencies and old task checkpoints never activate work. The next owner decision
+may consider a separately bounded voice onboarding/readiness task; V01's merge does not
+authorize it. F08 B/C, full F08, voice onboarding/management UI, feedback receipt semantics,
+Windows alpha, cross-platform protected storage and overall V1 remain incomplete.
+
+Start fresh work from current main in a clean worktree. Preserve the dirty legacy
+`task/f08-document-import-export` worktree and unfinished merge, all F08 artifacts, the
+`task/ux-c-voice-onboarding` branch/stash and open draft documentation-only PR #14; none is
+the base for new work. PR #14 is not changed or merged by this reconciliation.
 
 ## Completed tasks and evidence
 
@@ -32,6 +52,31 @@ security rules live in [AGENTS.md](AGENTS.md).
 | F04 | Hard second-pass verification and bounded repair | [F04 task](docs/F04_TASK.md); [PR #9](https://github.com/Poken-ninja/personalstyle/pull/9) |
 | P01 | Authenticated versioned loopback engine boundary | [Historical task](docs/P01_TASK.md); [PR #11](https://github.com/Poken-ninja/personalstyle/pull/11) owns recovery/final merge evidence |
 | S03-WIN-ALPHA Phase A | Windows Flutter foundation and real authenticated engine lifecycle | [Historical task](docs/S03_WIN_ALPHA_TASK.md); [PR #12](https://github.com/Poken-ninja/personalstyle/pull/12) |
+| F07 | Bounded resumable long-document rewriting; merged historical completion | [Historical task](docs/F07_TASK.md); [PR #13](https://github.com/Poken-ninja/personalstyle/pull/13) |
+| UX-A | Actionable engine errors and uncertain-mutation recovery | [Historical task](docs/UXA_TASK.md); [PR #16](https://github.com/Poken-ninja/personalstyle/pull/16) |
+| V01 | Exact-context voice evidence; storage/personalization authorization, enable/disable, revocation and read-only aggregate `voice.status` | [Historical task](docs/V01_TASK.md); [PR #18](https://github.com/Poken-ninja/personalstyle/pull/18) |
+| H01 | Focused verification and durable diagnostics; no storage-boundary relaxation | [Historical task](docs/H01_TASK.md); [PR #19](https://github.com/Poken-ninja/personalstyle/pull/19) |
+| G01 | Authoritative `rewrite.generic` without voice enrollment | [Historical task](docs/G01_TASK.md); [PR #20](https://github.com/Poken-ninja/personalstyle/pull/20) |
+| F08 Phase A | TXT/Markdown import/export; native cancellation and exact saved-file read-back verified | [Historical task](docs/F08_TASK.md); [PR #21](https://github.com/Poken-ninja/personalstyle/pull/21) |
+| UX-I02 | Generic desktop Paste → choose context → Humanize → Review/Edit → Copy | [Historical task](docs/UXI02_TASK.md); [PR #22](https://github.com/Poken-ninja/personalstyle/pull/22) |
+
+ST01 verified these merge commits against GitHub:
+
+| Task / PR | Merge SHA |
+|---|---|
+| F07 / #13 | `4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a` |
+| V01 / #18 | `8cf61458d407eb3ba14ecf7fd11fee74ca371aa5` |
+| H01 / #19 | `0ffd5844bc4c26a172bcda43472bee2722c82c53` |
+| G01 / #20 | `00003b396c56a6f05f60db3b1e9298d911f122ee` |
+| F08 Phase A / #21 | `b4acde3a8831a2f5f3f83d383a371f0d33f5f2f1` |
+| UX-I02 / #22 | `05dfea97ccc3ad97c0dbe1b0d68073cf0e2f63fb` |
+
+PR #21 exact-head CI run [39818475184](https://github.com/Poken-ninja/personalstyle/actions/runs/39818475184)
+and PR #22 exact-head CI run [39903145085](https://github.com/Poken-ninja/personalstyle/actions/runs/39903145085)
+completed successfully. The PRs/task files retain their earlier pre-merge snapshots; this
+current-status section supersedes their pending-CI/publication/next-action instructions,
+without rewriting historical acceptance, failures or budgets. F08 Phase A completion does
+not complete F08 or unfreeze DOCX/PDF.
 
 F05/F06 merge: `0ffd79f305044e739815e26fd97bd1798085c717`; [historical task](docs/F05_F06_TASK.md), [PR #10](https://github.com/Poken-ninja/personalstyle/pull/10).
 P01 merge: `b811eb1147afe3e2010d69324eb822ed60a0f12a`; exact-head and merged-main CI green,
@@ -44,6 +89,13 @@ Phase A merge: `96afb4691dfb141601f3239b3d93f203294347d4`; source head
 Historical local evidence: Flutter analyze clean,22 Flutter tests passed, Windows build passed,
 real P01 lifecycle/handshake passed2.673s. Its recorded failures/counters remain unchanged.
 Phase A completion does not complete Windows alpha or activate model onboarding.
+
+The original protected-storage failure remains unresolved/not reproduced. Handshake readiness
+proves neither profile-storage nor model readiness. Later passing checks and merged work do
+not establish a root cause or repair; preserve the [issue #17 failure/checkpoint history](https://github.com/Poken-ninja/personalstyle/issues/17).
+Feedback receipt-contract work remains deferred; UX-I02 does not resolve positive-feedback
+persistence semantics. Copy does not authorize learning. Generic output is never labeled
+personalized. `voice.status` exists in the engine and is not exposed in Flutter.
 
 Completed records are historical evidence for their named revisions/environments, not
 instructions to reactivate tasks or reset budgets. PR records include merge SHAs and
@@ -88,10 +140,11 @@ arrangements are owned by [ARCHITECTURE.md](ARCHITECTURE.md),
 [ADR-002](docs/decisions/ADR-002-versioned-multi-surface-engine.md), and
 [ADR-003](docs/decisions/ADR-003-desktop-first-flutter.md).
 
-Owner-approved additions: F07 bounded/resumable long-document reliability and later F08
-document import/export precede Windows model onboarding. F08 initial import formats are
-`.txt`, `.md`, `.docx`, text-based `.pdf`; initial export formats are `.docx`, `.pdf`, `.md`,
-`.txt`. Parsing/export/OCR are not activated by F07. A future thin web client is approved
+Owner-approved roadmap additions: F07 bounded/resumable long-document reliability and F08
+document import/export precede Windows model onboarding. F07 and F08 Phase A `.txt`/`.md`
+import/export are merged. Future Phase B `.docx` and Phase C text-based `.pdf` import/export
+remain frozen and require separate activation; full F08 is incomplete. OCR is out of scope.
+A future thin web client is approved
 as a surface; deployment/transport is unresolved and requires a separate decision.
 No local-web versus hosted-cloud architecture is selected here.
 
@@ -168,14 +221,23 @@ the already verified Windows path.
 | F06 | Evidence-backed context preference promotion | F05 | merged / verified; PR #10, context_preference_promotion.v1 |
 | P01 | Mechanize versioned engine protocol + authenticated capability handshake | F05 + F06 + SEC01 | merged / verified; PR #11 |
 | S03-WIN-ALPHA-A | Windows Flutter foundation and engine connection | P01 | merged / verified; PR #12 at96afb4691dfb141601f3239b3d93f203294347d4 |
-| F07 | Long-document bounded rewrite and recovery | S03-WIN-ALPHA-A + F04 + SEC01 | locally passing; 294-test regressions, static checks and v3 real2,000/5,000 passed; draft PR awaits CI; [task](docs/F07_TASK.md) |
-| F08 | Document import/export in the declared initial formats | F07 | not_started |
+| F07 | Long-document bounded rewrite and recovery | S03-WIN-ALPHA-A + F04 + SEC01 | merged / verified; historical task and PR #13 |
+| V01 | Context-scoped voice evidence and consent | exact-context storage / protocol | merged; PR #18; onboarding UI not activated |
+| H01 | Focused verification and durable diagnostics | existing harness | merged; PR #19 |
+| G01 | Explicit generic-only engine humanization | engine / protocol | merged; PR #20 |
+| F08-A | TXT/Markdown document import/export | F07 | merged / verified for Phase A; PR #21 |
+| UX-I02 | Generic desktop Humanize / Review / Edit / Copy | G01 | merged; PR #22; no voice enrollment required |
+| F08-B | DOCX import/export | F08-A | frozen / unstarted; not activated |
+| F08-C | Text-PDF import/export | F08-B | frozen / unstarted; not activated |
+| F08 | Document import/export in all declared initial formats | F08-A + F08-B + F08-C | incomplete; Phase A only completed |
+| Voice onboarding / management UI | Optional context-scoped enrollment/readiness and management | V01 + separately bounded owner contract | future / not activated; `voice.status` not exposed in Flutter |
+| Feedback receipt contract | Define and integrate authoritative persistence receipts | separate owner contract | deferred / incomplete |
 | S03-WIN-ALPHA-B | Windows model setup/readiness | F08 | not_started; separate owner activation required |
 | SEC02 | Mechanize macOS protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | SEC03 | Mechanize Linux protected local profile boundary | S03-WIN-ALPHA + F01 | not_started |
 | E01 | Frozen A/B/C product-performance test | F06 + U3 | not_started |
 | S01 | Terminal/CLI acceptance surface | F06 | not_started |
-| S03-WIN-ALPHA | Final Windows Flutter desktop-alpha acceptance | Phase A + F07 + F08 + Phase B + SEC01 | incomplete; Phase A merged; later phases unstarted |
+| S03-WIN-ALPHA | Final Windows Flutter desktop-alpha acceptance | Phase A + F07 + F08 + Phase B + SEC01 | incomplete; Windows Phase A, F07, F08-A and UX-I02 merged; later acceptance not complete |
 | S03 | Flutter desktop app + Windows/macOS/Linux release acceptance | S03-WIN-ALPHA + SEC02 + SEC03 + U6 | not_started |
 
 Deferred backlog, not V1 blockers: S02 browser-extension adapter, S04 iOS/Android companion
@@ -183,17 +245,12 @@ client, and S05 standalone mobile inference. Reactivating any deferred surface r
 explicit owner decision and a fresh bounded task contract.
 
 Do not fully design later tasks until dependencies and evidence sharpen. A next candidate
-requires explicit owner selection and a bounded task contract; completing a dependency
-does not auto-activate it. F03 is merged/verified; PR #8 records the exact merge and
-merged-main CI. P01 is merged/verified at b811eb1147afe3e2010d69324eb822ed60a0f12a.
-Phase A is merged; F07 is locally passing with owner-authorized protected document/segment
-state and schema2->3 migration. Both live long-document acceptances, the instrumented and
-definitive294-test regressions, and required local static checks passed. The P01 bounded
-transport repair passed its targeted stress tests. Historical storage-failure cause remains
-unknown and all failures/counters remain recorded. The draft PR awaits exact-head CI.
-F08 remains the next roadmap item, not_started until explicit activation. Phase B remains
-not_started; overall Windows alpha remains incomplete.
-Other surfaces remain unstarted.
+requires explicit owner selection and a bounded task contract; completing a dependency does
+not auto-activate it. Completed bounded slices include F07, F08 Phase A, V01, H01, G01 and
+UX-I02. Their historical evidence remains revision-specific. No product task is selected
+after ST01; frozen/deferred work remains so regardless of its position in this table.
+Windows model setup Phase B, final alpha acceptance and other-platform surfaces remain
+unstarted/incomplete. Historical storage-failure cause remains unknown.
 
 ### Windows desktop alpha
 
@@ -201,6 +258,9 @@ Owner-approved delivery order: F04 -> combined F05+F06 feedback-learning slice -
 S03-WIN-ALPHA Phase A -> F07 long-document reliability -> F08 document import/export ->
 S03 Phase B model setup/readiness -> final Windows alpha acceptance -> SEC02/macOS +
 SEC03/Linux -> cross-platform desktop V1.
+This is roadmap dependency order, not execution authorization. F08 Phase A and UX-I02 are
+merged; DOCX/PDF remain frozen. Neither Windows model setup nor optional voice onboarding
+starts automatically after ST01 or a dependency merge.
 S03-WIN-ALPHA is a distinct usable Windows UI milestone; it does not wait for macOS/Linux.
 It must verify Windows core workflows, authenticated engine ownership, selected-model setup
 and SEC01-protected persistence on the declared Windows environment. It is not cross-platform

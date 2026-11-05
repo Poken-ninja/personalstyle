@@ -1,10 +1,34 @@
 # PersonalStyle product and UX handoff
 
-This document routes product/UX work to the accepted product decisions in
-[ADR-004](decisions/ADR-004-voice-and-constraint-humanization.md) and the open
-[PR #14](https://github.com/Poken-ninja/personalstyle/pull/14). It does not claim that
-proposed product behavior is implemented. Do not edit PR #14's branch or merge it as part of
-an unrelated task.
+This document separates current capabilities from future product/UX direction. Proposed
+ADR-004 is in the open draft documentation-only
+[PR #14](https://github.com/Poken-ninja/personalstyle/pull/14); it is not an accepted file on
+main. Preserve that PR and its branch. Current execution authority is the
+[execution contract](../EXECUTION_CONTRACT.md#current-status); designs and roadmap order do
+not activate implementation.
+
+## Current capabilities
+
+At verified main `05dfea97ccc3ad97c0dbe1b0d68073cf0e2f63fb`:
+
+- G01's authoritative `rewrite.generic` is merged in
+  [PR #20](https://github.com/Poken-ninja/personalstyle/pull/20). Generic humanization requires
+  no voice enrollment and does not silently fall back from a personalized request.
+- V01 is merged in [PR #18](https://github.com/Poken-ninja/personalstyle/pull/18). The engine
+  supports read-only aggregate exact-context `voice.status`, separate storage and
+  personalization authorization (`example.authorize`), personalization enable/disable
+  (`example.personalization.set`) and source revocation (`example.revoke`). It enforces
+  exact-context evidence isolation. `voice.status` is not a raw profile/DNA inspection API
+  and is **not exposed in Flutter**. Voice onboarding/management UI remains future work.
+- UX-I02 is merged in [PR #22](https://github.com/Poken-ninja/personalstyle/pull/22):
+  **Paste → choose context → Humanize → Review/Edit → Copy**. Friendly contexts map to
+  Academic (`academic.essay`), Professional (`work.email`) and Everyday (`casual.chat`).
+  The ordinary generic desktop flow uses engine verification, labels generic results honestly,
+  permits local editing and copies without another engine call or generic feedback controls.
+  Existing stored-voice rewriting remains separate; this is not an onboarding UI.
+
+Feedback receipt-contract work remains deferred. Do not claim that positive feedback has an
+authoritative persistence receipt merely because an operation returned successfully.
 
 ## Product promise
 
@@ -13,7 +37,7 @@ draft sound like their authentic voice in its specific context while preserving 
 important facts, legitimate citations and confirmed requirements. It is not an AI-detector
 bypass tool and must not promise undetectability or guaranteed human authorship.
 
-The main journey is: discover or provide genuine writing evidence → choose a friendly writing
+The future personalized journey is: discover or provide genuine writing evidence → choose a friendly writing
 context → add or import a draft → humanize in the user's voice → review the source, result and
 actual checks → edit or accept → optionally authorize learning from qualifying edits.
 Ordinary users should not need engine IDs, protocol terms, SQLite knowledge or structured
@@ -29,6 +53,8 @@ constraint syntax.
   rubric and unchanged AI-generated text are not personal-style evidence.
 - Accepting a result is not consent to learn. Meaning, fact, constraint and context corrections
   are not silently converted into style preferences.
+- Copy does not authorize learning or submit feedback. Generic output must never be called
+  personalized, and generic use does not require enrollment.
 - Verification and voice resemblance are distinct. A result is called verified only when the
   engine says its required checks passed; style quality is not represented as a hard proof.
 - The Python engine owns validation, personalization, generation, verification, budgets,
@@ -37,6 +63,8 @@ constraint syntax.
 - Errors must state the safe failure category, the affected operation and whether a durable
   mutation's outcome is known. Never expose writing, credentials, private paths or exception
   dumps. Never automatically replay an uncertain mutation.
+- Handshake readiness proves neither protected profile-storage nor model readiness. The old
+  protected-storage failure remains unresolved/not reproduced; no cause or fix is established.
 
 ## Screen direction
 
@@ -50,7 +78,12 @@ and [academic workspace, node 13-2](https://www.figma.com/design/689pIZn92H8dv10
 neither has completed visual QA. The result comparison, edit/accept, voice-management and
 requirements-confirmation screens still need design work. Never claim a missing frame exists.
 
-## Delivery order
+## Future delivery direction
+
+This is product direction, not a queue of authorized tasks. UX-A's error/recovery slice is
+merged ([PR #16](https://github.com/Poken-ninja/personalstyle/pull/16)); UX-I02 supplies the
+current generic writing/review/edit/copy path. The broader design and onboarding work below
+is not claimed complete or activated.
 
 1. **UX-A — actionable errors and recovery:** explain startup/runtime failures, typed engine
    errors and uncertain pending mutations; prevent accidental duplicate writes.
@@ -63,7 +96,7 @@ requirements-confirmation screens still need design work. Never claim a missing 
 5. **UX-E — usability/design acceptance:** visual, keyboard, accessibility and real Windows
    workflow evaluation.
 
-Each slice needs its own bounded task contract. If it needs a new engine capability, create a
+Each future slice needs explicit owner selection and its own bounded task contract. If it needs a new engine capability, create a
 separate dependency task instead of simulating that behavior in Flutter.
 
 ## Context, voice and refinement controls
@@ -71,19 +104,18 @@ separate dependency task instead of simulating that behavior in Flutter.
 The Academic workspace in the existing Figma file already proposes three friendly selectors:
 **Writing context**, **Use my writing voice**, and **Optional refinement**. Keep these as
 dropdowns; users should not enter engine context IDs, voice names or structured constraint
-syntax. The primary action remains Humanize in My Voice.
+syntax. These are future design controls; the current ordinary generic action is **Humanize**.
 
 - Selecting Academic, Professional or Everyday selects only that exact context. Default the
   voice selector to that context's own profile when eligible evidence exists. Offer an explicit
   generic mode; never borrow another context's examples or preferences.
 - When the selected context has no eligible examples, say so and offer “Add writing for this
   context” or “Continue with generic writing.” Do not call generic output personalized.
-- This fallback is a product requirement, not current behavior: `generate_pair` derives
-  personalization before generating either candidate, so it currently fails with
-  `NO_ELIGIBLE_EXAMPLES` when the selected context is empty. A bounded engine task must add a
-  generic-only execution path before the UI offers that fallback. P01 also has no read-only
-  context/profile inspection capability, so the UI cannot currently show per-context readiness
-  or a Writing DNA summary before generation.
+- The authoritative generic path now exists as `rewrite.generic` and is exposed by UX-I02's
+  ordinary Humanize action. Personalized paired `rewrite` still requires eligible evidence;
+  it must not silently fall back or borrow another context. Read-only aggregate readiness
+  exists as `voice.status`; future UI may use that capability after separate activation.
+  Flutter does not currently expose it, and it does not provide a Writing DNA summary.
 - Keep optional refinements predefined and user-controlled. Start with “Humanize only,” then
   offer a small set such as simpler wording, more concise, or more formal/conversational. A
   complexity choice describes the user's desired output, not their knowledge or expertise.
@@ -94,7 +126,7 @@ syntax. The primary action remains Humanize in My Voice.
   automatically identifies every technical term. General technicality/style refinements remain
   quality requests, not hard verification guarantees.
 
-## Inspecting and adjusting a voice profile
+## Future voice-profile inspection and adjustment
 
 Users should be able to inspect context-scoped evidence and the derived Writing DNA without
 seeing raw SQLite or needing a confidence score. The current DNA contains structural measures
@@ -109,7 +141,7 @@ the engine retains its reproducible derived snapshot. Persisted preference editi
 engine-owned, context-scoped, versioned capability and explicit acceptance tests before Flutter
 exposes it. “Use simpler wording” must never imply the user lacks expertise.
 
-## Progressive personalization depth
+## Future progressive personalization depth
 
 PersonalStyle should work for people who want one clear action and for power users who want
 fine control over how each context sounds. This is depth of user control, not a universal
@@ -138,19 +170,30 @@ Profiles are independent per context. If a user has Academic evidence but no Pro
 Everyday evidence, those latter contexts remain unavailable for personalized mode. The UI may
 offer the authoritative generic path with an honest label, or guide the user to add genuine
 writing for that exact context. It must not synthesize a missing voice, silently switch context,
-or treat an AI draft, rubric or synthetic fixture as personal evidence. A read-only engine
-readiness capability is needed to show these states before a rewrite; do not misuse
-`preference.evaluate`, which is a state-changing operation.
+or treat an AI draft, rubric or synthetic fixture as personal evidence. The read-only engine
+`voice.status` capability now supports aggregate readiness for the exact context; its Flutter
+integration remains future, separately authorized work. Do not misuse `preference.evaluate`,
+which is a state-changing operation.
 
 ## Current checkpoint
 
-F08 has a local incomplete checkpoint on `task/f08-document-import-export` at
-`52d4ca57d64df20f0a668e0db6dd40b50eda387e`. Its Phase A remains blocked: the native TXT
-export/save and read-back acceptance is outstanding; the historical owner-store example-save
-failure was not reproduced in a synthetic child-process test and remains unexplained. No
-profile submission should be repeated for this handoff. F08 work and temporary files remain on
-that branch/worktree and must not be overwritten by UX work.
+ST01 inspected main `05dfea97ccc3ad97c0dbe1b0d68073cf0e2f63fb` and verified PRs #18–#22
+merged. F07, F08 Phase A, V01, H01, G01 and UX-I02 are completed bounded slices. F08 Phase A
+TXT/Markdown native export/save cancellation and exact saved-file read-back are verified in
+[PR #21](https://github.com/Poken-ninja/personalstyle/pull/21); the former blocked snapshot
+is historical. F08 overall is incomplete; DOCX Phase B and PDF Phase C remain frozen/unstarted.
 
-Current UX-A is based on `main` at `4c5e9d26d57c05c9fa2e7ae8021fd7c78870f06a`. PR #14 is
-open, draft and documentation-only. The Windows alpha remains incomplete; S03 Phase B and
-F08's DOCX/PDF phases are not activated by this handoff.
+Voice onboarding/management UI is optional future work and not activated. Feedback receipt
+semantics remain deferred. Windows alpha, S03 model setup Phase B, cross-platform protected
+storage and overall V1 remain incomplete. No product success or release readiness is claimed.
+
+The original owner-store failure remains unresolved/not reproduced. Do not repeat the owner
+profile submission for this handoff or infer a storage fix from Phase A acceptance. Preserve
+the [issue #17 history](https://github.com/Poken-ninja/personalstyle/issues/17) and historical
+task records, including their failures, counters and pre-merge checkpoints. Current status
+supersedes their old pending/dependency/next-action instructions; it does not rewrite evidence.
+
+Preserve the dirty legacy `task/f08-document-import-export` worktree, unfinished merge and
+F08 artifacts, the UX-C branch/stash and draft PR #14. Fresh work must start from current main
+in a clean worktree. **No product implementation task is selected after ST01.** The next owner
+decision may select a separately bounded voice onboarding/readiness task; nothing starts here.
