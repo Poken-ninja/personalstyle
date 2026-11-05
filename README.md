@@ -25,17 +25,37 @@ S03-WIN-ALPHA Phase A is merged at `96afb4691dfb141601f3239b3d93f203294347d4`;
 [PR #12](https://github.com/Poken-ninja/personalstyle/pull/12) and its
 [historical task](docs/S03_WIN_ALPHA_TASK.md) preserve local and exact-head CI evidence.
 The Windows alpha remains incomplete; Phase B is not started.
-F07 is locally passing on the bounded task branch: real2,000/5,000-word qwen3:8b acceptance,
-294-test instrumented and uninstrumented regressions, Ruff, mypy, pip check and whitespace
-verification passed. The draft PR awaits exact-head CI. Historical transport/storage failures,
-diagnoses, counters and checkpoints remain in [docs/F07_TASK.md](docs/F07_TASK.md).
-F08 is next in the roadmap but remains not_started and requires explicit activation.
-SEC02/SEC03 remain unstarted. Delivery proceeds through a Windows
-desktop alpha before macOS/Linux protected storage and final cross-platform desktop V1;
-see the [roadmap](EXECUTION_CONTRACT.md#windows-desktop-alpha).
-Generation quality and PersonalStyle V1 completion are not claimed. Model tiers and future
-desktop onboarding remain defined in [architecture](ARCHITECTURE.md).
-See [current status and evidence](EXECUTION_CONTRACT.md#completed-tasks-and-evidence).
+F07 is merged historical work ([PR #13](https://github.com/Poken-ninja/personalstyle/pull/13));
+its long-document acceptance, failures and exhausted budgets remain in
+[docs/F07_TASK.md](docs/F07_TASK.md). It is not awaiting CI or selected for execution.
+F08 Phase A TXT/Markdown import/export is merged and verified for its declared scope
+([PR #21](https://github.com/Poken-ninja/personalstyle/pull/21)), including native save-dialog
+cancellation and exact saved-file read-back. **F08 overall is incomplete:** Phase B DOCX and
+Phase C PDF remain frozen, unstarted and not activated.
+
+V01 context-scoped voice evidence and separate storage/personalization authorization are
+merged ([PR #18](https://github.com/Poken-ninja/personalstyle/pull/18)). H01 focused verification
+and durable diagnostics are merged ([PR #19](https://github.com/Poken-ninja/personalstyle/pull/19)).
+G01 authoritative generic-only humanization is merged
+([PR #20](https://github.com/Poken-ninja/personalstyle/pull/20)). UX-I02 exposes the ordinary
+generic desktop flow **Paste → choose context → Humanize → Review/Edit → Copy**
+([PR #22](https://github.com/Poken-ninja/personalstyle/pull/22)). Generic desktop use requires
+no voice enrollment; generic results are labeled accordingly and Copy does not authorize learning.
+
+Optional voice onboarding/management UI remains future work and is not activated. Feedback
+receipt semantics remain deferred. The original protected-storage failure remains unresolved,
+not reproduced; merged work does not establish its cause or a fix. Windows alpha, SEC02/SEC03
+cross-platform protected storage and overall V1 remain incomplete; no product success or
+release readiness is claimed. Model setup/onboarding remains future work in
+[architecture](ARCHITECTURE.md). The [roadmap](EXECUTION_CONTRACT.md#windows-desktop-alpha)
+does not authorize continuation.
+
+The ST01 [current status](EXECUTION_CONTRACT.md#current-status) records verified main
+`05dfea97ccc3ad97c0dbe1b0d68073cf0e2f63fb` and selects **no active product task**.
+Fresh work must start from current main in a clean worktree; preserve the dirty legacy F08
+worktree and unfinished merge, its artifacts, the UX-C branch/stash and draft PR #14.
+See [merge evidence](EXECUTION_CONTRACT.md#completed-tasks-and-evidence) and the
+[UX capability handoff](docs/PERSONALSTYLE_UX_HANDOFF.md#current-checkpoint).
 
 ## Default read route
 
